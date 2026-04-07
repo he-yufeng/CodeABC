@@ -41,8 +41,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(project.router, prefix="/api")
+# analyze router must come first: its /file/{path}/annotations route
+# needs to match before project's greedy /file/{path:path} route
 app.include_router(analyze.router, prefix="/api")
+app.include_router(project.router, prefix="/api")
 
 
 @app.get("/api/health")

@@ -18,6 +18,31 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["analyze"])
 
 
+def _extract_json(text: str) -> dict | list | None:
+    """Try to parse JSON from LLM output, handling markdown code fences."""
+    text = text.strip()
+    # strip ```json ... ``` wrapper
+    if text.startswith("```"):
+        first_nl = text.find("\n")
+        last_fence = text.rfind("```")
+        if first_nl != -1 and last_fence > first_nl:
+            text = text[first_nl + 1 : last_fence].strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    # fallback: find first [ or { and extract
+    for opener, closer in [("[", "]"), ("{", "}")]:
+        start = text.find(opener)
+        end = text.rfind(closer)
+        if start != -1 and end > start:
+            try:
+                return json.loads(text[start : end + 1])
+            except json.JSONDecodeError:
+                continue
+    return None
+
+
 @router.get("/project/{project_id}/overview")
 async def get_overview(project_id: str, request: Request):
     """Generate or return cached project overview. Streams SSE."""
@@ -34,7 +59,7 @@ async def get_overview(project_id: str, request: Request):
     if cached:
         # return cached result as a single SSE event
         async def cached_stream():
-            yield f"data: {json.dumps(cached, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'result': cached}, ensure_ascii=False)}\n\n"
             yield "data: [DONE]\n\n"
         return StreamingResponse(cached_stream(), media_type="text/event-stream")
 
@@ -52,12 +77,11 @@ async def get_overview(project_id: str, request: Request):
             yield f"data: {json.dumps({'chunk': chunk}, ensure_ascii=False)}\n\n"
 
         # try to parse and cache the full response
-        try:
-            parsed = json.loads(full_response)
+        parsed = _extract_json(full_response)
+        if parsed and isinstance(parsed, dict):
             await cache.put(cache_key, parsed)
             yield f"data: {json.dumps({'result': parsed}, ensure_ascii=False)}\n\n"
-        except json.JSONDecodeError:
-            # LLM didn't return valid JSON, send raw text
+        else:
             yield f"data: {json.dumps({'raw': full_response}, ensure_ascii=False)}\n\n"
 
         yield "data: [DONE]\n\n"
@@ -95,21 +119,8 @@ async def get_annotations(project_id: str, file_path: str, request: Request):
     result = await call_llm(prompt, api_key=api_key)
 
     # parse annotations from LLM response
-    try:
-        annotations = json.loads(result)
-        if not isinstance(annotations, list):
-            annotations = []
-    except json.JSONDecodeError:
-        # try to extract JSON array from the response
-        start = result.find("[")
-        end = result.rfind("]")
-        if start != -1 and end != -1:
-            try:
-                annotations = json.loads(result[start : end + 1])
-            except json.JSONDecodeError:
-                annotations = []
-        else:
-            annotations = []
+    parsed = _extract_json(result)
+    annotations = parsed if isinstance(parsed, list) else []
 
     if annotations:
         await cache.put(cache_key, annotations)

@@ -121,6 +121,37 @@ export default function Home() {
             <p className="mt-2 text-sm text-gray-500">正在分析项目...</p>
           </div>
         )}
+
+        {/* Feature hints */}
+        {!loading && (
+          <div className="mt-12 grid grid-cols-3 gap-4 text-center">
+            <div className="p-4">
+              <div className="text-2xl mb-2">📋</div>
+              <p className="text-sm font-medium text-gray-700">项目说明书</p>
+              <p className="text-xs text-gray-400 mt-1">大白话解释每个文件</p>
+            </div>
+            <div className="p-4">
+              <div className="text-2xl mb-2">📖</div>
+              <p className="text-sm font-medium text-gray-700">悬停批注</p>
+              <p className="text-xs text-gray-400 mt-1">鼠标一放就有解释</p>
+            </div>
+            <div className="p-4">
+              <div className="text-2xl mb-2">🔑</div>
+              <p className="text-sm font-medium text-gray-700">自带 Key</p>
+              <p className="text-xs text-gray-400 mt-1">支持多种 AI 模型</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="fixed bottom-4 text-center w-full text-xs text-gray-400">
+        <a href="https://github.com/he-yufeng/CodeABC" target="_blank" rel="noopener"
+           className="hover:text-gray-600">
+          CodeABC v0.1.0
+        </a>
+        {" · "}
+        <span>Powered by AI</span>
       </div>
     </div>
   );
