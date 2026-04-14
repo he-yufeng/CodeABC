@@ -7,7 +7,7 @@ import uuid
 from fastapi import APIRouter, HTTPException
 
 from backend.models import AnalyzeRequest, FileInfo, GitHubRequest, ProjectMeta
-from backend.services import github_clone, scanner
+from backend.services import cache, github_clone, scanner
 
 router = APIRouter(tags=["project"])
 
@@ -26,12 +26,13 @@ async def upload_project(req: AnalyzeRequest):
         raise HTTPException(400, "No readable source files found")
 
     project_id = uuid.uuid4().hex[:12]
-    _projects[project_id] = {
+    proj_data = {
         "name": req.project_name,
         "files": scanned,
-        # also keep full content for annotation later
         "file_contents": {f.path: f.content for f in req.files},
     }
+    _projects[project_id] = proj_data
+    await cache.save_project(project_id, proj_data)
 
     return ProjectMeta(
         id=project_id,
@@ -42,7 +43,7 @@ async def upload_project(req: AnalyzeRequest):
                 path=f["path"],
                 size=f["size"],
                 language=f["language"],
-                preview="",  # don't send preview back in listing
+                preview="",
             )
             for f in scanned
         ],
@@ -73,12 +74,13 @@ async def clone_github_project(req: GitHubRequest):
             pass
 
     repo_name = req.url.rstrip("/").split("/")[-1].replace(".git", "")
-    _projects[project_id] = {
+    proj_data = {
         "name": repo_name,
         "files": scanned,
         "file_contents": file_contents,
-        "repo_path": str(repo_path),
     }
+    _projects[project_id] = proj_data
+    await cache.save_project(project_id, proj_data)
 
     return ProjectMeta(
         id=project_id,
@@ -96,10 +98,22 @@ async def clone_github_project(req: GitHubRequest):
     )
 
 
+async def _resolve_project(project_id: str) -> dict | None:
+    """Look up project in memory, then fall back to SQLite."""
+    proj = _projects.get(project_id)
+    if proj:
+        return proj
+    # try loading from persistent storage
+    proj = await cache.load_project(project_id)
+    if proj:
+        _projects[project_id] = proj  # re-populate memory cache
+    return proj
+
+
 @router.get("/project/{project_id}")
 async def get_project(project_id: str):
     """Get project metadata."""
-    proj = _projects.get(project_id)
+    proj = await _resolve_project(project_id)
     if not proj:
         raise HTTPException(404, "Project not found")
     return ProjectMeta(
@@ -121,7 +135,7 @@ async def get_project(project_id: str):
 @router.get("/project/{project_id}/file/{file_path:path}")
 async def get_file_content(project_id: str, file_path: str):
     """Return full content of a specific file."""
-    proj = _projects.get(project_id)
+    proj = await _resolve_project(project_id)
     if not proj:
         raise HTTPException(404, "Project not found")
 
@@ -129,7 +143,6 @@ async def get_file_content(project_id: str, file_path: str):
     if content is None:
         raise HTTPException(404, f"File not found: {file_path}")
 
-    # detect language
     lang = "unknown"
     for f in proj["files"]:
         if f["path"] == file_path:
@@ -139,6 +152,6 @@ async def get_file_content(project_id: str, file_path: str):
     return {"path": file_path, "language": lang, "content": content}
 
 
-def get_project_data(project_id: str) -> dict | None:
+async def get_project_data(project_id: str) -> dict | None:
     """Internal helper for analyze router to access project data."""
-    return _projects.get(project_id)
+    return await _resolve_project(project_id)

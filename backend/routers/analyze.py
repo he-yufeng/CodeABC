@@ -43,10 +43,37 @@ def _extract_json(text: str) -> dict | list | None:
     return None
 
 
+def _client_ip(request: Request) -> str:
+    """Get the real client IP, respecting X-Forwarded-For behind a proxy."""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+async def _enforce_rate_limit(request: Request):
+    """Raise 429 if the free-tier user has exceeded the daily limit.
+
+    BYOK users (with x-api-key header) are never rate-limited.
+    """
+    if request.headers.get("x-api-key"):
+        return  # user brought their own key, no limit
+
+    ip = _client_ip(request)
+    allowed, remaining = await cache.check_rate_limit(ip)
+    if not allowed:
+        raise HTTPException(
+            429,
+            "今日免费额度已用完（每天 20 次）。点击右上角设置，填入自己的 API Key 即可无限使用。",
+        )
+    # bump count now (before the actual LLM call)
+    await cache.increment_rate_limit(ip)
+
+
 @router.get("/project/{project_id}/overview")
 async def get_overview(project_id: str, request: Request):
     """Generate or return cached project overview. Streams SSE."""
-    proj = get_project_data(project_id)
+    proj = await get_project_data(project_id)
     if not proj:
         raise HTTPException(404, "Project not found")
 
@@ -54,22 +81,20 @@ async def get_overview(project_id: str, request: Request):
     files_sig = "|".join(f"{f['path']}:{f['size']}" for f in proj["files"])
     cache_key = f"overview:{cache.content_hash(files_sig)}"
 
-    # check cache
+    # check cache first (cached results are free, no rate limit)
     cached = await cache.get(cache_key)
     if cached:
-        # return cached result as a single SSE event
         async def cached_stream():
             yield f"data: {json.dumps({'result': cached}, ensure_ascii=False)}\n\n"
             yield "data: [DONE]\n\n"
         return StreamingResponse(cached_stream(), media_type="text/event-stream")
 
-    # build prompt
-    prompt = build_overview_prompt(proj["files"])
+    # not cached -> requires LLM call -> check rate limit
+    await _enforce_rate_limit(request)
 
-    # get api key from header if user provided one (BYOK)
+    prompt = build_overview_prompt(proj["files"])
     api_key = request.headers.get("x-api-key")
 
-    # stream response
     async def generate():
         full_response = ""
         async for chunk in stream_llm(prompt, api_key=api_key):
@@ -92,7 +117,7 @@ async def get_overview(project_id: str, request: Request):
 @router.get("/project/{project_id}/file/{file_path:path}/annotations")
 async def get_annotations(project_id: str, file_path: str, request: Request):
     """Generate or return cached annotations for a file."""
-    proj = get_project_data(project_id)
+    proj = await get_project_data(project_id)
     if not proj:
         raise HTTPException(404, "Project not found")
 
@@ -107,18 +132,20 @@ async def get_annotations(project_id: str, file_path: str, request: Request):
             lang = f["language"]
             break
 
-    # cache by file content
+    # cache by file content (cached results are free)
     cache_key = f"annotate:{cache.content_hash(content)}"
     cached = await cache.get(cache_key)
     if cached:
         return {"path": file_path, "language": lang, "annotations": cached}
+
+    # not cached -> LLM call -> rate limit
+    await _enforce_rate_limit(request)
 
     prompt = build_annotation_prompt(content, lang)
     api_key = request.headers.get("x-api-key")
 
     result = await call_llm(prompt, api_key=api_key)
 
-    # parse annotations from LLM response
     parsed = _extract_json(result)
     annotations = parsed if isinstance(parsed, list) else []
 

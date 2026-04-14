@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { streamOverview } from "../lib/api";
+import { streamOverview, getProject } from "../lib/api";
 import { useProjectStore } from "../stores/project";
 
 export default function Overview() {
@@ -11,6 +11,7 @@ export default function Overview() {
     overview,
     overviewRaw,
     loading,
+    setProject,
     setOverview,
     appendOverviewRaw,
     resetOverviewRaw,
@@ -18,6 +19,20 @@ export default function Overview() {
     setError,
   } = useProjectStore();
 
+  // if we arrived here without project in store (e.g. page refresh),
+  // fetch it from the backend
+  useEffect(() => {
+    if (!projectId || project) return;
+
+    getProject(projectId)
+      .then((p) => setProject(p))
+      .catch(() => {
+        // project doesn't exist anymore, go home
+        navigate("/", { replace: true });
+      });
+  }, [projectId, project, setProject, navigate]);
+
+  // stream the overview once we have a projectId
   useEffect(() => {
     if (!projectId || overview) return;
 

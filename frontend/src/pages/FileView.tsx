@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getFileContent, getAnnotations, type Annotation } from "../lib/api";
+import { getFileContent, getAnnotations, getProject, type Annotation } from "../lib/api";
 import { useProjectStore } from "../stores/project";
 import CodeViewer from "../components/CodeViewer";
 
@@ -10,7 +10,8 @@ export default function FileView() {
     "*": string;
   }>();
   const navigate = useNavigate();
-  const { annotationsCache, cacheAnnotations } = useProjectStore();
+  const { project, setProject, annotationsCache, cacheAnnotations } =
+    useProjectStore();
 
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("text");
@@ -20,6 +21,15 @@ export default function FileView() {
   const [error, setError] = useState<string | null>(null);
 
   const decodedPath = filePath ? decodeURIComponent(filePath) : "";
+
+  // restore project metadata on refresh
+  useEffect(() => {
+    if (!projectId || project) return;
+
+    getProject(projectId)
+      .then((p) => setProject(p))
+      .catch(() => navigate("/", { replace: true }));
+  }, [projectId, project, setProject, navigate]);
 
   // load file content
   useEffect(() => {
@@ -52,7 +62,6 @@ export default function FileView() {
         cacheAnnotations(decodedPath, res.annotations);
       })
       .catch(() => {
-        // annotations are optional, don't block the view
         setAnnotations([]);
       })
       .finally(() => setLoadingAnnotations(false));

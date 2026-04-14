@@ -41,6 +41,15 @@ export interface ProjectOverview {
   quick_tips: string[];
 }
 
+/** Fetch project metadata by ID (for page refresh). */
+export async function getProject(projectId: string): Promise<ProjectMeta> {
+  const res = await fetch(`${BASE}/project/${projectId}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error("Project not found");
+  return res.json();
+}
+
 /** Upload local files to create a project. */
 export async function uploadProject(
   files: { path: string; content: string }[],
@@ -86,7 +95,12 @@ export async function streamOverview(
 
   const res = await fetch(`${BASE}/project/${projectId}/overview`, { headers });
   if (!res.ok || !res.body) {
-    onError("Failed to load overview");
+    if (res.status === 429) {
+      const err = await res.json().catch(() => ({ detail: "请求过于频繁" }));
+      onError(err.detail || "今日免费额度已用完，请配置 API Key");
+    } else {
+      onError("Failed to load overview");
+    }
     return;
   }
 
@@ -142,6 +156,12 @@ export async function getAnnotations(
     `${BASE}/project/${projectId}/file/${encodeURIComponent(filePath)}/annotations`,
     { headers: getHeaders() }
   );
-  if (!res.ok) throw new Error("Failed to get annotations");
+  if (!res.ok) {
+    if (res.status === 429) {
+      const err = await res.json().catch(() => ({ detail: "请求过于频繁" }));
+      throw new Error(err.detail || "今日免费额度已用完，请配置 API Key");
+    }
+    throw new Error("Failed to get annotations");
+  }
   return res.json();
 }
