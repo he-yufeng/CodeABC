@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # dirs we never want to look at
 _SKIP_DIRS = {
@@ -31,6 +34,9 @@ _MAX_FILE_SIZE = 100 * 1024
 # how many lines to keep per file for overview context
 _PREVIEW_LINES = 80
 
+# hard cap on number of files we'll process
+_MAX_FILES = 500
+
 # map extensions -> human readable language name
 _LANG_MAP = {
     ".py": "python", ".js": "javascript", ".ts": "typescript",
@@ -42,6 +48,9 @@ _LANG_MAP = {
     ".rb": "ruby", ".php": "php", ".r": "r", ".R": "r",
     ".do": "stata", ".sql": "sql", ".toml": "toml",
     ".cfg": "ini", ".ini": "ini", ".env": "text",
+    ".swift": "swift", ".kt": "kotlin", ".scala": "scala",
+    ".lua": "lua", ".dart": "dart", ".vue": "vue",
+    ".svelte": "svelte", ".zig": "zig", ".nim": "nim",
 }
 
 # config files that should be read in full (they help LLM understand the project)
@@ -55,13 +64,19 @@ _CONFIG_FILES = {
 
 
 def _is_binary(data: bytes) -> bool:
-    """Quick check: if there's a null byte in the first 512 bytes, it's binary."""
-    return b"\x00" in data[:512]
+    """Quick check: if there's a null byte in the first 1024 bytes, it's binary."""
+    return b"\x00" in data[:1024]
 
 
 def _detect_language(path: str) -> str:
     ext = Path(path).suffix.lower()
     return _LANG_MAP.get(ext, "unknown")
+
+
+def _is_safe_path(rel_path: str) -> bool:
+    """Reject paths that try to escape the project root."""
+    normalized = os.path.normpath(rel_path)
+    return not normalized.startswith("..") and not os.path.isabs(normalized)
 
 
 def scan_directory(root: str | Path) -> list[dict]:
@@ -70,17 +85,25 @@ def scan_directory(root: str | Path) -> list[dict]:
     Returns list of dicts:
         {"path": relative_path, "size": bytes, "language": str, "preview": str}
     """
-    root = Path(root)
+    root = Path(root).resolve()
     results = []
 
-    for dirpath, dirnames, filenames in os.walk(root):
+    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
         # prune skipped dirs in-place so os.walk won't descend into them
         dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS
                        and not d.endswith(".egg-info")]
 
         for fname in filenames:
+            if len(results) >= _MAX_FILES:
+                logger.info("Hit file limit (%d), stopping scan", _MAX_FILES)
+                break
+
             full = Path(dirpath) / fname
             rel = str(full.relative_to(root))
+
+            # skip symlinks to prevent escaping the project root
+            if full.is_symlink():
+                continue
 
             # skip by extension
             if full.suffix.lower() in _SKIP_EXTS:
@@ -127,6 +150,9 @@ def scan_directory(root: str | Path) -> list[dict]:
                 "preview": preview,
             })
 
+        if len(results) >= _MAX_FILES:
+            break
+
     # sort: config/readme first, then by path
     def sort_key(f):
         name = Path(f["path"]).name
@@ -146,11 +172,23 @@ def scan_uploaded_files(files: list[dict]) -> list[dict]:
     """
     results = []
     for f in files:
+        if len(results) >= _MAX_FILES:
+            break
+
         path = f["path"]
         content = f["content"]
-        ext = Path(path).suffix.lower()
 
+        # reject suspicious paths
+        if not _is_safe_path(path):
+            logger.warning("Skipping unsafe path: %s", path)
+            continue
+
+        ext = Path(path).suffix.lower()
         if ext in _SKIP_EXTS:
+            continue
+
+        # skip oversized content
+        if len(content) > _MAX_FILE_SIZE:
             continue
 
         lang = _detect_language(path)
