@@ -1,8 +1,11 @@
 # CodeABC (码上懂)
 
-**Read code without learning to code.** An AI-powered code reader built for non-programmers.
+[![Python](https://img.shields.io/badge/python-3.10+-blue)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![CI](https://github.com/he-yufeng/CodeABC/actions/workflows/ci.yml/badge.svg)](https://github.com/he-yufeng/CodeABC/actions)
+[![中文](https://img.shields.io/badge/lang-中文-red)](README_CN.md)
 
-[中文版 README](README_CN.md)
+**Read code without learning to code.** An AI-powered code reader built for non-programmers.
 
 Cursor and VS Code are Swiss army knives for developers. CodeABC is a magnifying glass for everyone else -- it lets you read code like reading an article, and annotate code like annotating a document.
 
