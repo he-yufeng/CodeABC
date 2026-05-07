@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface Props {
   open: boolean;
@@ -6,15 +6,14 @@ interface Props {
 }
 
 export default function ApiKeyModal({ open, onClose }: Props) {
-  const [key, setKey] = useState("");
-  const [saved, setSaved] = useState(false);
+  if (!open) return null;
 
-  useEffect(() => {
-    if (open) {
-      setKey(localStorage.getItem("codeabc_api_key") || "");
-      setSaved(false);
-    }
-  }, [open]);
+  return <ApiKeyDialog onClose={onClose} />;
+}
+
+function ApiKeyDialog({ onClose }: { onClose: () => void }) {
+  const [key, setKey] = useState(() => localStorage.getItem("codeabc_api_key") || "");
+  const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
     if (key.trim()) {
@@ -25,8 +24,6 @@ export default function ApiKeyModal({ open, onClose }: Props) {
     setSaved(true);
     setTimeout(() => onClose(), 800);
   };
-
-  if (!open) return null;
 
   return (
     <div

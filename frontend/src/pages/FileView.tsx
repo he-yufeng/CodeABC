@@ -10,15 +10,7 @@ export default function FileView() {
     "*": string;
   }>();
   const navigate = useNavigate();
-  const { project, setProject, annotationsCache, cacheAnnotations } =
-    useProjectStore();
-
-  const [code, setCode] = useState("");
-  const [language, setLanguage] = useState("text");
-  const [annotations, setAnnotations] = useState<Annotation[]>([]);
-  const [loadingCode, setLoadingCode] = useState(true);
-  const [loadingAnnotations, setLoadingAnnotations] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { project, setProject } = useProjectStore();
 
   const decodedPath = filePath ? decodeURIComponent(filePath) : "";
 
@@ -31,48 +23,91 @@ export default function FileView() {
       .catch(() => navigate("/", { replace: true }));
   }, [projectId, project, setProject, navigate]);
 
+  return (
+    <FileContent
+      key={`${projectId ?? ""}:${decodedPath}`}
+      projectId={projectId}
+      decodedPath={decodedPath}
+      onBack={() => navigate(`/project/${projectId}`)}
+    />
+  );
+}
+
+function FileContent({
+  projectId,
+  decodedPath,
+  onBack,
+}: {
+  projectId: string | undefined;
+  decodedPath: string;
+  onBack: () => void;
+}) {
+  const { annotationsCache, cacheAnnotations } = useProjectStore();
+  const cachedAnnotations = decodedPath ? annotationsCache[decodedPath] : undefined;
+
+  const [code, setCode] = useState("");
+  const [language, setLanguage] = useState("text");
+  const [annotations, setAnnotations] = useState<Annotation[]>(
+    () => cachedAnnotations ?? [],
+  );
+  const [loadingCode, setLoadingCode] = useState(Boolean(projectId && decodedPath));
+  const [loadingAnnotations, setLoadingAnnotations] = useState(
+    Boolean(projectId && decodedPath && !cachedAnnotations),
+  );
+  const [error, setError] = useState<string | null>(null);
+
   // load file content
   useEffect(() => {
     if (!projectId || !decodedPath) return;
-    setLoadingCode(true);
+    let active = true;
+
     getFileContent(projectId, decodedPath)
       .then((res) => {
+        if (!active) return;
         setCode(res.content);
         setLanguage(res.language);
       })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoadingCode(false));
+      .catch((e) => {
+        if (active) setError(e.message);
+      })
+      .finally(() => {
+        if (active) setLoadingCode(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [projectId, decodedPath]);
 
   // load annotations (check cache first)
   useEffect(() => {
-    if (!projectId || !decodedPath) return;
+    if (!projectId || !decodedPath || cachedAnnotations) return;
+    let active = true;
 
-    const cached = annotationsCache[decodedPath];
-    if (cached) {
-      setAnnotations(cached);
-      setLoadingAnnotations(false);
-      return;
-    }
-
-    setLoadingAnnotations(true);
     getAnnotations(projectId, decodedPath)
       .then((res) => {
+        if (!active) return;
         setAnnotations(res.annotations);
         cacheAnnotations(decodedPath, res.annotations);
       })
       .catch(() => {
-        setAnnotations([]);
+        if (active) setAnnotations([]);
       })
-      .finally(() => setLoadingAnnotations(false));
-  }, [projectId, decodedPath]); // eslint-disable-line react-hooks/exhaustive-deps
+      .finally(() => {
+        if (active) setLoadingAnnotations(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [projectId, decodedPath, cachedAnnotations, cacheAnnotations]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
       <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4">
         <button
-          onClick={() => navigate(`/project/${projectId}`)}
+          onClick={onBack}
           className="text-gray-500 hover:text-gray-700"
         >
           ← 返回说明书

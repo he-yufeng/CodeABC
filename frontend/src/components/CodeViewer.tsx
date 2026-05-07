@@ -113,7 +113,7 @@ export default function CodeViewer({ code, language, annotations }: Props) {
         dangerouslySetInnerHTML={{ __html: html }}
       />
 
-      {/* Annotation tooltip (floating-ui positioned) */}
+      {/* Annotation tooltip */}
       <AnnotationTooltip
         text={activeAnnotation || ""}
         referenceEl={activeLineEl}
