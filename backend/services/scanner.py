@@ -28,6 +28,15 @@ _SKIP_EXTS = {
     ".lock",  # package-lock.json etc are huge and useless
 }
 
+_GENERATED_NAME_SUFFIXES = (
+    ".min.js",
+    ".min.css",
+    ".bundle.js",
+    ".bundle.css",
+    ".chunk.js",
+    ".chunk.css",
+)
+
 # max file size to read (100 KB)
 _MAX_FILE_SIZE = 100 * 1024
 
@@ -61,6 +70,24 @@ _CONFIG_FILES = {
     ".env.example", "config.py", "config.yaml", "config.json",
     "README.md", "README.rst", "README.txt", "README",
 }
+
+
+def _has_generated_name(path: str | Path) -> bool:
+    name = Path(path).name.lower()
+    return name.endswith(_GENERATED_NAME_SUFFIXES)
+
+
+def _looks_like_generated_bundle(text: str, language: str) -> bool:
+    if language not in {"javascript", "typescript", "jsx", "tsx", "css"}:
+        return False
+
+    lines = text.splitlines()
+    if not lines:
+        return False
+
+    longest = max(len(line.strip()) for line in lines)
+    avg = sum(len(line.strip()) for line in lines) / len(lines)
+    return longest > 2000 or (len(lines) <= 5 and avg > 500)
 
 
 def _is_binary(data: bytes) -> bool:
@@ -106,7 +133,7 @@ def scan_directory(root: str | Path) -> list[dict]:
                 continue
 
             # skip by extension
-            if full.suffix.lower() in _SKIP_EXTS:
+            if full.suffix.lower() in _SKIP_EXTS or _has_generated_name(full):
                 continue
 
             # skip oversized files
@@ -134,6 +161,8 @@ def scan_directory(root: str | Path) -> list[dict]:
                 continue
 
             lang = _detect_language(rel)
+            if _looks_like_generated_bundle(text, lang):
+                continue
 
             # config files get full content, others get preview
             is_config = fname in _CONFIG_FILES
@@ -184,7 +213,7 @@ def scan_uploaded_files(files: list[dict]) -> list[dict]:
             continue
 
         ext = Path(path).suffix.lower()
-        if ext in _SKIP_EXTS:
+        if ext in _SKIP_EXTS or _has_generated_name(path):
             continue
 
         # skip oversized content
@@ -192,6 +221,9 @@ def scan_uploaded_files(files: list[dict]) -> list[dict]:
             continue
 
         lang = _detect_language(path)
+        if _looks_like_generated_bundle(content, lang):
+            continue
+
         fname = Path(path).name
         is_config = fname in _CONFIG_FILES
 

@@ -34,6 +34,10 @@ Click any file to view it with AI-generated annotations. Hover over any line to 
 - Context-aware: explains _why_ a number is 0.05 or a timeout is 3600
 - Cached: annotations are stored locally so repeat visits are instant
 
+### Cleaner Project Scans
+
+CodeABC skips build outputs, package caches, minified bundles, and generated frontend chunks before sending files to the LLM. That keeps the project manual focused on source code instead of `dist/`, `node_modules`, or one-line JavaScript bundles.
+
 ## Tech Stack
 
 | Layer | Choice | Why |
