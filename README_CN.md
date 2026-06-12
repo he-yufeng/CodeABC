@@ -41,7 +41,7 @@ Cursor/VS Code 是给程序员用的瑞士军刀，码上懂是给普通人用�
 
 ### 更干净的项目扫描
 
-码上懂会在调用 LLM 前跳过构建产物、包缓存、压缩 bundle 和生成出来的前端 chunk。这样项目说明书会聚焦源代码，不会被 `dist/`、`node_modules` 或一整行的压缩 JavaScript 干扰。
+码上懂会在调用 LLM 前跳过构建产物、包缓存、压缩 bundle、生成出来的前端 chunk，以及仓库 `.gitignore` 已经忽略的路径。这样项目说明书会聚焦源代码，不会被 `dist/`、`node_modules`、本地临时文件或一整行的压缩 JavaScript 干扰。
 
 ## 技术栈
 
@@ -70,9 +70,9 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
 
 # 设置 API Key
-export OPENAI_API_KEY=sk-xxx
+export OPENAI_API_KEY=<OPENAI_API_KEY>
 # 或者用其他服务商：
-# export ANTHROPIC_API_KEY=sk-ant-xxx
+# export ANTHROPIC_API_KEY=<ANTHROPIC_API_KEY>
 # export DEEPSEEK_API_KEY=xxx
 
 # 可选：修改默认模型

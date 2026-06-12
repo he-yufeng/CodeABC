@@ -37,3 +37,23 @@ def test_uploaded_files_skip_generated_bundle():
 
     paths = {f["path"] for f in files}
     assert paths == {"src/main.ts"}
+
+
+def test_scan_directory_respects_gitignore(tmp_path):
+    (tmp_path / ".gitignore").write_text(
+        "scratch/\n*.local.py\n!important.local.py\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "scratch").mkdir()
+    (tmp_path / "scratch" / "notes.py").write_text("print('skip')\n", encoding="utf-8")
+    (tmp_path / "settings.local.py").write_text("SECRET = 'skip'\n", encoding="utf-8")
+    (tmp_path / "important.local.py").write_text("print('keep')\n", encoding="utf-8")
+    (tmp_path / "src.py").write_text("print('keep')\n", encoding="utf-8")
+
+    files = scan_directory(tmp_path)
+    paths = {f["path"] for f in files}
+
+    assert "src.py" in paths
+    assert "important.local.py" in paths
+    assert "settings.local.py" not in paths
+    assert "scratch/notes.py" not in paths

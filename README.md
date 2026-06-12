@@ -36,7 +36,7 @@ Click any file to view it with AI-generated annotations. Hover over any line to 
 
 ### Cleaner Project Scans
 
-CodeABC skips build outputs, package caches, minified bundles, and generated frontend chunks before sending files to the LLM. That keeps the project manual focused on source code instead of `dist/`, `node_modules`, or one-line JavaScript bundles.
+CodeABC skips build outputs, package caches, minified bundles, generated frontend chunks, and paths ignored by the repository's `.gitignore` before sending files to the LLM. That keeps the project manual focused on source code instead of `dist/`, `node_modules`, local scratch files, or one-line JavaScript bundles.
 
 ## Tech Stack
 
@@ -66,9 +66,9 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
 
 # set your API key
-export OPENAI_API_KEY=sk-xxx
+export OPENAI_API_KEY=<OPENAI_API_KEY>
 # or for other providers:
-# export ANTHROPIC_API_KEY=sk-ant-xxx
+# export ANTHROPIC_API_KEY=<ANTHROPIC_API_KEY>
 # export DEEPSEEK_API_KEY=xxx
 
 # optional: change the default model

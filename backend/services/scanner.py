@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from fnmatch import fnmatch
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -106,6 +107,59 @@ def _is_safe_path(rel_path: str) -> bool:
     return not normalized.startswith("..") and not os.path.isabs(normalized)
 
 
+def _read_gitignore_patterns(root: Path) -> list[str]:
+    gitignore = root / ".gitignore"
+    if not gitignore.exists():
+        return []
+    try:
+        lines = gitignore.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return []
+    return [line.strip() for line in lines if line.strip() and not line.lstrip().startswith("#")]
+
+
+def _matches_gitignore(rel_path: str, is_dir: bool, raw_pattern: str) -> bool:
+    pattern = raw_pattern.strip().replace("\\", "/")
+    if not pattern or pattern.startswith("!"):
+        return False
+
+    directory_only = pattern.endswith("/")
+    anchored = pattern.startswith("/")
+    pattern = pattern.strip("/")
+    if not pattern:
+        return False
+
+    if directory_only:
+        return (
+            rel_path == pattern
+            or rel_path.startswith(pattern + "/")
+            or (not anchored and f"/{pattern}/" in f"/{rel_path}/")
+        )
+
+    if anchored or "/" in pattern:
+        return fnmatch(rel_path, pattern) or (not anchored and fnmatch(rel_path, f"*/{pattern}"))
+
+    parts = rel_path.split("/")
+    if is_dir:
+        return any(fnmatch(part, pattern) for part in parts)
+    return fnmatch(parts[-1], pattern) or any(fnmatch(part, pattern) for part in parts[:-1])
+
+
+def _is_gitignored(root: Path, path: Path, is_dir: bool, patterns: list[str]) -> bool:
+    try:
+        rel_path = path.relative_to(root).as_posix()
+    except ValueError:
+        return False
+
+    ignored = False
+    for raw in patterns:
+        negated = raw.startswith("!")
+        pattern = raw[1:] if negated else raw
+        if _matches_gitignore(rel_path, is_dir, pattern):
+            ignored = not negated
+    return ignored
+
+
 def scan_directory(root: str | Path) -> list[dict]:
     """Walk a project directory and return file metadata + previews.
 
@@ -114,11 +168,18 @@ def scan_directory(root: str | Path) -> list[dict]:
     """
     root = Path(root).resolve()
     results = []
+    gitignore_patterns = _read_gitignore_patterns(root)
 
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+        current = Path(dirpath)
         # prune skipped dirs in-place so os.walk won't descend into them
-        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS
-                       and not d.endswith(".egg-info")]
+        dirnames[:] = [
+            d
+            for d in dirnames
+            if d not in _SKIP_DIRS
+            and not d.endswith(".egg-info")
+            and not _is_gitignored(root, current / d, is_dir=True, patterns=gitignore_patterns)
+        ]
 
         for fname in filenames:
             if len(results) >= _MAX_FILES:
@@ -130,6 +191,8 @@ def scan_directory(root: str | Path) -> list[dict]:
 
             # skip symlinks to prevent escaping the project root
             if full.is_symlink():
+                continue
+            if _is_gitignored(root, full, is_dir=False, patterns=gitignore_patterns):
                 continue
 
             # skip by extension
