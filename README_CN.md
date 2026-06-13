@@ -41,7 +41,7 @@ Cursor/VS Code 是给程序员用的瑞士军刀，码上懂是给普通人用�
 
 ### 更干净的项目扫描
 
-码上懂会在调用 LLM 前跳过构建产物、包缓存、压缩 bundle、生成出来的前端 chunk，以及仓库 `.gitignore` 已经忽略的路径。这样项目说明书会聚焦源代码，不会被 `dist/`、`node_modules`、本地临时文件或一整行的压缩 JavaScript 干扰。
+码上懂会在调用 LLM 前跳过构建产物、包缓存、压缩 bundle、生成出来的前端 chunk，以及仓库 `.gitignore` 已经忽略的路径。它也会跳过真实 `.env`、凭证 JSON、API key 笔记、私钥等敏感文件，但保留 `.env.example` 这种安全示例。这样项目说明书会聚焦源代码，不会被 `dist/`、`node_modules`、本地临时文件、一整行的压缩 JavaScript 或私人凭证干扰。
 
 ## 技术栈
 

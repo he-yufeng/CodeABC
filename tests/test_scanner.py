@@ -57,3 +57,48 @@ def test_scan_directory_respects_gitignore(tmp_path):
     assert "important.local.py" in paths
     assert "settings.local.py" not in paths
     assert "scratch/notes.py" not in paths
+
+
+def test_scan_directory_skips_secret_shaped_files(tmp_path):
+    (tmp_path / "app.py").write_text("print('keep')\n", encoding="utf-8")
+    (tmp_path / ".env").write_text("OPENAI_API_KEY=secret-value\n", encoding="utf-8")
+    (tmp_path / ".env.example").write_text("OPENAI_API_KEY=\n", encoding="utf-8")
+    (tmp_path / "credentials.json").write_text('{"token": "secret"}\n', encoding="utf-8")
+    (tmp_path / "server.pem").write_text("-----BEGIN PRIVATE KEY-----\n", encoding="utf-8")
+
+    files = scan_directory(tmp_path)
+    paths = {f["path"] for f in files}
+
+    assert "app.py" in paths
+    assert ".env.example" in paths
+    assert ".env" not in paths
+    assert "credentials.json" not in paths
+    assert "server.pem" not in paths
+
+
+def test_scan_directory_keeps_normal_token_source_files(tmp_path):
+    (tmp_path / "tokenizer.py").write_text(
+        "def tokenize(text): return text.split()\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "access_token.txt").write_text("secret\n", encoding="utf-8")
+
+    files = scan_directory(tmp_path)
+    paths = {f["path"] for f in files}
+
+    assert "tokenizer.py" in paths
+    assert "access_token.txt" not in paths
+
+
+def test_uploaded_files_skip_secret_shaped_paths():
+    files = scan_uploaded_files(
+        [
+            {"path": "src/main.py", "content": "print('keep')\n"},
+            {"path": ".env.local", "content": "OPENAI_API_KEY=secret-value\n"},
+            {"path": ".env.sample", "content": "OPENAI_API_KEY=\n"},
+            {"path": ".ssh/id_ed25519", "content": "private key\n"},
+        ]
+    )
+
+    paths = {f["path"] for f in files}
+    assert paths == {"src/main.py", ".env.sample"}

@@ -38,6 +38,52 @@ _GENERATED_NAME_SUFFIXES = (
     ".chunk.css",
 )
 
+_ENV_EXAMPLE_FILES = {
+    ".env.example",
+    ".env.sample",
+    ".env.template",
+    ".env.defaults",
+}
+
+_SENSITIVE_FILENAMES = {
+    ".npmrc",
+    ".pypirc",
+    ".netrc",
+    "credentials.json",
+    "secrets.json",
+    "service-account.json",
+    "id_rsa",
+    "id_dsa",
+    "id_ecdsa",
+    "id_ed25519",
+}
+
+_SENSITIVE_DIRS = {
+    ".aws",
+    ".azure",
+    ".gcloud",
+    ".gnupg",
+    ".ssh",
+}
+
+_SENSITIVE_NAME_PATTERNS = (
+    "*api_key*",
+    "*api-key*",
+    "*apikey*",
+    "*credential*",
+    "*secret*",
+    "*access_token*",
+    "*auth_token*",
+    "*refresh_token*",
+)
+
+_SENSITIVE_EXTS = {
+    ".key",
+    ".pem",
+    ".p12",
+    ".pfx",
+}
+
 # max file size to read (100 KB)
 _MAX_FILE_SIZE = 100 * 1024
 
@@ -76,6 +122,22 @@ _CONFIG_FILES = {
 def _has_generated_name(path: str | Path) -> bool:
     name = Path(path).name.lower()
     return name.endswith(_GENERATED_NAME_SUFFIXES)
+
+
+def _looks_sensitive_path(path: str | Path) -> bool:
+    p = Path(path)
+    parts = [part.lower() for part in p.parts]
+    name = p.name.lower()
+
+    if any(part in _SENSITIVE_DIRS for part in parts):
+        return True
+    if name.startswith(".env") and name not in _ENV_EXAMPLE_FILES:
+        return True
+    if name in _SENSITIVE_FILENAMES:
+        return True
+    if p.suffix.lower() in _SENSITIVE_EXTS:
+        return True
+    return any(fnmatch(name, pattern) for pattern in _SENSITIVE_NAME_PATTERNS)
 
 
 def _looks_like_generated_bundle(text: str, language: str) -> bool:
@@ -192,6 +254,8 @@ def scan_directory(root: str | Path) -> list[dict]:
             # skip symlinks to prevent escaping the project root
             if full.is_symlink():
                 continue
+            if _looks_sensitive_path(rel):
+                continue
             if _is_gitignored(root, full, is_dir=False, patterns=gitignore_patterns):
                 continue
 
@@ -273,6 +337,8 @@ def scan_uploaded_files(files: list[dict]) -> list[dict]:
         # reject suspicious paths
         if not _is_safe_path(path):
             logger.warning("Skipping unsafe path: %s", path)
+            continue
+        if _looks_sensitive_path(path):
             continue
 
         ext = Path(path).suffix.lower()

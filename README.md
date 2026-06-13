@@ -36,7 +36,7 @@ Click any file to view it with AI-generated annotations. Hover over any line to 
 
 ### Cleaner Project Scans
 
-CodeABC skips build outputs, package caches, minified bundles, generated frontend chunks, and paths ignored by the repository's `.gitignore` before sending files to the LLM. That keeps the project manual focused on source code instead of `dist/`, `node_modules`, local scratch files, or one-line JavaScript bundles.
+CodeABC skips build outputs, package caches, minified bundles, generated frontend chunks, and paths ignored by the repository's `.gitignore` before sending files to the LLM. It also leaves out secret-shaped files such as real `.env` files, credential JSON files, API key notes, and private keys while still allowing safe examples like `.env.example`. That keeps the project manual focused on source code instead of `dist/`, `node_modules`, local scratch files, one-line JavaScript bundles, or private credentials.
 
 ## Tech Stack
 
