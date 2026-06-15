@@ -25,6 +25,7 @@ export interface ProjectMeta {
   name: string;
   total_files: number;
   files: FileInfo[];
+  reading_map?: { order: number; path: string; reason: string }[];
 }
 
 export interface Annotation {

@@ -23,6 +23,7 @@ Drop in a project folder or paste a GitHub link. CodeABC scans the files and gen
 
 - **What is this?** One-sentence summary anyone can understand
 - **File guide** Every file explained in plain language, sorted by importance
+- **Reading map** A deterministic "start here, then read this" path appears before the AI call
 - **How to run it** Step-by-step instructions, no jargon
 - **Quick tips** "If you just want to change X, go to file Y"
 
@@ -37,6 +38,10 @@ Click any file to view it with AI-generated annotations. Hover over any line to 
 ### Cleaner Project Scans
 
 CodeABC skips build outputs, package caches, minified bundles, generated frontend chunks, and paths ignored by the repository's `.gitignore` before sending files to the LLM. It also leaves out secret-shaped files such as real `.env` files, credential JSON files, API key notes, and private keys while still allowing safe examples like `.env.example`. That keeps the project manual focused on source code instead of `dist/`, `node_modules`, local scratch files, one-line JavaScript bundles, or private credentials.
+
+### Start Reading Immediately
+
+Before an LLM response is ready, CodeABC builds a deterministic reading map from README files, likely entry points, package manifests, core source directories, and tests. It gives newcomers a useful first route even when no API key is configured.
 
 ## Tech Stack
 

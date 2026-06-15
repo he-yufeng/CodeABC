@@ -6,13 +6,25 @@ import uuid
 
 from fastapi import APIRouter, HTTPException
 
-from backend.models import AnalyzeRequest, FileInfo, GitHubRequest, ProjectMeta
+from backend.models import (
+    AnalyzeRequest,
+    FileInfo,
+    GitHubRequest,
+    ProjectMeta,
+    ReadingStep,
+    UploadedFile,
+)
 from backend.services import cache, github_clone, scanner
 
 router = APIRouter(tags=["project"])
 
 # in-memory project store (good enough for MVP, single-process)
 _projects: dict[str, dict] = {}
+
+
+def _select_scanned_contents(files: list[UploadedFile], scanned: list[dict]) -> dict[str, str]:
+    allowed_paths = {file["path"] for file in scanned}
+    return {file.path: file.content for file in files if file.path in allowed_paths}
 
 
 @router.post("/project/upload", response_model=ProjectMeta)
@@ -29,7 +41,7 @@ async def upload_project(req: AnalyzeRequest):
     proj_data = {
         "name": req.project_name,
         "files": scanned,
-        "file_contents": {f.path: f.content for f in req.files},
+        "file_contents": _select_scanned_contents(req.files, scanned),
     }
     _projects[project_id] = proj_data
     await cache.save_project(project_id, proj_data)
@@ -38,6 +50,7 @@ async def upload_project(req: AnalyzeRequest):
         id=project_id,
         name=req.project_name,
         total_files=len(scanned),
+        reading_map=[ReadingStep(**step) for step in scanner.build_reading_map(scanned)],
         files=[
             FileInfo(
                 path=f["path"],
@@ -86,6 +99,7 @@ async def clone_github_project(req: GitHubRequest):
         id=project_id,
         name=repo_name,
         total_files=len(scanned),
+        reading_map=[ReadingStep(**step) for step in scanner.build_reading_map(scanned)],
         files=[
             FileInfo(
                 path=f["path"],
@@ -120,6 +134,7 @@ async def get_project(project_id: str):
         id=project_id,
         name=proj["name"],
         total_files=len(proj["files"]),
+        reading_map=[ReadingStep(**step) for step in scanner.build_reading_map(proj["files"])],
         files=[
             FileInfo(
                 path=f["path"],

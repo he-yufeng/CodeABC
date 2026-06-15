@@ -73,6 +73,39 @@ export default function Overview() {
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-8">
+        {project && project.reading_map && project.reading_map.length > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              建议阅读顺序
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              不用等 AI 分析，先按这条路线快速找到项目入口。
+            </p>
+            <ol className="space-y-3">
+              {project.reading_map.map((step) => (
+                <li key={step.path}>
+                  <button
+                    onClick={() => handleFileClick(step.path)}
+                    className="w-full text-left flex gap-3 hover:text-blue-700"
+                  >
+                    <span className="w-6 h-6 shrink-0 rounded-full bg-blue-50 text-blue-700 text-sm flex items-center justify-center">
+                      {step.order}
+                    </span>
+                    <span>
+                      <span className="block font-mono text-sm text-blue-600">
+                        {step.path}
+                      </span>
+                      <span className="block text-sm text-gray-500 mt-0.5">
+                        {step.reason}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
         {/* Loading: show raw streaming text */}
         {loading && !overview && (
           <div className="bg-white rounded-xl p-6 shadow-sm">

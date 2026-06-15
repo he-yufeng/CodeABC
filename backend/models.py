@@ -12,11 +12,18 @@ class FileInfo(BaseModel):
     preview: str = ""  # first N lines
 
 
+class ReadingStep(BaseModel):
+    order: int
+    path: str
+    reason: str
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
     total_files: int
     files: list[FileInfo]
+    reading_map: list[ReadingStep]
 
 
 class FileRole(BaseModel):

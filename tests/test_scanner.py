@@ -1,4 +1,4 @@
-from backend.services.scanner import scan_directory, scan_uploaded_files
+from backend.services.scanner import build_reading_map, scan_directory, scan_uploaded_files
 
 
 def test_scan_directory_skips_minified_bundle(tmp_path):
@@ -102,3 +102,22 @@ def test_uploaded_files_skip_secret_shaped_paths():
 
     paths = {f["path"] for f in files}
     assert paths == {"src/main.py", ".env.sample"}
+
+
+def test_reading_map_prioritizes_overview_entrypoint_and_manifest():
+    files = [
+        {"path": "tests/test_app.py", "language": "python"},
+        {"path": "src/helpers.py", "language": "python"},
+        {"path": "README.md", "language": "markdown"},
+        {"path": "src/main.py", "language": "python"},
+        {"path": "pyproject.toml", "language": "toml"},
+    ]
+
+    reading_map = build_reading_map(files)
+
+    assert [step["path"] for step in reading_map[:3]] == [
+        "README.md",
+        "src/main.py",
+        "pyproject.toml",
+    ]
+    assert reading_map[0]["order"] == 1

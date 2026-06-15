@@ -118,6 +118,17 @@ _CONFIG_FILES = {
     "README.md", "README.rst", "README.txt", "README",
 }
 
+_ENTRYPOINT_NAMES = {
+    "main.py", "app.py", "__main__.py", "index.py",
+    "main.ts", "main.tsx", "index.ts", "index.tsx",
+    "main.js", "index.js", "main.go", "main.rs",
+}
+
+_MANIFEST_NAMES = {
+    "pyproject.toml", "package.json", "requirements.txt",
+    "go.mod", "cargo.toml", "dockerfile", "makefile",
+}
+
 
 def _has_generated_name(path: str | Path) -> bool:
     name = Path(path).name.lower()
@@ -156,6 +167,41 @@ def _looks_like_generated_bundle(text: str, language: str) -> bool:
 def _is_binary(data: bytes) -> bool:
     """Quick check: if there's a null byte in the first 1024 bytes, it's binary."""
     return b"\x00" in data[:1024]
+
+
+def build_reading_map(files: list[dict], limit: int = 8) -> list[dict]:
+    """Recommend a deterministic first reading path without an LLM call."""
+
+    def classify(file: dict) -> tuple[int, str]:
+        path = file["path"].replace("\\", "/")
+        lower = path.lower()
+        name = Path(lower).name
+        parts = lower.split("/")
+
+        if name in {"readme", "readme.md", "readme.rst", "readme.txt"}:
+            return 0, "先看项目作者写的介绍和使用说明。"
+        if name in _ENTRYPOINT_NAMES:
+            return 1, "这很可能是程序开始运行的入口。"
+        if name in _MANIFEST_NAMES:
+            return 2, "这里记录了依赖、常用命令或项目打包方式。"
+        if "test" in parts or "tests" in parts or name.startswith("test_"):
+            return 5, "测试展示了项目承诺保持的具体行为。"
+        if parts[0] in {"src", "app", "backend", "frontend", "lib", "pkg", "cmd"}:
+            return 3, "这是项目主要功能的实现代码。"
+        if file.get("language") in {"markdown", "yaml", "json", "toml", "ini"}:
+            return 4, "这是辅助说明或配置文件。"
+        return 4, "这是项目的辅助文件。"
+
+    ranked = []
+    for file in files:
+        category, reason = classify(file)
+        depth = file["path"].count("/") + file["path"].count("\\")
+        ranked.append((category, depth, file["path"], reason))
+
+    return [
+        {"order": order, "path": path, "reason": reason}
+        for order, (_, _, path, reason) in enumerate(sorted(ranked)[:limit], start=1)
+    ]
 
 
 def _detect_language(path: str) -> str:
