@@ -1,0 +1,150 @@
+from backend.services.importgraph import rank_hotspots
+from backend.services.scanner import scan_uploaded_files
+
+
+def _py(path, content=""):
+    return {"path": path, "language": "python", "preview": content}
+
+
+def _ts(path, content=""):
+    return {"path": path, "language": "typescript", "preview": content}
+
+
+def test_ranks_python_files_by_fan_in():
+    files = [
+        _py("app.py", "from utils import helper\nimport config\n"),
+        _py("service.py", "from utils import helper\n"),
+        _py("utils.py", "def helper():\n    return 1\n"),
+        _py("config.py", "DEBUG = True\n"),
+    ]
+
+    hotspots = rank_hotspots(files)
+
+    assert hotspots[0]["path"] == "utils.py"
+    assert hotspots[0]["fan_in"] == 2
+    assert hotspots[0]["dependents"] == ["app.py", "service.py"]
+    assert hotspots[1]["path"] == "config.py"
+    assert hotspots[1]["fan_in"] == 1
+
+
+def test_resolves_relative_and_package_imports():
+    files = [
+        _py("pkg/__init__.py", ""),
+        _py("pkg/core.py", "def run():\n    pass\n"),
+        _py("pkg/api.py", "from .core import run\n"),
+        _py("pkg/cli.py", "from pkg.core import run\n"),
+    ]
+
+    hotspots = rank_hotspots(files)
+
+    assert hotspots[0]["path"] == "pkg/core.py"
+    assert hotspots[0]["fan_in"] == 2
+    assert hotspots[0]["dependents"] == ["pkg/api.py", "pkg/cli.py"]
+
+
+def test_from_package_import_resolves_to_submodule_not_init():
+    files = [
+        _py("pkg/__init__.py", ""),
+        _py("pkg/models.py", "class User:\n    pass\n"),
+        _py("consumer.py", "from pkg import models\n"),
+    ]
+
+    hotspots = rank_hotspots(files)
+    paths = {h["path"] for h in hotspots}
+
+    assert paths == {"pkg/models.py"}
+
+
+def test_third_party_and_stdlib_imports_are_ignored():
+    files = [
+        _py("main.py", "import os\nimport sys\nfrom collections import defaultdict\n"),
+        _py("helper.py", "x = 1\n"),
+    ]
+
+    assert rank_hotspots(files) == []
+
+
+def test_self_import_does_not_count():
+    files = [_py("solo.py", "import solo\n")]
+
+    assert rank_hotspots(files) == []
+
+
+def test_resolves_js_imports_with_extension_and_index():
+    main = (
+        "import { run } from './app';\n"
+        "import store from './store';\n"
+        "import React from 'react';\n"
+    )
+    files = [
+        _ts("src/main.ts", main),
+        _ts("src/app.ts", "import store from './store';\n"),
+        _ts("src/store/index.ts", "export const store = {};\n"),
+    ]
+
+    hotspots = rank_hotspots(files)
+
+    assert hotspots[0]["path"] == "src/store/index.ts"
+    assert hotspots[0]["fan_in"] == 2
+    assert hotspots[0]["dependents"] == ["src/app.ts", "src/main.ts"]
+    assert hotspots[1]["path"] == "src/app.ts"
+    assert hotspots[1]["fan_in"] == 1
+
+
+def test_resolves_require_and_dynamic_import():
+    files = [
+        {"path": "a.js", "language": "javascript", "preview": "const b = require('./b');\n"},
+        {"path": "c.js", "language": "javascript", "preview": "const m = await import('./b');\n"},
+        {"path": "b.js", "language": "javascript", "preview": "module.exports = {};\n"},
+    ]
+
+    hotspots = rank_hotspots(files)
+
+    assert hotspots[0]["path"] == "b.js"
+    assert hotspots[0]["fan_in"] == 2
+
+
+def test_parent_relative_import_walks_up():
+    files = [
+        _py("pkg/shared.py", "VALUE = 1\n"),
+        _py("pkg/sub/worker.py", "from ..shared import VALUE\n"),
+    ]
+
+    hotspots = rank_hotspots(files)
+
+    assert hotspots[0]["path"] == "pkg/shared.py"
+    assert hotspots[0]["fan_in"] == 1
+
+
+def test_ties_break_by_path_and_limit_is_respected():
+    files = [
+        _py("a.py", "import core\n"),
+        _py("b.py", "import core\n"),
+        _py("first.py", "import b\n"),
+        _py("second.py", "import a\n"),
+        _py("core.py", "x = 1\n"),
+    ]
+
+    # core has fan_in 2; a and b each have fan_in 1 -> tie broken by path
+    hotspots = rank_hotspots(files, limit=2)
+
+    assert len(hotspots) == 2
+    assert hotspots[0]["path"] == "core.py"
+    assert hotspots[1]["path"] == "a.py"
+
+
+def test_finds_imports_when_preview_is_truncated():
+    # imports sit at the top, so the scanner's 80-line preview still captures them
+    body = "\n".join(f"    x{i} = {i}" for i in range(200))
+    files = scan_uploaded_files(
+        [
+            {"path": "utils.py", "content": "def helper():\n    return 1\n"},
+            {"path": "big.py", "content": f"from utils import helper\n\ndef work():\n{body}\n"},
+        ]
+    )
+
+    hotspots = rank_hotspots(files)
+
+    assert hotspots[0]["path"] == "utils.py"
+    assert hotspots[0]["fan_in"] == 1
+    assert "big.py" in hotspots[0]["dependents"]

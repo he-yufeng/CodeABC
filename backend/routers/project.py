@@ -10,11 +10,12 @@ from backend.models import (
     AnalyzeRequest,
     FileInfo,
     GitHubRequest,
+    Hotspot,
     ProjectMeta,
     ReadingStep,
     UploadedFile,
 )
-from backend.services import cache, github_clone, scanner
+from backend.services import cache, github_clone, importgraph, scanner
 
 router = APIRouter(tags=["project"])
 
@@ -51,6 +52,7 @@ async def upload_project(req: AnalyzeRequest):
         name=req.project_name,
         total_files=len(scanned),
         reading_map=[ReadingStep(**step) for step in scanner.build_reading_map(scanned)],
+        hotspots=[Hotspot(**h) for h in importgraph.rank_hotspots(scanned)],
         files=[
             FileInfo(
                 path=f["path"],
@@ -100,6 +102,7 @@ async def clone_github_project(req: GitHubRequest):
         name=repo_name,
         total_files=len(scanned),
         reading_map=[ReadingStep(**step) for step in scanner.build_reading_map(scanned)],
+        hotspots=[Hotspot(**h) for h in importgraph.rank_hotspots(scanned)],
         files=[
             FileInfo(
                 path=f["path"],
@@ -135,6 +138,7 @@ async def get_project(project_id: str):
         name=proj["name"],
         total_files=len(proj["files"]),
         reading_map=[ReadingStep(**step) for step in scanner.build_reading_map(proj["files"])],
+        hotspots=[Hotspot(**h) for h in importgraph.rank_hotspots(proj["files"])],
         files=[
             FileInfo(
                 path=f["path"],

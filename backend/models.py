@@ -18,12 +18,21 @@ class ReadingStep(BaseModel):
     reason: str
 
 
+class Hotspot(BaseModel):
+    path: str
+    language: str = "unknown"
+    fan_in: int
+    dependents: list[str] = []
+    reason: str
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
     total_files: int
     files: list[FileInfo]
     reading_map: list[ReadingStep]
+    hotspots: list[Hotspot] = []
 
 
 class FileRole(BaseModel):

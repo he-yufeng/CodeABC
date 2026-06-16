@@ -43,6 +43,10 @@ CodeABC skips build outputs, package caches, minified bundles, generated fronten
 
 Before an LLM response is ready, CodeABC builds a deterministic reading map from README files, likely entry points, package manifests, core source directories, and tests. It gives newcomers a useful first route even when no API key is configured.
 
+### Core Modules at a Glance
+
+CodeABC builds a small import graph from the scanned files and ranks them by fan-in: how many other files import each one. The most-imported files are usually where the real logic lives (shared utilities, data models, core services), so they surface next to the reading map as "core modules", each tagged with the number of files that depend on it. It resolves Python imports (including relative and package imports) and JavaScript/TypeScript imports (relative paths with extension and index resolution), and ignores third-party and standard-library imports since they never point at a scanned file. Like the reading map, it runs without an LLM call, so it works with no API key configured.
+
 ## Tech Stack
 
 | Layer | Choice | Why |
@@ -118,6 +122,7 @@ CodeABC/
 │   │   └── analyze.py       # Overview + annotation generation
 │   ├── services/
 │   │   ├── scanner.py       # Project file scanner with smart filtering
+│   │   ├── importgraph.py   # Import-graph fan-in ranking (core-module detection)
 │   │   ├── github_clone.py  # Shallow clone with size limits
 │   │   ├── llm.py           # litellm wrapper (stream + non-stream)
 │   │   └── cache.py         # SQLite cache layer
