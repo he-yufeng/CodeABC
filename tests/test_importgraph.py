@@ -1,5 +1,6 @@
 from backend.services.importgraph import (
     find_import_cycles,
+    find_orphan_modules,
     rank_hotspots,
     suggest_reading_order,
 )
@@ -252,3 +253,49 @@ def test_cycles_report_disjoint_cycles_largest_first():
     assert [c["size"] for c in cycles] == [3, 2]
     assert cycles[0]["files"] == ["x.py", "y.py", "z.py"]
     assert cycles[1]["files"] == ["p.py", "q.py"]
+
+
+def test_orphans_detect_isolated_file():
+    files = [
+        _py("app.py", "from utils import helper\n"),
+        _py("utils.py", "def helper():\n    return 1\n"),
+        _py("scratch.py", "print('standalone')\n"),  # nothing imports it, imports nothing
+    ]
+
+    orphans = find_orphan_modules(files)
+
+    assert [o["path"] for o in orphans] == ["scratch.py"]
+    assert orphans[0]["language"] == "python"
+
+
+def test_orphans_exclude_entry_points_and_leaves():
+    # app imports utils: app is an entry (has out-edges), utils is a leaf (has in-edges)
+    files = [
+        _py("app.py", "from utils import helper\n"),
+        _py("utils.py", "def helper():\n    return 1\n"),
+    ]
+
+    assert find_orphan_modules(files) == []
+
+
+def test_orphans_ignore_non_code_files():
+    files = [
+        _py("app.py", "from utils import helper\n"),
+        _py("utils.py", "def helper():\n    return 1\n"),
+        {"path": "README.md", "language": "markdown", "preview": "# Docs\n"},
+    ]
+
+    # a docs file has no imports, but it must not be reported as an orphan module
+    assert find_orphan_modules(files) == []
+
+
+def test_orphans_detect_isolated_js_module():
+    files = [
+        _ts("src/main.ts", "import { run } from './app';\n"),
+        _ts("src/app.ts", "export const run = () => {};\n"),
+        _ts("src/legacy.ts", "export const dead = 1;\n"),  # disconnected
+    ]
+
+    orphans = find_orphan_modules(files)
+
+    assert [o["path"] for o in orphans] == ["src/legacy.ts"]

@@ -40,6 +40,12 @@ class ImportCycle(BaseModel):
     reason: str
 
 
+class OrphanModule(BaseModel):
+    path: str
+    language: str = "unknown"
+    reason: str
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
@@ -49,6 +55,7 @@ class ProjectMeta(BaseModel):
     hotspots: list[Hotspot] = []
     code_walk: list[CodeWalkStep] = []
     import_cycles: list[ImportCycle] = []
+    orphan_modules: list[OrphanModule] = []
 
 
 class FileRole(BaseModel):

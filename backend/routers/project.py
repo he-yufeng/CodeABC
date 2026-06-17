@@ -13,6 +13,7 @@ from backend.models import (
     GitHubRequest,
     Hotspot,
     ImportCycle,
+    OrphanModule,
     ProjectMeta,
     ReadingStep,
     UploadedFile,
@@ -57,6 +58,7 @@ async def upload_project(req: AnalyzeRequest):
         hotspots=[Hotspot(**h) for h in importgraph.rank_hotspots(scanned)],
         code_walk=[CodeWalkStep(**s) for s in importgraph.suggest_reading_order(scanned)],
         import_cycles=[ImportCycle(**c) for c in importgraph.find_import_cycles(scanned)],
+        orphan_modules=[OrphanModule(**o) for o in importgraph.find_orphan_modules(scanned)],
         files=[
             FileInfo(
                 path=f["path"],
@@ -109,6 +111,7 @@ async def clone_github_project(req: GitHubRequest):
         hotspots=[Hotspot(**h) for h in importgraph.rank_hotspots(scanned)],
         code_walk=[CodeWalkStep(**s) for s in importgraph.suggest_reading_order(scanned)],
         import_cycles=[ImportCycle(**c) for c in importgraph.find_import_cycles(scanned)],
+        orphan_modules=[OrphanModule(**o) for o in importgraph.find_orphan_modules(scanned)],
         files=[
             FileInfo(
                 path=f["path"],
@@ -147,6 +150,7 @@ async def get_project(project_id: str):
         hotspots=[Hotspot(**h) for h in importgraph.rank_hotspots(proj["files"])],
         code_walk=[CodeWalkStep(**s) for s in importgraph.suggest_reading_order(proj["files"])],
         import_cycles=[ImportCycle(**c) for c in importgraph.find_import_cycles(proj["files"])],
+        orphan_modules=[OrphanModule(**o) for o in importgraph.find_orphan_modules(proj["files"])],
         files=[
             FileInfo(
                 path=f["path"],

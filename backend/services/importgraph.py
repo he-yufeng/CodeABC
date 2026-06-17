@@ -457,3 +457,38 @@ def find_import_cycles(files: list[dict], *, limit: int = 8) -> list[dict]:
         }
         for comp in cycles[:limit]
     ]
+
+
+def find_orphan_modules(files: list[dict], *, limit: int = 8) -> list[dict]:
+    """Find code files that are disconnected from the import graph.
+
+    A file that nothing imports and that imports nothing else in the project is
+    an island: dead code, a stray script, or a module that should be wired in
+    but isn't. This is different from an entry point — an entry point is also
+    imported by nothing, but it *does* pull in other modules, while an orphan
+    has no edges at all. Only files in languages the graph understands (Python /
+    JS-TS) are considered, so docs and config never show up. Deterministic and
+    spends no LLM call.
+
+    Returns a list of ``{"path", "language", "reason"}`` sorted by path.
+    """
+    by_path, imports, fan_in = _build_import_graph(files)
+    orphans: list[dict] = []
+    for path in sorted(by_path):
+        f = by_path[path]
+        lang = f.get("language", "unknown")
+        if lang not in _PY_LANGS and lang not in _JS_LANGS:
+            continue
+        if imports.get(path) or fan_in.get(path):
+            continue
+        orphans.append(
+            {
+                "path": path,
+                "language": lang,
+                "reason": (
+                    "没有任何文件 import 它，它也不 import 项目里的其他文件，"
+                    "是脱离依赖图的孤岛——可能是死代码、独立脚本，或漏接的模块。"
+                ),
+            }
+        )
+    return orphans[:limit]
