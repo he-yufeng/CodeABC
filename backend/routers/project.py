@@ -12,6 +12,7 @@ from backend.models import (
     FileInfo,
     GitHubRequest,
     Hotspot,
+    ImportCycle,
     ProjectMeta,
     ReadingStep,
     UploadedFile,
@@ -55,6 +56,7 @@ async def upload_project(req: AnalyzeRequest):
         reading_map=[ReadingStep(**step) for step in scanner.build_reading_map(scanned)],
         hotspots=[Hotspot(**h) for h in importgraph.rank_hotspots(scanned)],
         code_walk=[CodeWalkStep(**s) for s in importgraph.suggest_reading_order(scanned)],
+        import_cycles=[ImportCycle(**c) for c in importgraph.find_import_cycles(scanned)],
         files=[
             FileInfo(
                 path=f["path"],
@@ -106,6 +108,7 @@ async def clone_github_project(req: GitHubRequest):
         reading_map=[ReadingStep(**step) for step in scanner.build_reading_map(scanned)],
         hotspots=[Hotspot(**h) for h in importgraph.rank_hotspots(scanned)],
         code_walk=[CodeWalkStep(**s) for s in importgraph.suggest_reading_order(scanned)],
+        import_cycles=[ImportCycle(**c) for c in importgraph.find_import_cycles(scanned)],
         files=[
             FileInfo(
                 path=f["path"],
@@ -143,6 +146,7 @@ async def get_project(project_id: str):
         reading_map=[ReadingStep(**step) for step in scanner.build_reading_map(proj["files"])],
         hotspots=[Hotspot(**h) for h in importgraph.rank_hotspots(proj["files"])],
         code_walk=[CodeWalkStep(**s) for s in importgraph.suggest_reading_order(proj["files"])],
+        import_cycles=[ImportCycle(**c) for c in importgraph.find_import_cycles(proj["files"])],
         files=[
             FileInfo(
                 path=f["path"],

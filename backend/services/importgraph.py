@@ -338,3 +338,122 @@ def suggest_reading_order(files: list[dict], *, limit: int = 12) -> list[dict]:
             }
         )
     return result
+
+
+def _build_import_graph(
+    files: list[dict],
+) -> tuple[dict[str, dict], dict[str, set[str]], dict[str, set[str]]]:
+    """Build the in-project import graph shared by the analysis helpers.
+
+    Returns ``(by_path, imports, fan_in)`` where ``imports[p]`` is the set of
+    scanned files ``p`` imports and ``fan_in[p]`` is the set that import ``p``.
+    """
+    by_path: dict[str, dict] = {}
+    file_set: set[str] = set()
+    py_modules: dict[str, str] = {}
+    for f in files:
+        path = _posix(f["path"])
+        by_path[path] = f
+        file_set.add(path)
+        mod = _py_module_name(path)
+        if mod is not None:
+            py_modules.setdefault(mod, path)
+
+    imports: dict[str, set[str]] = {}
+    fan_in: dict[str, set[str]] = defaultdict(set)
+    for f in files:
+        path = _posix(f["path"])
+        lang = f.get("language", "unknown")
+        content = f.get("preview") or ""
+        if lang in _PY_LANGS:
+            deps = _py_edges(content, path, py_modules)
+        elif lang in _JS_LANGS:
+            deps = _js_edges(content, path, file_set)
+        else:
+            deps = set()
+        imports[path] = deps
+        for dep in deps:
+            fan_in[dep].add(path)
+    return by_path, imports, fan_in
+
+
+def _strongly_connected_components(imports: dict[str, set[str]]) -> list[list[str]]:
+    """Tarjan's SCC algorithm (iterative, so deep graphs don't blow the stack).
+
+    Node and neighbour iteration is sorted, making the output deterministic.
+    """
+    index_of: dict[str, int] = {}
+    low: dict[str, int] = {}
+    on_stack: set[str] = set()
+    stack: list[str] = []
+    components: list[list[str]] = []
+    counter = 0
+
+    for root in sorted(imports):
+        if root in index_of:
+            continue
+        # work stack of (node, iterator over its neighbours)
+        work: list[tuple[str, list[str]]] = [(root, sorted(imports.get(root, ())))]
+        index_of[root] = low[root] = counter
+        counter += 1
+        stack.append(root)
+        on_stack.add(root)
+        while work:
+            node, neighbours = work[-1]
+            advanced = False
+            while neighbours:
+                nxt = neighbours.pop(0)
+                if nxt not in imports:  # import points outside the scanned set
+                    continue
+                if nxt not in index_of:
+                    index_of[nxt] = low[nxt] = counter
+                    counter += 1
+                    stack.append(nxt)
+                    on_stack.add(nxt)
+                    work.append((nxt, sorted(imports.get(nxt, ()))))
+                    advanced = True
+                    break
+                if nxt in on_stack:
+                    low[node] = min(low[node], index_of[nxt])
+            if advanced:
+                continue
+            work.pop()
+            if work:
+                parent = work[-1][0]
+                low[parent] = min(low[parent], low[node])
+            if low[node] == index_of[node]:
+                component: list[str] = []
+                while True:
+                    w = stack.pop()
+                    on_stack.discard(w)
+                    component.append(w)
+                    if w == node:
+                        break
+                components.append(sorted(component))
+    return components
+
+
+def find_import_cycles(files: list[dict], *, limit: int = 8) -> list[dict]:
+    """Find groups of files that import each other in a cycle.
+
+    Circular imports make a codebase harder to read and refactor — you can't
+    understand one file without the others, and they invite import-time errors.
+    Returns each strongly-connected component of more than one file in the
+    import graph, largest first. Deterministic and spends no LLM call.
+
+    Returns a list of ``{"files", "size", "reason"}``.
+    """
+    _, imports, _ = _build_import_graph(files)
+    cycles = [comp for comp in _strongly_connected_components(imports) if len(comp) > 1]
+    cycles.sort(key=lambda c: (-len(c), c[0]))
+    return [
+        {
+            "files": comp,
+            "size": len(comp),
+            "reason": (
+                f"这 {len(comp)} 个文件互相 import 形成依赖环，"
+                "建议放在一起读、并考虑解开循环以降低耦合。"
+            ),
+        }
+        for comp in cycles[:limit]
+    ]

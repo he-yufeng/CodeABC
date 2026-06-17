@@ -34,6 +34,12 @@ class CodeWalkStep(BaseModel):
     reason: str
 
 
+class ImportCycle(BaseModel):
+    files: list[str]
+    size: int
+    reason: str
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
@@ -42,6 +48,7 @@ class ProjectMeta(BaseModel):
     reading_map: list[ReadingStep]
     hotspots: list[Hotspot] = []
     code_walk: list[CodeWalkStep] = []
+    import_cycles: list[ImportCycle] = []
 
 
 class FileRole(BaseModel):

@@ -1,4 +1,8 @@
-from backend.services.importgraph import rank_hotspots, suggest_reading_order
+from backend.services.importgraph import (
+    find_import_cycles,
+    rank_hotspots,
+    suggest_reading_order,
+)
 from backend.services.scanner import scan_uploaded_files
 
 
@@ -193,3 +197,58 @@ def test_reading_order_keeps_every_file_despite_cycles():
 
     assert {s["path"] for s in order} == {"a.py", "b.py"}
     assert [s["step"] for s in order] == [1, 2]
+
+
+def test_cycles_detect_two_file_cycle():
+    files = [
+        _py("a.py", "import b\n"),
+        _py("b.py", "import a\n"),
+    ]
+
+    cycles = find_import_cycles(files)
+
+    assert len(cycles) == 1
+    assert cycles[0]["files"] == ["a.py", "b.py"]
+    assert cycles[0]["size"] == 2
+
+
+def test_cycles_none_for_acyclic_graph():
+    files = [
+        _py("main.py", "from lib import x\n"),
+        _py("lib.py", "x = 1\n"),
+    ]
+
+    assert find_import_cycles(files) == []
+
+
+def test_cycles_detect_three_file_cycle_and_ignore_acyclic_tail():
+    files = [
+        _py("a.py", "import b\n"),
+        _py("b.py", "import c\n"),
+        _py("c.py", "import a\nimport util\n"),
+        _py("util.py", "x = 1\n"),  # depended on, not part of the cycle
+    ]
+
+    cycles = find_import_cycles(files)
+
+    assert len(cycles) == 1
+    assert cycles[0]["files"] == ["a.py", "b.py", "c.py"]
+    assert cycles[0]["size"] == 3
+
+
+def test_cycles_report_disjoint_cycles_largest_first():
+    files = [
+        # 3-file cycle
+        _py("x.py", "import y\n"),
+        _py("y.py", "import z\n"),
+        _py("z.py", "import x\n"),
+        # 2-file cycle
+        _py("p.py", "import q\n"),
+        _py("q.py", "import p\n"),
+    ]
+
+    cycles = find_import_cycles(files)
+
+    assert [c["size"] for c in cycles] == [3, 2]
+    assert cycles[0]["files"] == ["x.py", "y.py", "z.py"]
+    assert cycles[1]["files"] == ["p.py", "q.py"]
