@@ -26,6 +26,14 @@ class Hotspot(BaseModel):
     reason: str
 
 
+class CodeWalkStep(BaseModel):
+    step: int
+    path: str
+    language: str = "unknown"
+    role: str
+    reason: str
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
@@ -33,6 +41,7 @@ class ProjectMeta(BaseModel):
     files: list[FileInfo]
     reading_map: list[ReadingStep]
     hotspots: list[Hotspot] = []
+    code_walk: list[CodeWalkStep] = []
 
 
 class FileRole(BaseModel):
@@ -72,5 +81,6 @@ class UploadedFile(BaseModel):
 
 class AnalyzeRequest(BaseModel):
     """Sent from frontend with uploaded files."""
+
     files: list[UploadedFile]
     project_name: str = "untitled"

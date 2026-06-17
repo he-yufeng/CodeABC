@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 
 from backend.models import (
     AnalyzeRequest,
+    CodeWalkStep,
     FileInfo,
     GitHubRequest,
     Hotspot,
@@ -53,6 +54,7 @@ async def upload_project(req: AnalyzeRequest):
         total_files=len(scanned),
         reading_map=[ReadingStep(**step) for step in scanner.build_reading_map(scanned)],
         hotspots=[Hotspot(**h) for h in importgraph.rank_hotspots(scanned)],
+        code_walk=[CodeWalkStep(**s) for s in importgraph.suggest_reading_order(scanned)],
         files=[
             FileInfo(
                 path=f["path"],
@@ -103,6 +105,7 @@ async def clone_github_project(req: GitHubRequest):
         total_files=len(scanned),
         reading_map=[ReadingStep(**step) for step in scanner.build_reading_map(scanned)],
         hotspots=[Hotspot(**h) for h in importgraph.rank_hotspots(scanned)],
+        code_walk=[CodeWalkStep(**s) for s in importgraph.suggest_reading_order(scanned)],
         files=[
             FileInfo(
                 path=f["path"],
@@ -139,6 +142,7 @@ async def get_project(project_id: str):
         total_files=len(proj["files"]),
         reading_map=[ReadingStep(**step) for step in scanner.build_reading_map(proj["files"])],
         hotspots=[Hotspot(**h) for h in importgraph.rank_hotspots(proj["files"])],
+        code_walk=[CodeWalkStep(**s) for s in importgraph.suggest_reading_order(proj["files"])],
         files=[
             FileInfo(
                 path=f["path"],

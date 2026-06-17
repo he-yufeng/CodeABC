@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import posixpath
 import re
-from collections import defaultdict
+from collections import defaultdict, deque
 from pathlib import PurePosixPath
 
 _PY_IMPORT = re.compile(r"^\s*import\s+(.+)$")
@@ -32,6 +32,20 @@ _JS_EXTS = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".vue", ".svelte")
 
 # keep the dependents list small enough to ship in the API response
 _MAX_DEPENDENTS = 12
+
+# conventional entry-point file names, checked without extension/case
+_ENTRY_HINTS = {
+    "main",
+    "app",
+    "cli",
+    "__main__",
+    "index",
+    "server",
+    "run",
+    "manage",
+    "wsgi",
+    "asgi",
+}
 
 
 def _posix(path: str) -> str:
@@ -224,3 +238,103 @@ def rank_hotspots(files: list[dict], *, limit: int = 8) -> list[dict]:
     ]
     ranked.sort(key=lambda h: (-h["fan_in"], h["path"]))
     return ranked[:limit]
+
+
+def _order_reason(role: str) -> str:
+    if role == "entry":
+        return "Entry point -- where the program starts; read this first."
+    if role == "leaf":
+        return "A building block the code above relies on; no further local imports."
+    return "Pulled in by what you just read; read it next to follow the flow."
+
+
+def suggest_reading_order(files: list[dict], *, limit: int = 12) -> list[dict]:
+    """Suggest an order to read a project's files for someone new to it.
+
+    Starts from entry points (files nothing else imports, preferring conventional
+    names like ``main``/``app``/``cli``) and walks the import graph breadth-first,
+    so a reader meets the "front door" first and then the modules it pulls in.
+    Like :func:`rank_hotspots` this is deterministic and spends no LLM call.
+
+    Args:
+        files: scanner output dicts with ``path``, ``language`` and ``preview``.
+        limit: how many steps to return.
+
+    Returns a list of ``{"path", "language", "step", "role", "reason"}`` in the
+    order they should be read; ``step`` is 1-based and ``role`` is one of
+    ``"entry"``, ``"core"`` or ``"leaf"``.
+    """
+    by_path: dict[str, dict] = {}
+    file_set: set[str] = set()
+    py_modules: dict[str, str] = {}
+
+    for f in files:
+        path = _posix(f["path"])
+        by_path[path] = f
+        file_set.add(path)
+        mod = _py_module_name(path)
+        if mod is not None:
+            py_modules.setdefault(mod, path)
+
+    imports: dict[str, set[str]] = {}
+    fan_in: dict[str, set[str]] = defaultdict(set)
+    for f in files:
+        path = _posix(f["path"])
+        lang = f.get("language", "unknown")
+        content = f.get("preview") or ""
+        if lang in _PY_LANGS:
+            deps = _py_edges(content, path, py_modules)
+        elif lang in _JS_LANGS:
+            deps = _js_edges(content, path, file_set)
+        else:
+            deps = set()
+        imports[path] = deps
+        for dep in deps:
+            fan_in[dep].add(path)
+
+    def _entry_key(path: str) -> tuple[int, int, str]:
+        name = path.rsplit("/", 1)[-1]
+        stem = name[: -len(".py")] if name.endswith(".py") else name.rsplit(".", 1)[0]
+        is_hint = 0 if stem.lower() in _ENTRY_HINTS else 1
+        return (is_hint, path.count("/"), path)
+
+    # entry points: in-project files that nothing else imports
+    entries = sorted((p for p in by_path if not fan_in.get(p)), key=_entry_key)
+
+    order: list[str] = []
+    seen: set[str] = set()
+    queue: deque[str] = deque(entries)
+    while queue:
+        path = queue.popleft()
+        if path in seen or path not in by_path:
+            continue
+        seen.add(path)
+        order.append(path)
+        for dep in sorted(imports.get(path, ())):
+            if dep not in seen:
+                queue.append(dep)
+
+    # files unreachable from any entry (isolated or only in a cycle) go last
+    for path in sorted(by_path):
+        if path not in seen:
+            seen.add(path)
+            order.append(path)
+
+    result: list[dict] = []
+    for step, path in enumerate(order[:limit], start=1):
+        if path in entries:
+            role = "entry"
+        elif imports.get(path):
+            role = "core"
+        else:
+            role = "leaf"
+        result.append(
+            {
+                "path": path,
+                "language": by_path[path].get("language", "unknown"),
+                "step": step,
+                "role": role,
+                "reason": _order_reason(role),
+            }
+        )
+    return result

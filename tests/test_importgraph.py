@@ -1,4 +1,4 @@
-from backend.services.importgraph import rank_hotspots
+from backend.services.importgraph import rank_hotspots, suggest_reading_order
 from backend.services.scanner import scan_uploaded_files
 
 
@@ -72,9 +72,7 @@ def test_self_import_does_not_count():
 
 def test_resolves_js_imports_with_extension_and_index():
     main = (
-        "import { run } from './app';\n"
-        "import store from './store';\n"
-        "import React from 'react';\n"
+        "import { run } from './app';\nimport store from './store';\nimport React from 'react';\n"
     )
     files = [
         _ts("src/main.ts", main),
@@ -148,3 +146,50 @@ def test_finds_imports_when_preview_is_truncated():
     assert hotspots[0]["path"] == "utils.py"
     assert hotspots[0]["fan_in"] == 1
     assert "big.py" in hotspots[0]["dependents"]
+
+
+def test_reading_order_starts_at_entry_point():
+    files = [
+        _py("app.py", "from utils import helper\nimport config\n"),
+        _py("utils.py", "def helper():\n    return 1\n"),
+        _py("config.py", "DEBUG = True\n"),
+    ]
+
+    order = suggest_reading_order(files)
+
+    assert order[0]["path"] == "app.py"
+    assert order[0]["role"] == "entry"
+    assert order[0]["step"] == 1
+    paths = [s["path"] for s in order]
+    # the modules the entry imports are read after it
+    assert paths.index("app.py") < paths.index("utils.py")
+    assert paths.index("app.py") < paths.index("config.py")
+    roles = {s["path"]: s["role"] for s in order}
+    assert roles["utils.py"] == "leaf"
+    assert roles["config.py"] == "leaf"
+
+
+def test_reading_order_prefers_conventional_entry_names():
+    # nothing imports either top-level file; main.py should be read first
+    files = [
+        _py("zzz_top.py", "from lib import x\n"),
+        _py("main.py", "from lib import x\n"),
+        _py("lib.py", "x = 1\n"),
+    ]
+
+    order = suggest_reading_order(files)
+
+    assert order[0]["path"] == "main.py"
+    assert order[0]["role"] == "entry"
+
+
+def test_reading_order_keeps_every_file_despite_cycles():
+    files = [
+        _py("a.py", "import b\n"),
+        _py("b.py", "import a\n"),
+    ]
+
+    order = suggest_reading_order(files)
+
+    assert {s["path"] for s in order} == {"a.py", "b.py"}
+    assert [s["step"] for s in order] == [1, 2]
