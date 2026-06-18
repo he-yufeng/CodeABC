@@ -550,3 +550,59 @@ def find_orphan_modules(files: list[dict], *, limit: int = 8) -> list[dict]:
             }
         )
     return orphans[:limit]
+
+
+def _blast_reason(blast: int, direct: int) -> str:
+    if blast >= 5:
+        return f"改它会波及 {blast} 个文件（其中 {direct} 个直接依赖），改动前最该先评估影响范围。"
+    return f"改它大约波及 {blast} 个文件，影响范围中等。"
+
+
+def rank_blast_radius(files: list[dict], *, limit: int = 8) -> list[dict]:
+    """Rank files by how many other files *transitively* depend on them.
+
+    Where :func:`rank_hotspots` counts direct importers, this follows the import
+    edges in reverse to its closure: if changing a file could ripple to N other
+    files (its importers, their importers, and so on), that N is its blast
+    radius. It answers the newcomer's "if I change this, what might break?" much
+    more honestly than direct fan-in, since impact propagates through the graph.
+    Cycles are handled by the visited set. Deterministic and spends no LLM call.
+
+    Args:
+        files: scanner output dicts with ``path``, ``language`` and ``preview``.
+        limit: how many top files to return.
+
+    Returns a list of
+    ``{"path", "language", "blast_radius", "direct_dependents", "reason"}``
+    sorted by blast radius descending, then path. Files nothing depends on are
+    omitted.
+    """
+    by_path, _imports, fan_in = _build_import_graph(files)
+
+    ranked: list[dict] = []
+    for path in by_path:
+        # reverse BFS along fan_in edges: every file that (transitively) imports
+        # ``path`` and would therefore be in the blast radius of changing it.
+        seen: set[str] = set()
+        queue: deque[str] = deque(fan_in.get(path, ()))
+        while queue:
+            dep = queue.popleft()
+            if dep in seen or dep == path:
+                continue
+            seen.add(dep)
+            for upstream in fan_in.get(dep, ()):
+                if upstream not in seen and upstream != path:
+                    queue.append(upstream)
+        if not seen:
+            continue
+        ranked.append(
+            {
+                "path": path,
+                "language": by_path[path].get("language", "unknown"),
+                "blast_radius": len(seen),
+                "direct_dependents": sorted(fan_in.get(path, ()))[:_MAX_DEPENDENTS],
+                "reason": _blast_reason(len(seen), len(fan_in.get(path, set()))),
+            }
+        )
+    ranked.sort(key=lambda h: (-h["blast_radius"], h["path"]))
+    return ranked[:limit]

@@ -1,6 +1,7 @@
 from backend.services.importgraph import (
     find_import_cycles,
     find_orphan_modules,
+    rank_blast_radius,
     rank_coupling,
     rank_hotspots,
     suggest_reading_order,
@@ -329,3 +330,38 @@ def test_orphans_detect_isolated_js_module():
     orphans = find_orphan_modules(files)
 
     assert [o["path"] for o in orphans] == ["src/legacy.ts"]
+
+
+def test_blast_radius_counts_transitive_dependents():
+    files = [
+        _py("a.py", "import b\n"),
+        _py("b.py", "import c\n"),
+        _py("c.py", "x = 1\n"),
+    ]
+
+    blast = rank_blast_radius(files)
+
+    # c is imported by b directly and by a transitively -> blast radius 2.
+    assert blast[0]["path"] == "c.py"
+    assert blast[0]["blast_radius"] == 2
+    assert blast[0]["direct_dependents"] == ["b.py"]
+    # b is only reached through a.
+    assert blast[1]["path"] == "b.py"
+    assert blast[1]["blast_radius"] == 1
+    # nothing depends on the entry point a, so it is omitted.
+    assert {h["path"] for h in blast}.isdisjoint({"a.py"})
+
+
+def test_blast_radius_handles_cycles_without_looping():
+    files = [
+        _py("a.py", "import b\n"),
+        _py("b.py", "import a\n"),
+    ]
+
+    blast = rank_blast_radius(files)
+    by_path = {h["path"]: h for h in blast}
+
+    # a and b import each other; each counts only the other, the cycle neither
+    # inflates the radius nor hangs the reverse walk.
+    assert by_path["a.py"]["blast_radius"] == 1
+    assert by_path["b.py"]["blast_radius"] == 1

@@ -54,6 +54,14 @@ class CouplingHotspot(BaseModel):
     reason: str
 
 
+class BlastRadiusHotspot(BaseModel):
+    path: str
+    language: str = "unknown"
+    blast_radius: int
+    direct_dependents: list[str] = []
+    reason: str
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
@@ -65,6 +73,7 @@ class ProjectMeta(BaseModel):
     import_cycles: list[ImportCycle] = []
     orphan_modules: list[OrphanModule] = []
     coupling_hotspots: list[CouplingHotspot] = []
+    blast_radius: list[BlastRadiusHotspot] = []
 
 
 class FileRole(BaseModel):

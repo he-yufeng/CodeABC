@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 
 from backend.models import (
     AnalyzeRequest,
+    BlastRadiusHotspot,
     CodeWalkStep,
     CouplingHotspot,
     FileInfo,
@@ -61,6 +62,7 @@ async def upload_project(req: AnalyzeRequest):
         import_cycles=[ImportCycle(**c) for c in importgraph.find_import_cycles(scanned)],
         orphan_modules=[OrphanModule(**o) for o in importgraph.find_orphan_modules(scanned)],
         coupling_hotspots=[CouplingHotspot(**c) for c in importgraph.rank_coupling(scanned)],
+        blast_radius=[BlastRadiusHotspot(**b) for b in importgraph.rank_blast_radius(scanned)],
         files=[
             FileInfo(
                 path=f["path"],
@@ -115,6 +117,7 @@ async def clone_github_project(req: GitHubRequest):
         import_cycles=[ImportCycle(**c) for c in importgraph.find_import_cycles(scanned)],
         orphan_modules=[OrphanModule(**o) for o in importgraph.find_orphan_modules(scanned)],
         coupling_hotspots=[CouplingHotspot(**c) for c in importgraph.rank_coupling(scanned)],
+        blast_radius=[BlastRadiusHotspot(**b) for b in importgraph.rank_blast_radius(scanned)],
         files=[
             FileInfo(
                 path=f["path"],
@@ -155,6 +158,9 @@ async def get_project(project_id: str):
         import_cycles=[ImportCycle(**c) for c in importgraph.find_import_cycles(proj["files"])],
         orphan_modules=[OrphanModule(**o) for o in importgraph.find_orphan_modules(proj["files"])],
         coupling_hotspots=[CouplingHotspot(**c) for c in importgraph.rank_coupling(proj["files"])],
+        blast_radius=[
+            BlastRadiusHotspot(**b) for b in importgraph.rank_blast_radius(proj["files"])
+        ],
         files=[
             FileInfo(
                 path=f["path"],
