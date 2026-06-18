@@ -7,6 +7,7 @@ from backend.services.importgraph import (
     rank_hotspots,
     suggest_reading_order,
     summarize_package_dependencies,
+    summarize_project_health,
 )
 from backend.services.scanner import scan_uploaded_files
 
@@ -432,3 +433,36 @@ def test_package_dependencies_ignore_same_directory_imports():
     # The only edge is within a single directory, so there is no cross-package
     # structure to report.
     assert summarize_package_dependencies(files) == []
+
+
+def test_project_health_summarizes_structure():
+    files = [
+        _py("app/main.py", "from db.session import get\nfrom auth.login import check\n"),
+        _py("auth/login.py", "from db.session import get\n"),
+        _py("db/session.py", "POOL = 1\n"),
+        _py("orphan.py", "x = 1\n"),
+    ]
+
+    health = summarize_project_health(files)
+
+    assert health["total_code_files"] == 4
+    assert health["total_directories"] == 4  # app, auth, db, (root)
+    assert health["orphan_files"] == 1
+    assert health["circular_dependency_groups"] == 0
+    # db/session.py is imported by app and auth, so it is the load-bearing file.
+    assert health["most_depended_on"] == "db/session.py"
+    assert health["most_depended_on_fan_in"] == 2
+    assert any("没有循环依赖" in note for note in health["notes"])
+
+
+def test_project_health_counts_circular_dependencies():
+    files = [
+        _py("a.py", "import b\n"),
+        _py("b.py", "import a\n"),
+    ]
+
+    health = summarize_project_health(files)
+
+    assert health["circular_dependency_groups"] == 1
+    assert health["orphan_files"] == 0
+    assert any("循环依赖" in note for note in health["notes"])

@@ -72,6 +72,18 @@ export interface OrphanModule {
   reason: string;
 }
 
+export interface ProjectHealth {
+  total_code_files: number;
+  total_directories: number;
+  circular_dependency_groups: number;
+  orphan_files: number;
+  most_depended_on: string;
+  most_depended_on_fan_in: number;
+  widest_blast_radius_file: string;
+  widest_blast_radius: number;
+  notes: string[];
+}
+
 export interface ProjectMeta {
   id: string;
   name: string;
@@ -85,6 +97,7 @@ export interface ProjectMeta {
   blast_radius?: BlastRadiusHotspot[];
   import_cycles?: ImportCycle[];
   orphan_modules?: OrphanModule[];
+  health?: ProjectHealth;
 }
 
 export interface Annotation {

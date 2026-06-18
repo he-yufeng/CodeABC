@@ -744,3 +744,67 @@ def summarize_package_dependencies(files: list[dict], *, limit: int = 12) -> lis
         )
     result.sort(key=lambda d: (-(d["fan_in"] + d["fan_out"]), d["package"]))
     return result[:limit]
+
+
+def summarize_project_health(files: list[dict]) -> dict:
+    """A one-glance, plain-language health read of the project's structure.
+
+    Rolls the per-file / per-directory analyses up to project level so a
+    non-programmer can size up a codebase at a glance: how big it is, what its
+    load-bearing file is, and where the structural risks (circular imports,
+    orphan files, wide change blast radius) are. Deterministic, no LLM call.
+
+    Returns a dict of totals, risk counts, the single most-depended-on file, the
+    widest change blast radius, and a list of plain-language ``notes``.
+    """
+    by_path, imports, fan_in = _build_import_graph(files)
+    code = [
+        path
+        for path in by_path
+        if by_path[path].get("language") in _PY_LANGS or by_path[path].get("language") in _JS_LANGS
+    ]
+    total_code_files = len(code)
+    total_directories = len({_package_of(path) for path in code})
+    cycle_groups = sum(1 for comp in _strongly_connected_components(imports) if len(comp) > 1)
+    orphan_files = sum(1 for path in code if not imports.get(path) and not fan_in.get(path))
+
+    core = rank_hotspots(files, limit=1)
+    blast = rank_blast_radius(files, limit=1)
+    most_depended_on = core[0]["path"] if core else ""
+    most_depended_on_fan_in = core[0]["fan_in"] if core else 0
+    widest_blast_radius_file = blast[0]["path"] if blast else ""
+    widest_blast_radius = blast[0]["blast_radius"] if blast else 0
+
+    notes: list[str] = [
+        f"项目里有 {total_code_files} 个代码文件，分布在 {total_directories} 个目录。"
+    ]
+    if most_depended_on:
+        notes.append(
+            f"最核心的文件是 {most_depended_on}"
+            f"（被 {most_depended_on_fan_in} 个文件依赖），建议最先读懂。"
+        )
+    if widest_blast_radius > 0:
+        notes.append(
+            f"改动影响面最大的是 {widest_blast_radius_file}"
+            f"（牵连约 {widest_blast_radius} 个文件），改它要格外小心。"
+        )
+    if cycle_groups:
+        notes.append(f"发现 {cycle_groups} 组循环依赖，建议理清以降低耦合。")
+    else:
+        notes.append("没有循环依赖，依赖关系是干净的有向结构。")
+    if orphan_files:
+        notes.append(
+            f"有 {orphan_files} 个文件和其他文件没有任何 import 关系，可能是死代码或漏接的模块。"
+        )
+
+    return {
+        "total_code_files": total_code_files,
+        "total_directories": total_directories,
+        "circular_dependency_groups": cycle_groups,
+        "orphan_files": orphan_files,
+        "most_depended_on": most_depended_on,
+        "most_depended_on_fan_in": most_depended_on_fan_in,
+        "widest_blast_radius_file": widest_blast_radius_file,
+        "widest_blast_radius": widest_blast_radius,
+        "notes": notes,
+    }

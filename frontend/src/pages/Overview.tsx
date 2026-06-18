@@ -106,6 +106,27 @@ export default function Overview() {
           </section>
         )}
 
+        {/* Project health: a one-glance summary computed from imports, no LLM */}
+        {project && project.health && project.health.notes.length > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">项目体检</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              不用等 AI，先看这份从依赖关系算出来的整体结构速览。
+            </p>
+            <ul className="space-y-2">
+              {project.health.notes.map((note) => (
+                <li
+                  key={note}
+                  className="flex gap-2 text-sm text-gray-700"
+                >
+                  <span className="text-blue-500">•</span>
+                  <span>{note}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Deterministic architecture maps (computed from imports, no LLM) */}
         {project &&
           ((project.hotspots?.length ?? 0) > 0 ||

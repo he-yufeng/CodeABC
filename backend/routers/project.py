@@ -18,6 +18,7 @@ from backend.models import (
     ImportCycle,
     OrphanModule,
     PackageDependency,
+    ProjectHealth,
     ProjectMeta,
     ReadingStep,
     UploadedFile,
@@ -71,6 +72,7 @@ async def upload_project(req: AnalyzeRequest):
         package_dependencies=[
             PackageDependency(**p) for p in importgraph.summarize_package_dependencies(scanned)
         ],
+        health=ProjectHealth(**importgraph.summarize_project_health(scanned)),
         files=[
             FileInfo(
                 path=f["path"],
@@ -132,6 +134,7 @@ async def clone_github_project(req: GitHubRequest):
         package_dependencies=[
             PackageDependency(**p) for p in importgraph.summarize_package_dependencies(scanned)
         ],
+        health=ProjectHealth(**importgraph.summarize_project_health(scanned)),
         files=[
             FileInfo(
                 path=f["path"],
@@ -182,6 +185,7 @@ async def get_project(project_id: str):
             PackageDependency(**p)
             for p in importgraph.summarize_package_dependencies(proj["files"])
         ],
+        health=ProjectHealth(**importgraph.summarize_project_health(proj["files"])),
         files=[
             FileInfo(
                 path=f["path"],

@@ -78,6 +78,18 @@ class PackageDependency(BaseModel):
     reason: str
 
 
+class ProjectHealth(BaseModel):
+    total_code_files: int = 0
+    total_directories: int = 0
+    circular_dependency_groups: int = 0
+    orphan_files: int = 0
+    most_depended_on: str = ""
+    most_depended_on_fan_in: int = 0
+    widest_blast_radius_file: str = ""
+    widest_blast_radius: int = 0
+    notes: list[str] = []
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
@@ -92,6 +104,7 @@ class ProjectMeta(BaseModel):
     blast_radius: list[BlastRadiusHotspot] = []
     architecture_layers: list[ArchitectureLayer] = []
     package_dependencies: list[PackageDependency] = []
+    health: ProjectHealth | None = None
 
 
 class FileRole(BaseModel):
