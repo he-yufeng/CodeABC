@@ -6,6 +6,7 @@ from backend.services.importgraph import (
     rank_coupling,
     rank_hotspots,
     suggest_reading_order,
+    summarize_package_dependencies,
 )
 from backend.services.scanner import scan_uploaded_files
 
@@ -398,3 +399,36 @@ def test_architecture_layers_condense_cycles_into_one_layer():
     # the leaf c, so they share a layer instead of inflating into two.
     assert by_layer["c.py"] == 0
     assert by_layer["a.py"] == by_layer["b.py"] == 1
+
+
+def test_package_dependencies_aggregate_to_directories():
+    files = [
+        _py("app/main.py", "from db.session import get\nfrom auth.login import check\n"),
+        _py("auth/login.py", "from db.session import get\n"),
+        _py("db/session.py", "POOL = 1\n"),
+    ]
+
+    pkgs = summarize_package_dependencies(files)
+    by_pkg = {p["package"]: p for p in pkgs}
+
+    # db is the foundation: two directories lean on it, it leans on nobody.
+    assert by_pkg["db"]["depended_on_by"] == ["app", "auth"]
+    assert by_pkg["db"]["depends_on"] == []
+    assert by_pkg["db"]["fan_in"] == 2
+    # app is the entry point: it pulls in both other directories.
+    assert by_pkg["app"]["depends_on"] == ["auth", "db"]
+    assert by_pkg["app"]["fan_in"] == 0
+    # auth sits in the middle, depending on db and depended on by app.
+    assert by_pkg["auth"]["depends_on"] == ["db"]
+    assert by_pkg["auth"]["depended_on_by"] == ["app"]
+
+
+def test_package_dependencies_ignore_same_directory_imports():
+    files = [
+        _py("pkg/a.py", "import pkg.b\n"),
+        _py("pkg/b.py", "x = 1\n"),
+    ]
+
+    # The only edge is within a single directory, so there is no cross-package
+    # structure to report.
+    assert summarize_package_dependencies(files) == []

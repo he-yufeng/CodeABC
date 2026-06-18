@@ -17,6 +17,7 @@ from backend.models import (
     Hotspot,
     ImportCycle,
     OrphanModule,
+    PackageDependency,
     ProjectMeta,
     ReadingStep,
     UploadedFile,
@@ -66,6 +67,9 @@ async def upload_project(req: AnalyzeRequest):
         blast_radius=[BlastRadiusHotspot(**b) for b in importgraph.rank_blast_radius(scanned)],
         architecture_layers=[
             ArchitectureLayer(**a) for a in importgraph.assign_architecture_layers(scanned)
+        ],
+        package_dependencies=[
+            PackageDependency(**p) for p in importgraph.summarize_package_dependencies(scanned)
         ],
         files=[
             FileInfo(
@@ -125,6 +129,9 @@ async def clone_github_project(req: GitHubRequest):
         architecture_layers=[
             ArchitectureLayer(**a) for a in importgraph.assign_architecture_layers(scanned)
         ],
+        package_dependencies=[
+            PackageDependency(**p) for p in importgraph.summarize_package_dependencies(scanned)
+        ],
         files=[
             FileInfo(
                 path=f["path"],
@@ -170,6 +177,10 @@ async def get_project(project_id: str):
         ],
         architecture_layers=[
             ArchitectureLayer(**a) for a in importgraph.assign_architecture_layers(proj["files"])
+        ],
+        package_dependencies=[
+            PackageDependency(**p)
+            for p in importgraph.summarize_package_dependencies(proj["files"])
         ],
         files=[
             FileInfo(

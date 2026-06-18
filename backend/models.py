@@ -69,6 +69,15 @@ class ArchitectureLayer(BaseModel):
     reason: str
 
 
+class PackageDependency(BaseModel):
+    package: str
+    depends_on: list[str] = []
+    depended_on_by: list[str] = []
+    fan_out: int
+    fan_in: int
+    reason: str
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
@@ -82,6 +91,7 @@ class ProjectMeta(BaseModel):
     coupling_hotspots: list[CouplingHotspot] = []
     blast_radius: list[BlastRadiusHotspot] = []
     architecture_layers: list[ArchitectureLayer] = []
+    package_dependencies: list[PackageDependency] = []
 
 
 class FileRole(BaseModel):

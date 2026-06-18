@@ -676,3 +676,71 @@ def assign_architecture_layers(files: list[dict], *, limit: int = 12) -> list[di
         )
     result.sort(key=lambda h: (-h["layer"], h["path"]))
     return result[:limit]
+
+
+def _package_of(path: str) -> str:
+    """The directory a file lives in, used as its package label."""
+    posix = _posix(path)
+    return posix.rsplit("/", 1)[0] if "/" in posix else "(root)"
+
+
+def _package_reason(fan_out: int, fan_in: int) -> str:
+    if fan_in and not fan_out:
+        return (
+            f"被 {fan_in} 个其他目录依赖、自己不依赖别的目录："
+            "偏底层的公共能力，改动影响面最大，值得先读懂。"
+        )
+    if fan_out and not fan_in:
+        return (
+            f"依赖 {fan_out} 个其他目录、没有目录反过来依赖它："
+            "偏上层的入口 / 编排，适合从这里顺着依赖往下读。"
+        )
+    return f"依赖 {fan_out} 个目录、又被 {fan_in} 个目录依赖：处在架构中段，是连接上下层的枢纽。"
+
+
+def summarize_package_dependencies(files: list[dict], *, limit: int = 12) -> list[dict]:
+    """Condense the file-level import graph into a directory-level one.
+
+    Each file is labelled by the directory it lives in, and same-directory
+    imports are dropped, so the result is a high-level map of which folders lean
+    on which. It answers "how do the big pieces fit together" without making a
+    reader open a single file. Deterministic and spends no LLM call.
+
+    Args:
+        files: scanner output dicts with ``path``, ``language`` and ``preview``.
+        limit: how many packages to return (most cross-package coupling first).
+
+    Returns a list of ``{"package", "depends_on", "depended_on_by", "fan_out",
+    "fan_in", "reason"}`` sorted by total cross-package coupling descending, then
+    package. Directories with no cross-directory imports are omitted.
+    """
+    _by_path, imports, _fan_in = _build_import_graph(files)
+    pkg_of = {path: _package_of(path) for path in imports}
+
+    depends_on: dict[str, set[str]] = defaultdict(set)
+    depended_on_by: dict[str, set[str]] = defaultdict(set)
+    for path, deps in imports.items():
+        a = pkg_of[path]
+        for dep in deps:
+            b = pkg_of.get(dep)
+            if b is None or b == a:
+                continue
+            depends_on[a].add(b)
+            depended_on_by[b].add(a)
+
+    result: list[dict] = []
+    for pkg in set(depends_on) | set(depended_on_by):
+        outs = sorted(depends_on.get(pkg, ()))
+        ins = sorted(depended_on_by.get(pkg, ()))
+        result.append(
+            {
+                "package": pkg,
+                "depends_on": outs,
+                "depended_on_by": ins,
+                "fan_out": len(outs),
+                "fan_in": len(ins),
+                "reason": _package_reason(len(outs), len(ins)),
+            }
+        )
+    result.sort(key=lambda d: (-(d["fan_in"] + d["fan_out"]), d["package"]))
+    return result[:limit]
