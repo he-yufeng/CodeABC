@@ -110,7 +110,11 @@ export default function Overview() {
         {project &&
           ((project.hotspots?.length ?? 0) > 0 ||
             (project.architecture_layers?.length ?? 0) > 0 ||
-            (project.package_dependencies?.length ?? 0) > 0) && (
+            (project.package_dependencies?.length ?? 0) > 0 ||
+            (project.blast_radius?.length ?? 0) > 0 ||
+            (project.coupling_hotspots?.length ?? 0) > 0 ||
+            (project.import_cycles?.length ?? 0) > 0 ||
+            (project.orphan_modules?.length ?? 0) > 0) && (
             <section className="bg-white rounded-xl p-6 shadow-sm mb-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-1">
                 代码地图
@@ -194,6 +198,100 @@ export default function Overview() {
                     </ul>
                   </div>
                 )}
+
+              {project.blast_radius && project.blast_radius.length > 0 && (
+                <div className="mt-5">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                    改动影响面（改这些文件波及最广）
+                  </h3>
+                  <ul className="space-y-2">
+                    {project.blast_radius.map((b) => (
+                      <li key={b.path}>
+                        <button
+                          onClick={() => handleFileClick(b.path)}
+                          className="w-full text-left hover:text-blue-700"
+                        >
+                          <span className="font-mono text-sm text-blue-600">
+                            {b.path}
+                          </span>
+                          <span className="block text-sm text-gray-500 mt-0.5">
+                            {b.reason}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {project.coupling_hotspots &&
+                project.coupling_hotspots.length > 0 && (
+                  <div className="mt-5">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                      依赖最多的文件（牵连其他文件最多）
+                    </h3>
+                    <ul className="space-y-2">
+                      {project.coupling_hotspots.map((c) => (
+                        <li key={c.path}>
+                          <button
+                            onClick={() => handleFileClick(c.path)}
+                            className="w-full text-left hover:text-blue-700"
+                          >
+                            <span className="font-mono text-sm text-blue-600">
+                              {c.path}
+                            </span>
+                            <span className="block text-sm text-gray-500 mt-0.5">
+                              {c.reason}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+              {project.import_cycles && project.import_cycles.length > 0 && (
+                <div className="mt-5">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                    循环依赖（文件互相 import，建议理清）
+                  </h3>
+                  <ul className="space-y-2">
+                    {project.import_cycles.map((c) => (
+                      <li key={c.files.join("|")} className="text-sm">
+                        <span className="font-mono text-gray-800">
+                          {c.files.join(" → ")}
+                        </span>
+                        <p className="text-gray-500 mt-0.5">{c.reason}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {project.orphan_modules && project.orphan_modules.length > 0 && (
+                <div className="mt-5">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                    可能没人用的文件（没有被其他文件 import）
+                  </h3>
+                  <ul className="space-y-2">
+                    {project.orphan_modules.map((o) => (
+                      <li key={o.path}>
+                        <button
+                          onClick={() => handleFileClick(o.path)}
+                          className="w-full text-left hover:text-blue-700"
+                        >
+                          <span className="font-mono text-sm text-blue-600">
+                            {o.path}
+                          </span>
+                          <span className="block text-sm text-gray-500 mt-0.5">
+                            {o.reason}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </section>
           )}
 

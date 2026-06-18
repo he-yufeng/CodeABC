@@ -44,6 +44,34 @@ export interface PackageDependency {
   reason: string;
 }
 
+export interface CouplingHotspot {
+  path: string;
+  language: string;
+  fan_out: number;
+  dependencies: string[];
+  reason: string;
+}
+
+export interface BlastRadiusHotspot {
+  path: string;
+  language: string;
+  blast_radius: number;
+  direct_dependents: string[];
+  reason: string;
+}
+
+export interface ImportCycle {
+  files: string[];
+  size: number;
+  reason: string;
+}
+
+export interface OrphanModule {
+  path: string;
+  language: string;
+  reason: string;
+}
+
 export interface ProjectMeta {
   id: string;
   name: string;
@@ -53,6 +81,10 @@ export interface ProjectMeta {
   hotspots?: Hotspot[];
   architecture_layers?: ArchitectureLayer[];
   package_dependencies?: PackageDependency[];
+  coupling_hotspots?: CouplingHotspot[];
+  blast_radius?: BlastRadiusHotspot[];
+  import_cycles?: ImportCycle[];
+  orphan_modules?: OrphanModule[];
 }
 
 export interface Annotation {
