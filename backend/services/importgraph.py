@@ -808,3 +808,83 @@ def summarize_project_health(files: list[dict]) -> dict:
         "widest_blast_radius": widest_blast_radius,
         "notes": notes,
     }
+
+
+def render_codemap_markdown(project_name: str, files: list[dict]) -> str:
+    """Render the full deterministic code map as a shareable Markdown document.
+
+    Bundles every import-graph analysis (health, core files, layers, directory
+    dependencies, cycles, blast radius, coupling, orphans) into one document a
+    reader can save, share, or paste into a PR. Sections with nothing to show
+    are omitted so small projects stay short. Deterministic, no LLM call.
+    """
+    lines = [
+        f"# {project_name} — 代码地图",
+        "",
+        "> 这份结构速览直接从文件之间的 import 关系算出，不依赖 AI。",
+        "",
+    ]
+
+    health = summarize_project_health(files)
+    if health["notes"]:
+        lines.append("## 项目体检")
+        lines.append("")
+        lines.extend(f"- {note}" for note in health["notes"])
+        lines.append("")
+
+    hotspots = rank_hotspots(files)
+    if hotspots:
+        lines.append("## 核心文件（被依赖最多）")
+        lines.append("")
+        lines.extend(f"- `{h['path']}` — {h['reason']}" for h in hotspots)
+        lines.append("")
+
+    layers = assign_architecture_layers(files)
+    if layers:
+        lines.append("## 架构分层（第 0 层是地基，越往上越接近入口）")
+        lines.append("")
+        lines.extend(f"- L{a['layer']} `{a['path']}`" for a in layers)
+        lines.append("")
+
+    packages = summarize_package_dependencies(files)
+    if packages:
+        lines.append("## 目录之间怎么依赖")
+        lines.append("")
+        for p in packages:
+            deps = "、".join(p["depends_on"])
+            arrow = f" → 依赖 {deps}" if deps else ""
+            lines.append(f"- `{p['package']}/`{arrow}")
+            lines.append(f"  - {p['reason']}")
+        lines.append("")
+
+    cycles = find_import_cycles(files)
+    if cycles:
+        lines.append("## 循环依赖（文件互相 import，建议理清）")
+        lines.append("")
+        for c in cycles:
+            chain = " → ".join(f"`{p}`" for p in c["files"])
+            lines.append(f"- {chain}")
+        lines.append("")
+
+    blast = rank_blast_radius(files)
+    if blast:
+        lines.append("## 改动影响面（改这些文件波及最广）")
+        lines.append("")
+        lines.extend(f"- `{b['path']}` — {b['reason']}" for b in blast)
+        lines.append("")
+
+    coupling = rank_coupling(files)
+    if coupling:
+        lines.append("## 依赖最多的文件（牵连其他文件最多）")
+        lines.append("")
+        lines.extend(f"- `{c['path']}` — {c['reason']}" for c in coupling)
+        lines.append("")
+
+    orphans = find_orphan_modules(files)
+    if orphans:
+        lines.append("## 可能没人用的文件（没有被其他文件 import）")
+        lines.append("")
+        lines.extend(f"- `{o['path']}` — {o['reason']}" for o in orphans)
+        lines.append("")
+
+    return "\n".join(lines).rstrip() + "\n"

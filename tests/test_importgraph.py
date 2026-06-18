@@ -5,6 +5,7 @@ from backend.services.importgraph import (
     rank_blast_radius,
     rank_coupling,
     rank_hotspots,
+    render_codemap_markdown,
     suggest_reading_order,
     summarize_package_dependencies,
     summarize_project_health,
@@ -466,3 +467,36 @@ def test_project_health_counts_circular_dependencies():
     assert health["circular_dependency_groups"] == 1
     assert health["orphan_files"] == 0
     assert any("循环依赖" in note for note in health["notes"])
+
+
+def test_render_codemap_markdown_includes_present_sections():
+    files = [
+        _py("app/main.py", "from db.session import get\nfrom auth.login import check\n"),
+        _py("auth/login.py", "from db.session import get\n"),
+        _py("db/session.py", "POOL = 1\n"),
+        _py("x.py", "import y\n"),
+        _py("y.py", "import x\n"),
+    ]
+
+    md = render_codemap_markdown("Demo", files)
+
+    assert md.startswith("# Demo — 代码地图")
+    assert "## 项目体检" in md
+    assert "## 核心文件" in md
+    assert "## 架构分层" in md
+    assert "## 目录之间怎么依赖" in md  # app / auth / db span directories
+    assert "## 循环依赖" in md  # x <-> y form a cycle
+    assert md.endswith("\n")
+
+
+def test_render_codemap_markdown_omits_empty_sections():
+    files = [
+        _py("a/main.py", "from b.util import f\n"),
+        _py("b/util.py", "def f(): ...\n"),
+    ]
+
+    md = render_codemap_markdown("Tiny", files)
+
+    # acyclic and fully connected, so these sections are dropped
+    assert "## 循环依赖" not in md
+    assert "## 可能没人用的文件" not in md

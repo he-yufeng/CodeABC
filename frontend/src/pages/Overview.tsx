@@ -140,9 +140,16 @@ export default function Overview() {
               <h2 className="text-lg font-semibold text-gray-900 mb-1">
                 代码地图
               </h2>
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-sm text-gray-500 mb-2">
                 不用等 AI，这些是直接从文件之间的 import 关系算出来的结构速览。
               </p>
+              <a
+                href={`/api/project/${projectId}/codemap.md`}
+                download={`${project.name || "codemap"}-codemap.md`}
+                className="inline-block text-sm text-blue-600 hover:underline mb-4"
+              >
+                ↓ 下载为 Markdown
+              </a>
 
               {project.hotspots && project.hotspots.length > 0 && (
                 <div className="mb-5">

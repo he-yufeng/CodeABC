@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import Response
 
 from backend.models import (
     AnalyzeRequest,
@@ -216,6 +217,16 @@ async def get_file_content(project_id: str, file_path: str):
             break
 
     return {"path": file_path, "language": lang, "content": content}
+
+
+@router.get("/project/{project_id}/codemap.md")
+async def get_codemap_markdown(project_id: str):
+    """Export the deterministic code map (import-graph analyses) as Markdown."""
+    proj = await _resolve_project(project_id)
+    if not proj:
+        raise HTTPException(404, "Project not found")
+    markdown = importgraph.render_codemap_markdown(proj["name"], proj["files"])
+    return Response(content=markdown, media_type="text/markdown; charset=utf-8")
 
 
 async def get_project_data(project_id: str) -> dict | None:
