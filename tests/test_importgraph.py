@@ -485,6 +485,8 @@ def test_render_codemap_markdown_includes_present_sections():
     assert "## 核心文件" in md
     assert "## 架构分层" in md
     assert "## 目录之间怎么依赖" in md  # app / auth / db span directories
+    assert "```mermaid" in md  # directory dependencies are also drawn as a graph
+    assert "flowchart TD" in md
     assert "## 循环依赖" in md  # x <-> y form a cycle
     assert md.endswith("\n")
 

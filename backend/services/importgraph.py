@@ -810,6 +810,35 @@ def summarize_project_health(files: list[dict]) -> dict:
     }
 
 
+def _mermaid_node_id(name: str) -> str:
+    """A Mermaid-safe node id for a package label (kept stable and unique)."""
+    return "n_" + re.sub(r"[^A-Za-z0-9_]", "_", name)
+
+
+def _codemap_mermaid(packages: list[dict]) -> str:
+    """Build a Mermaid flowchart of the directory-dependency edges.
+
+    Rendered inline by GitHub and other Markdown viewers, so the exported map
+    carries a visual architecture diagram, not just lists. Returns "" when there
+    are no cross-directory edges to draw.
+    """
+    nodes: dict[str, str] = {}
+    edges: set[tuple[str, str]] = set()
+    for pkg in packages:
+        a = _mermaid_node_id(pkg["package"])
+        nodes[a] = pkg["package"]
+        for dep in pkg["depends_on"]:
+            b = _mermaid_node_id(dep)
+            nodes[b] = dep
+            edges.add((a, b))
+    if not edges:
+        return ""
+    lines = ["flowchart TD"]
+    lines.extend(f'    {nid}["{label}/"]' for nid, label in sorted(nodes.items()))
+    lines.extend(f"    {a} --> {b}" for a, b in sorted(edges))
+    return "\n".join(lines)
+
+
 def render_codemap_markdown(project_name: str, files: list[dict]) -> str:
     """Render the full deterministic code map as a shareable Markdown document.
 
@@ -856,6 +885,14 @@ def render_codemap_markdown(project_name: str, files: list[dict]) -> str:
             lines.append(f"- `{p['package']}/`{arrow}")
             lines.append(f"  - {p['reason']}")
         lines.append("")
+        mermaid = _codemap_mermaid(packages)
+        if mermaid:
+            lines.append("### 目录依赖图")
+            lines.append("")
+            lines.append("```mermaid")
+            lines.append(mermaid)
+            lines.append("```")
+            lines.append("")
 
     cycles = find_import_cycles(files)
     if cycles:
