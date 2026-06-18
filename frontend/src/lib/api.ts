@@ -20,12 +20,39 @@ export interface FileInfo {
   language: string;
 }
 
+export interface Hotspot {
+  path: string;
+  language: string;
+  fan_in: number;
+  dependents: string[];
+  reason: string;
+}
+
+export interface ArchitectureLayer {
+  path: string;
+  language: string;
+  layer: number;
+  reason: string;
+}
+
+export interface PackageDependency {
+  package: string;
+  depends_on: string[];
+  depended_on_by: string[];
+  fan_out: number;
+  fan_in: number;
+  reason: string;
+}
+
 export interface ProjectMeta {
   id: string;
   name: string;
   total_files: number;
   files: FileInfo[];
   reading_map?: { order: number; path: string; reason: string }[];
+  hotspots?: Hotspot[];
+  architecture_layers?: ArchitectureLayer[];
+  package_dependencies?: PackageDependency[];
 }
 
 export interface Annotation {

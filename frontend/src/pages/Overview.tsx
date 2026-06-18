@@ -106,6 +106,97 @@ export default function Overview() {
           </section>
         )}
 
+        {/* Deterministic architecture maps (computed from imports, no LLM) */}
+        {project &&
+          ((project.hotspots?.length ?? 0) > 0 ||
+            (project.architecture_layers?.length ?? 0) > 0 ||
+            (project.package_dependencies?.length ?? 0) > 0) && (
+            <section className="bg-white rounded-xl p-6 shadow-sm mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                代码地图
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">
+                不用等 AI，这些是直接从文件之间的 import 关系算出来的结构速览。
+              </p>
+
+              {project.hotspots && project.hotspots.length > 0 && (
+                <div className="mb-5">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                    核心文件（被依赖最多）
+                  </h3>
+                  <ul className="space-y-2">
+                    {project.hotspots.map((h) => (
+                      <li key={h.path}>
+                        <button
+                          onClick={() => handleFileClick(h.path)}
+                          className="w-full text-left hover:text-blue-700"
+                        >
+                          <span className="font-mono text-sm text-blue-600">
+                            {h.path}
+                          </span>
+                          <span className="block text-sm text-gray-500 mt-0.5">
+                            {h.reason}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {project.architecture_layers &&
+                project.architecture_layers.length > 0 && (
+                  <div className="mb-5">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                      架构分层（第 0 层是地基，越往上越接近入口）
+                    </h3>
+                    <ul className="space-y-2">
+                      {project.architecture_layers.map((a) => (
+                        <li key={a.path}>
+                          <button
+                            onClick={() => handleFileClick(a.path)}
+                            className="w-full text-left flex gap-3 items-center hover:text-blue-700"
+                          >
+                            <span className="w-7 h-6 shrink-0 rounded bg-gray-100 text-gray-600 text-xs flex items-center justify-center">
+                              L{a.layer}
+                            </span>
+                            <span className="font-mono text-sm text-blue-600 truncate">
+                              {a.path}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+              {project.package_dependencies &&
+                project.package_dependencies.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                      目录之间怎么依赖
+                    </h3>
+                    <ul className="space-y-3">
+                      {project.package_dependencies.map((p) => (
+                        <li key={p.package} className="text-sm">
+                          <span className="font-mono text-gray-800">
+                            {p.package}/
+                          </span>
+                          {p.depends_on.length > 0 && (
+                            <span className="text-gray-500">
+                              {" "}
+                              → 依赖 {p.depends_on.join("、")}
+                            </span>
+                          )}
+                          <p className="text-gray-500 mt-0.5">{p.reason}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+            </section>
+          )}
+
         {/* Loading: show raw streaming text */}
         {loading && !overview && (
           <div className="bg-white rounded-xl p-6 shadow-sm">
