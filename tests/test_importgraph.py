@@ -1,6 +1,7 @@
 from backend.services.importgraph import (
     find_import_cycles,
     find_orphan_modules,
+    rank_coupling,
     rank_hotspots,
     suggest_reading_order,
 )
@@ -30,6 +31,35 @@ def test_ranks_python_files_by_fan_in():
     assert hotspots[0]["dependents"] == ["app.py", "service.py"]
     assert hotspots[1]["path"] == "config.py"
     assert hotspots[1]["fan_in"] == 1
+
+
+def test_ranks_files_by_fan_out_coupling():
+    files = [
+        _py("app.py", "from utils import helper\nimport config\n"),
+        _py("service.py", "from utils import helper\n"),
+        _py("utils.py", "def helper():\n    return 1\n"),
+        _py("config.py", "DEBUG = True\n"),
+    ]
+
+    coupling = rank_coupling(files)
+
+    # app.py imports two local modules (utils, config) -> highest coupling.
+    assert coupling[0]["path"] == "app.py"
+    assert coupling[0]["fan_out"] == 2
+    assert coupling[0]["dependencies"] == ["config.py", "utils.py"]
+    assert coupling[1]["path"] == "service.py"
+    assert coupling[1]["fan_out"] == 1
+    # leaf modules that import nothing local are omitted.
+    assert {c["path"] for c in coupling}.isdisjoint({"utils.py", "config.py"})
+
+
+def test_coupling_ignores_third_party_imports():
+    files = [
+        _py("app.py", "import os\nimport requests\nimport numpy as np\n"),
+        _py("config.py", "DEBUG = True\n"),
+    ]
+    # Nothing imports a local module, so there is no coupling to report.
+    assert rank_coupling(files) == []
 
 
 def test_resolves_relative_and_package_imports():

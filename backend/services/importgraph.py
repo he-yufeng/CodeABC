@@ -240,6 +240,64 @@ def rank_hotspots(files: list[dict], *, limit: int = 8) -> list[dict]:
     return ranked[:limit]
 
 
+def _coupling_reason(fan_out: int) -> str:
+    if fan_out >= 5:
+        return f"它直接依赖 {fan_out} 个本地模块，耦合很高，是优先的重构/拆分候选。"
+    return f"它依赖 {fan_out} 个本地模块，耦合中等。"
+
+
+def rank_coupling(files: list[dict], *, limit: int = 8) -> list[dict]:
+    """Rank scanned files by fan-out (how many local modules each one imports).
+
+    The inverse lens to :func:`rank_hotspots`: hotspots are the most depended-on
+    (core) files, whereas high fan-out files depend on the most others, so they
+    carry the most coupling and are the prime refactoring/splitting candidates.
+
+    Args:
+        files: scanner output dicts with ``path``, ``language`` and ``preview``.
+        limit: how many top files to return.
+
+    Returns a list of ``{"path", "language", "fan_out", "dependencies", "reason"}``
+    sorted by fan-out descending, then path. Files that import no local module
+    are omitted.
+    """
+    file_set: set[str] = set()
+    py_modules: dict[str, str] = {}
+
+    for f in files:
+        path = _posix(f["path"])
+        file_set.add(path)
+        mod = _py_module_name(path)
+        if mod is not None:
+            py_modules.setdefault(mod, path)
+
+    ranked: list[dict] = []
+    for f in files:
+        path = _posix(f["path"])
+        lang = f.get("language", "unknown")
+        content = f.get("preview") or ""
+        if lang in _PY_LANGS:
+            deps = _py_edges(content, path, py_modules)
+        elif lang in _JS_LANGS:
+            deps = _js_edges(content, path, file_set)
+        else:
+            continue
+        deps.discard(path)  # a self-import is not coupling to another module
+        if not deps:
+            continue
+        ranked.append(
+            {
+                "path": path,
+                "language": lang,
+                "fan_out": len(deps),
+                "dependencies": sorted(deps)[:_MAX_DEPENDENTS],
+                "reason": _coupling_reason(len(deps)),
+            }
+        )
+    ranked.sort(key=lambda h: (-h["fan_out"], h["path"]))
+    return ranked[:limit]
+
+
 def _order_reason(role: str) -> str:
     if role == "entry":
         return "Entry point -- where the program starts; read this first."

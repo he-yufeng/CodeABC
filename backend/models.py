@@ -46,6 +46,14 @@ class OrphanModule(BaseModel):
     reason: str
 
 
+class CouplingHotspot(BaseModel):
+    path: str
+    language: str = "unknown"
+    fan_out: int
+    dependencies: list[str] = []
+    reason: str
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
@@ -56,6 +64,7 @@ class ProjectMeta(BaseModel):
     code_walk: list[CodeWalkStep] = []
     import_cycles: list[ImportCycle] = []
     orphan_modules: list[OrphanModule] = []
+    coupling_hotspots: list[CouplingHotspot] = []
 
 
 class FileRole(BaseModel):
