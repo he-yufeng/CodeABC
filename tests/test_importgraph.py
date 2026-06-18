@@ -1,4 +1,5 @@
 from backend.services.importgraph import (
+    assign_architecture_layers,
     find_import_cycles,
     find_orphan_modules,
     rank_blast_radius,
@@ -365,3 +366,35 @@ def test_blast_radius_handles_cycles_without_looping():
     # inflates the radius nor hangs the reverse walk.
     assert by_path["a.py"]["blast_radius"] == 1
     assert by_path["b.py"]["blast_radius"] == 1
+
+
+def test_architecture_layers_stratify_dependency_chain():
+    files = [
+        _py("a.py", "import b\n"),
+        _py("b.py", "import c\n"),
+        _py("c.py", "x = 1\n"),
+    ]
+
+    layers = assign_architecture_layers(files)
+    by_layer = {h["path"]: h["layer"] for h in layers}
+
+    # c imports nothing local (foundation), b sits on c, a sits on b.
+    assert by_layer == {"a.py": 2, "b.py": 1, "c.py": 0}
+    # highest layer (closest to the entry point) is returned first.
+    assert [h["path"] for h in layers] == ["a.py", "b.py", "c.py"]
+
+
+def test_architecture_layers_condense_cycles_into_one_layer():
+    files = [
+        _py("a.py", "import b\nimport c\n"),
+        _py("b.py", "import a\n"),
+        _py("c.py", "x = 1\n"),
+    ]
+
+    layers = assign_architecture_layers(files)
+    by_layer = {h["path"]: h["layer"] for h in layers}
+
+    # a and b form a cycle; condensed to a single node that sits one layer above
+    # the leaf c, so they share a layer instead of inflating into two.
+    assert by_layer["c.py"] == 0
+    assert by_layer["a.py"] == by_layer["b.py"] == 1

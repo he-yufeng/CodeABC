@@ -606,3 +606,73 @@ def rank_blast_radius(files: list[dict], *, limit: int = 8) -> list[dict]:
         )
     ranked.sort(key=lambda h: (-h["blast_radius"], h["path"]))
     return ranked[:limit]
+
+
+def _layer_reason(layer: int) -> str:
+    if layer == 0:
+        return "地基层：不依赖项目里的其他文件，被上层模块复用，最稳定，最该先读懂。"
+    return f"第 {layer} 层：叠在 {layer} 层本地依赖之上，越往上越接近应用入口和编排逻辑。"
+
+
+def assign_architecture_layers(files: list[dict], *, limit: int = 12) -> list[dict]:
+    """Stratify the project's code files into dependency layers.
+
+    Cycles are condensed into single nodes (via SCCs) so the layering graph is
+    acyclic, then each file gets a layer equal to the longest chain of local
+    imports beneath it: files that import nothing local sit at layer 0 (the
+    foundation everything builds on), and each layer above imports the one
+    below, up to the entry/orchestration files. Unlike a reading order (a flat
+    sequence) this shows the *shape* of a codebase as tiers. Deterministic and
+    spends no LLM call.
+
+    Args:
+        files: scanner output dicts with ``path``, ``language`` and ``preview``.
+        limit: how many files to return (highest layers first).
+
+    Returns a list of ``{"path", "language", "layer", "reason"}`` sorted by layer
+    descending, then path. Only Python / JS-TS files are layered.
+    """
+    by_path, imports, _fan_in = _build_import_graph(files)
+
+    # condense cycles so the layering graph is acyclic
+    scc_of: dict[str, int] = {}
+    for i, comp in enumerate(_strongly_connected_components(imports)):
+        for node in comp:
+            scc_of[node] = i
+
+    scc_imports: dict[int, set[int]] = defaultdict(set)
+    for path, deps in imports.items():
+        a = scc_of.get(path)
+        if a is None:
+            continue
+        for dep in deps:
+            b = scc_of.get(dep)
+            if b is not None and b != a:
+                scc_imports[a].add(b)
+
+    # longest path to a leaf on the condensed DAG; memoized, acyclic so it ends
+    layer_cache: dict[int, int] = {}
+
+    def _scc_layer(scc: int) -> int:
+        if scc not in layer_cache:
+            deps = scc_imports.get(scc, ())
+            layer_cache[scc] = 1 + max((_scc_layer(d) for d in deps), default=-1)
+        return layer_cache[scc]
+
+    result: list[dict] = []
+    for path in by_path:
+        lang = by_path[path].get("language", "unknown")
+        if lang not in _PY_LANGS and lang not in _JS_LANGS:
+            continue
+        scc = scc_of.get(path)
+        layer = _scc_layer(scc) if scc is not None else 0
+        result.append(
+            {
+                "path": path,
+                "language": lang,
+                "layer": layer,
+                "reason": _layer_reason(layer),
+            }
+        )
+    result.sort(key=lambda h: (-h["layer"], h["path"]))
+    return result[:limit]

@@ -62,6 +62,13 @@ class BlastRadiusHotspot(BaseModel):
     reason: str
 
 
+class ArchitectureLayer(BaseModel):
+    path: str
+    language: str = "unknown"
+    layer: int
+    reason: str
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
@@ -74,6 +81,7 @@ class ProjectMeta(BaseModel):
     orphan_modules: list[OrphanModule] = []
     coupling_hotspots: list[CouplingHotspot] = []
     blast_radius: list[BlastRadiusHotspot] = []
+    architecture_layers: list[ArchitectureLayer] = []
 
 
 class FileRole(BaseModel):

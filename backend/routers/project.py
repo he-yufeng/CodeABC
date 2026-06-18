@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 
 from backend.models import (
     AnalyzeRequest,
+    ArchitectureLayer,
     BlastRadiusHotspot,
     CodeWalkStep,
     CouplingHotspot,
@@ -63,6 +64,9 @@ async def upload_project(req: AnalyzeRequest):
         orphan_modules=[OrphanModule(**o) for o in importgraph.find_orphan_modules(scanned)],
         coupling_hotspots=[CouplingHotspot(**c) for c in importgraph.rank_coupling(scanned)],
         blast_radius=[BlastRadiusHotspot(**b) for b in importgraph.rank_blast_radius(scanned)],
+        architecture_layers=[
+            ArchitectureLayer(**a) for a in importgraph.assign_architecture_layers(scanned)
+        ],
         files=[
             FileInfo(
                 path=f["path"],
@@ -118,6 +122,9 @@ async def clone_github_project(req: GitHubRequest):
         orphan_modules=[OrphanModule(**o) for o in importgraph.find_orphan_modules(scanned)],
         coupling_hotspots=[CouplingHotspot(**c) for c in importgraph.rank_coupling(scanned)],
         blast_radius=[BlastRadiusHotspot(**b) for b in importgraph.rank_blast_radius(scanned)],
+        architecture_layers=[
+            ArchitectureLayer(**a) for a in importgraph.assign_architecture_layers(scanned)
+        ],
         files=[
             FileInfo(
                 path=f["path"],
@@ -160,6 +167,9 @@ async def get_project(project_id: str):
         coupling_hotspots=[CouplingHotspot(**c) for c in importgraph.rank_coupling(proj["files"])],
         blast_radius=[
             BlastRadiusHotspot(**b) for b in importgraph.rank_blast_radius(proj["files"])
+        ],
+        architecture_layers=[
+            ArchitectureLayer(**a) for a in importgraph.assign_architecture_layers(proj["files"])
         ],
         files=[
             FileInfo(
