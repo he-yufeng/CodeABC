@@ -24,6 +24,7 @@ jobs:
       - run: ruff check .
       - run: python -m compileall -q backend
       - run: python -c "from backend.app import app; print('Import OK')"
+      - run: pytest -q
 
   frontend:
     runs-on: ubuntu-latest
