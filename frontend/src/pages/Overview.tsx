@@ -2,10 +2,12 @@ import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { streamOverview, getProject } from "../lib/api";
 import { useProjectStore } from "../stores/project";
+import { useI18n, LanguageToggle } from "../lib/i18n";
 
 export default function Overview() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const {
     project,
     overview,
@@ -65,21 +67,25 @@ export default function Overview() {
           onClick={() => navigate("/")}
           className="text-gray-500 hover:text-gray-700"
         >
-          ← 返回
+          {t("← 返回", "← Back")}
         </button>
         <h1 className="text-xl font-semibold text-gray-900">
-          {project?.name || "项目说明书"}
+          {project?.name || t("项目说明书", "Project manual")}
         </h1>
+        <LanguageToggle className="ml-auto" />
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-8">
         {project && project.reading_map && project.reading_map.length > 0 && (
           <section className="bg-white rounded-xl p-6 shadow-sm mb-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-1">
-              建议阅读顺序
+              {t("建议阅读顺序", "Suggested reading order")}
             </h2>
             <p className="text-sm text-gray-500 mb-4">
-              不用等 AI 分析，先按这条路线快速找到项目入口。
+              {t(
+                "不用等 AI 分析，先按这条路线快速找到项目入口。",
+                "No AI needed — follow this route to find the project's entry points fast.",
+              )}
             </p>
             <ol className="space-y-3">
               {project.reading_map.map((step) => (
@@ -109,9 +115,14 @@ export default function Overview() {
         {/* Project health: a one-glance summary computed from imports, no LLM */}
         {project && project.health && project.health.notes.length > 0 && (
           <section className="bg-white rounded-xl p-6 shadow-sm mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">项目体检</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("项目体检", "Project health")}
+            </h2>
             <p className="text-sm text-gray-500 mb-4">
-              不用等 AI，先看这份从依赖关系算出来的整体结构速览。
+              {t(
+                "不用等 AI，先看这份从依赖关系算出来的整体结构速览。",
+                "No AI needed — a structural overview computed from the dependency graph.",
+              )}
             </p>
             <ul className="space-y-2">
               {project.health.notes.map((note) => (
@@ -138,23 +149,26 @@ export default function Overview() {
             (project.orphan_modules?.length ?? 0) > 0) && (
             <section className="bg-white rounded-xl p-6 shadow-sm mb-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-1">
-                代码地图
+                {t("代码地图", "Code map")}
               </h2>
               <p className="text-sm text-gray-500 mb-2">
-                不用等 AI，这些是直接从文件之间的 import 关系算出来的结构速览。
+                {t(
+                  "不用等 AI，这些是直接从文件之间的 import 关系算出来的结构速览。",
+                  "No AI needed — a structural overview computed straight from the import graph.",
+                )}
               </p>
               <a
                 href={`/api/project/${projectId}/codemap.md`}
                 download={`${project.name || "codemap"}-codemap.md`}
                 className="inline-block text-sm text-blue-600 hover:underline mb-4"
               >
-                ↓ 下载为 Markdown
+                {t("↓ 下载为 Markdown", "↓ Download as Markdown")}
               </a>
 
               {project.hotspots && project.hotspots.length > 0 && (
                 <div className="mb-5">
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                    核心文件（被依赖最多）
+                    {t("核心文件（被依赖最多）", "Core files (most depended on)")}
                   </h3>
                   <ul className="space-y-2">
                     {project.hotspots.map((h) => (
@@ -180,7 +194,10 @@ export default function Overview() {
                 project.architecture_layers.length > 0 && (
                   <div className="mb-5">
                     <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                      架构分层（第 0 层是地基，越往上越接近入口）
+                      {t(
+                        "架构分层（第 0 层是地基，越往上越接近入口）",
+                        "Architecture layers (L0 is the foundation; higher is closer to entry points)",
+                      )}
                     </h3>
                     <ul className="space-y-2">
                       {project.architecture_layers.map((a) => (
@@ -206,7 +223,7 @@ export default function Overview() {
                 project.package_dependencies.length > 0 && (
                   <div>
                     <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                      目录之间怎么依赖
+                      {t("目录之间怎么依赖", "How directories depend on each other")}
                     </h3>
                     <ul className="space-y-3">
                       {project.package_dependencies.map((p) => (
@@ -217,7 +234,7 @@ export default function Overview() {
                           {p.depends_on.length > 0 && (
                             <span className="text-gray-500">
                               {" "}
-                              → 依赖 {p.depends_on.join("、")}
+                              → {t("依赖", "depends on")} {p.depends_on.join(t("、", ", "))}
                             </span>
                           )}
                           <p className="text-gray-500 mt-0.5">{p.reason}</p>
@@ -230,7 +247,10 @@ export default function Overview() {
               {project.blast_radius && project.blast_radius.length > 0 && (
                 <div className="mt-5">
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                    改动影响面（改这些文件波及最广）
+                    {t(
+                      "改动影响面（改这些文件波及最广）",
+                      "Blast radius (changing these ripples the widest)",
+                    )}
                   </h3>
                   <ul className="space-y-2">
                     {project.blast_radius.map((b) => (
@@ -256,7 +276,10 @@ export default function Overview() {
                 project.coupling_hotspots.length > 0 && (
                   <div className="mt-5">
                     <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                      依赖最多的文件（牵连其他文件最多）
+                      {t(
+                        "依赖最多的文件（牵连其他文件最多）",
+                        "Files with the most dependencies (entangle the most others)",
+                      )}
                     </h3>
                     <ul className="space-y-2">
                       {project.coupling_hotspots.map((c) => (
@@ -281,7 +304,10 @@ export default function Overview() {
               {project.import_cycles && project.import_cycles.length > 0 && (
                 <div className="mt-5">
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                    循环依赖（文件互相 import，建议理清）
+                    {t(
+                      "循环依赖（文件互相 import，建议理清）",
+                      "Circular dependencies (files import each other — worth untangling)",
+                    )}
                   </h3>
                   <ul className="space-y-2">
                     {project.import_cycles.map((c) => (
@@ -299,7 +325,10 @@ export default function Overview() {
               {project.orphan_modules && project.orphan_modules.length > 0 && (
                 <div className="mt-5">
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                    可能没人用的文件（没有被其他文件 import）
+                    {t(
+                      "可能没人用的文件（没有被其他文件 import）",
+                      "Possibly unused files (not imported anywhere)",
+                    )}
                   </h3>
                   <ul className="space-y-2">
                     {project.orphan_modules.map((o) => (
@@ -329,15 +358,20 @@ export default function Overview() {
           ((project.churn_hotspots?.length ?? 0) > 0 ||
             (project.co_change_couplings?.length ?? 0) > 0) && (
             <section className="bg-white rounded-xl p-6 shadow-sm mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">变更历史</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                {t("变更历史", "Change history")}
+              </h2>
               <p className="text-sm text-gray-500 mb-4">
-                从 git 提交历史算出，看的是代码怎么演化，和上面的静态结构互补。
+                {t(
+                  "从 git 提交历史算出，看的是代码怎么演化，和上面的静态结构互补。",
+                  "Computed from git history — how the code actually evolved, complementing the static maps above.",
+                )}
               </p>
 
               {project.churn_hotspots && project.churn_hotspots.length > 0 && (
                 <div className="mb-5">
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                    变更热点（改得最频繁）
+                    {t("变更热点（改得最频繁）", "Change hotspots (most frequently changed)")}
                   </h3>
                   <ul className="space-y-2">
                     {project.churn_hotspots.map((h) => (
@@ -350,7 +384,10 @@ export default function Overview() {
                             {h.path}
                           </span>
                           <span className="ml-2 text-xs text-gray-400">
-                            {h.commits} 次 · {h.authors} 人 · {h.lines_changed} 行
+                            {t(
+                              `${h.commits} 次 · ${h.authors} 人 · ${h.lines_changed} 行`,
+                              `${h.commits} commits · ${h.authors} authors · ${h.lines_changed} lines`,
+                            )}
                           </span>
                           <span className="block text-sm text-gray-500 mt-0.5">
                             {h.reason}
@@ -366,7 +403,7 @@ export default function Overview() {
                 project.co_change_couplings.length > 0 && (
                   <div className="mt-5">
                     <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                      变更耦合（总一起改的文件）
+                      {t("变更耦合（总一起改的文件）", "Change coupling (files that change together)")}
                     </h3>
                     <ul className="space-y-2">
                       {project.co_change_couplings.map((c) => (
@@ -388,7 +425,9 @@ export default function Overview() {
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-              <span className="text-sm text-gray-500">正在生成项目说明书...</span>
+              <span className="text-sm text-gray-500">
+                {t("正在生成项目说明书...", "Generating the project manual...")}
+              </span>
             </div>
             {overviewRaw && (
               <pre className="whitespace-pre-wrap text-sm text-gray-600 font-mono">
@@ -414,7 +453,10 @@ export default function Overview() {
             {/* File list */}
             <div className="bg-white rounded-xl p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                项目文件 ({overview.files.length} 个)
+                {t(
+                  `项目文件 (${overview.files.length} 个)`,
+                  `Project files (${overview.files.length})`,
+                )}
               </h3>
               <div className="space-y-2">
                 {overview.files.map((f) => (
@@ -446,7 +488,7 @@ export default function Overview() {
             {overview.how_to_run.length > 0 && (
               <div className="bg-white rounded-xl p-6 shadow-sm">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  怎么跑起来
+                  {t("怎么跑起来", "How to run it")}
                 </h3>
                 <ol className="list-decimal list-inside space-y-2 text-gray-700">
                   {overview.how_to_run.map((step, i) => (
@@ -460,7 +502,7 @@ export default function Overview() {
             {overview.quick_tips.length > 0 && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
                 <h3 className="text-lg font-semibold text-amber-900 mb-3">
-                  快捷提示
+                  {t("快捷提示", "Quick tips")}
                 </h3>
                 <ul className="space-y-2 text-amber-800">
                   {overview.quick_tips.map((tip, i) => (

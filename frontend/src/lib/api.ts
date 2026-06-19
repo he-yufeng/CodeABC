@@ -1,4 +1,5 @@
 /** API client for CodeABC backend. */
+import { tStatic } from "./i18n";
 
 const BASE = "/api";
 
@@ -192,8 +193,8 @@ export async function streamOverview(
   const res = await fetch(`${BASE}/project/${projectId}/overview`, { headers });
   if (!res.ok || !res.body) {
     if (res.status === 429) {
-      const err = await res.json().catch(() => ({ detail: "请求过于频繁" }));
-      onError(err.detail || "今日免费额度已用完，请配置 API Key");
+      const err = await res.json().catch(() => ({ detail: tStatic("请求过于频繁", "Too many requests") }));
+      onError(err.detail || tStatic("今日免费额度已用完，请配置 API Key", "Free tier exhausted for today — please configure an API key"));
     } else {
       onError("Failed to load overview");
     }
@@ -254,8 +255,8 @@ export async function getAnnotations(
   );
   if (!res.ok) {
     if (res.status === 429) {
-      const err = await res.json().catch(() => ({ detail: "请求过于频繁" }));
-      throw new Error(err.detail || "今日免费额度已用完，请配置 API Key");
+      const err = await res.json().catch(() => ({ detail: tStatic("请求过于频繁", "Too many requests") }));
+      throw new Error(err.detail || tStatic("今日免费额度已用完，请配置 API Key", "Free tier exhausted for today — please configure an API key"));
     }
     throw new Error("Failed to get annotations");
   }
@@ -279,8 +280,8 @@ export async function askQuestion(
   });
   if (!res.ok) {
     if (res.status === 429) {
-      const err = await res.json().catch(() => ({ detail: "请求过于频繁" }));
-      throw new Error(err.detail || "今日免费额度已用完，请配置 API Key");
+      const err = await res.json().catch(() => ({ detail: tStatic("请求过于频繁", "Too many requests") }));
+      throw new Error(err.detail || tStatic("今日免费额度已用完，请配置 API Key", "Free tier exhausted for today — please configure an API key"));
     }
     throw new Error("Failed to get answer");
   }
@@ -304,8 +305,8 @@ export async function editCode(
   });
   if (!res.ok) {
     if (res.status === 429) {
-      const err = await res.json().catch(() => ({ detail: "请求过于频繁" }));
-      throw new Error(err.detail || "今日免费额度已用完，请配置 API Key");
+      const err = await res.json().catch(() => ({ detail: tStatic("请求过于频繁", "Too many requests") }));
+      throw new Error(err.detail || tStatic("今日免费额度已用完，请配置 API Key", "Free tier exhausted for today — please configure an API key"));
     }
     throw new Error("Failed to edit code");
   }

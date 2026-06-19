@@ -58,6 +58,16 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** Language-aware text for non-React code (e.g. the api layer) — reads the
+ *  persisted language directly since there's no hook/context available. */
+export function tStatic(zh: string, en: string): string {
+  try {
+    return localStorage.getItem(STORAGE_KEY) === "en" ? en : zh;
+  } catch {
+    return zh;
+  }
+}
+
 export function useI18n(): I18nValue {
   const ctx = useContext(I18nContext);
   if (!ctx) {

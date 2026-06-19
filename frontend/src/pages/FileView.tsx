@@ -10,7 +10,7 @@ import {
   type Annotation,
   type GlossaryTerm,
 } from "../lib/api";
-import { useI18n } from "../lib/i18n";
+import { useI18n, LanguageToggle } from "../lib/i18n";
 import { useProjectStore } from "../stores/project";
 import CodeViewer from "../components/CodeViewer";
 
@@ -216,11 +216,12 @@ function FileContent({
         </button>
         <span className="font-mono text-sm text-gray-600">{decodedPath}</span>
         {loadingAnnotations && (
-          <span className="ml-auto flex items-center gap-2 text-sm text-gray-400">
+          <span className="flex items-center gap-2 text-sm text-gray-400">
             <span className="w-4 h-4 border-2 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
             {t("生成批注中...", "Generating annotations...")}
           </span>
         )}
+        <LanguageToggle className="ml-auto" />
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-6">
