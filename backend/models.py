@@ -106,6 +106,14 @@ class CoChangeCoupling(BaseModel):
     reason: str
 
 
+class RiskHotspot(BaseModel):
+    path: str
+    fan_in: int
+    commits: int
+    score: int  # 0-100, high when a file is both central and frequently changed
+    reason: str
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
@@ -123,6 +131,7 @@ class ProjectMeta(BaseModel):
     health: ProjectHealth | None = None
     churn_hotspots: list[ChurnHotspot] = []
     co_change_couplings: list[CoChangeCoupling] = []
+    risk_hotspots: list[RiskHotspot] = []
 
 
 class FileRole(BaseModel):

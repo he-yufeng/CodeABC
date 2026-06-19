@@ -101,6 +101,14 @@ export interface CoChangeCoupling {
   reason: string;
 }
 
+export interface RiskHotspot {
+  path: string;
+  fan_in: number;
+  commits: number;
+  score: number;
+  reason: string;
+}
+
 export interface ProjectMeta {
   id: string;
   name: string;
@@ -117,6 +125,7 @@ export interface ProjectMeta {
   health?: ProjectHealth;
   churn_hotspots?: ChurnHotspot[];
   co_change_couplings?: CoChangeCoupling[];
+  risk_hotspots?: RiskHotspot[];
 }
 
 export interface Annotation {

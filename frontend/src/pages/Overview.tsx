@@ -138,6 +138,43 @@ export default function Overview() {
           </section>
         )}
 
+        {/* Risk hotspots: fuse import centrality with git churn (where bugs concentrate) */}
+        {project && (project.risk_hotspots?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-amber-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("风险清单（核心 × 高频变动）", "Risk hotspots (core × frequently changed)")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "既被很多文件依赖、又改得频繁的文件——bug 最容易出在这里,审查和测试最该优先。",
+                "Files that are both heavily depended on and frequently changed — where defects concentrate, and where review and tests pay off first.",
+              )}
+            </p>
+            <ul className="space-y-2">
+              {project.risk_hotspots!.map((r) => (
+                <li key={r.path}>
+                  <button
+                    onClick={() => handleFileClick(r.path)}
+                    className="w-full text-left hover:text-blue-700"
+                  >
+                    <span className="font-mono text-sm text-blue-600">{r.path}</span>
+                    <span className="ml-2 text-xs font-medium text-amber-600">
+                      {t(`风险 ${r.score}`, `risk ${r.score}`)}
+                    </span>
+                    <span className="ml-2 text-xs text-gray-400">
+                      {t(
+                        `${r.fan_in} 处依赖 · 改 ${r.commits} 次`,
+                        `${r.fan_in} dependents · ${r.commits} commits`,
+                      )}
+                    </span>
+                    <span className="block text-sm text-gray-500 mt-0.5">{r.reason}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Deterministic architecture maps (computed from imports, no LLM) */}
         {project &&
           ((project.hotspots?.length ?? 0) > 0 ||

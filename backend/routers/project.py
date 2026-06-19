@@ -26,9 +26,18 @@ from backend.models import (
     ProjectHealth,
     ProjectMeta,
     ReadingStep,
+    RiskHotspot,
     UploadedFile,
 )
-from backend.services import cache, churn, github_clone, glossary, importgraph, scanner
+from backend.services import (
+    cache,
+    churn,
+    github_clone,
+    glossary,
+    importgraph,
+    risk,
+    scanner,
+)
 
 router = APIRouter(tags=["project"])
 
@@ -150,6 +159,13 @@ async def clone_github_project(req: GitHubRequest):
         health=ProjectHealth(**importgraph.summarize_project_health(scanned)),
         churn_hotspots=[ChurnHotspot(**h) for h in churn_result.get("hotspots", [])],
         co_change_couplings=[CoChangeCoupling(**c) for c in churn_result.get("couplings", [])],
+        risk_hotspots=[
+            RiskHotspot(**r)
+            for r in risk.rank_risk(
+                importgraph.rank_hotspots(scanned, limit=500),
+                churn_result.get("hotspots", []),
+            )
+        ],
         files=[
             FileInfo(
                 path=f["path"],
@@ -206,6 +222,13 @@ async def get_project(project_id: str):
         ],
         co_change_couplings=[
             CoChangeCoupling(**c) for c in (proj.get("churn") or {}).get("couplings", [])
+        ],
+        risk_hotspots=[
+            RiskHotspot(**r)
+            for r in risk.rank_risk(
+                importgraph.rank_hotspots(proj["files"], limit=500),
+                (proj.get("churn") or {}).get("hotspots", []),
+            )
         ],
         files=[
             FileInfo(
