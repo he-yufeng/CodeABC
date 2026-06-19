@@ -10,6 +10,7 @@ import {
   type Annotation,
   type GlossaryTerm,
 } from "../lib/api";
+import { useI18n } from "../lib/i18n";
 import { useProjectStore } from "../stores/project";
 import CodeViewer from "../components/CodeViewer";
 
@@ -51,6 +52,7 @@ function FileContent({
   decodedPath: string;
   onBack: () => void;
 }) {
+  const { t } = useI18n();
   const { annotationsCache, cacheAnnotations } = useProjectStore();
   const cachedAnnotations = decodedPath ? annotationsCache[decodedPath] : undefined;
 
@@ -92,7 +94,7 @@ function FileContent({
       });
       setAnswer(res.answer);
     } catch (e) {
-      setQaError(e instanceof Error ? e.message : "提问失败");
+      setQaError(e instanceof Error ? e.message : t("提问失败", "Question failed"));
     } finally {
       setQaLoading(false);
     }
@@ -122,7 +124,7 @@ function FileContent({
       });
       setEditedCode(res.edited_code);
     } catch (e) {
-      setEditError(e instanceof Error ? e.message : "改写失败");
+      setEditError(e instanceof Error ? e.message : t("改写失败", "Rewrite failed"));
     } finally {
       setEditLoading(false);
     }
@@ -210,13 +212,13 @@ function FileContent({
           onClick={onBack}
           className="text-gray-500 hover:text-gray-700"
         >
-          ← 返回说明书
+          {t("← 返回说明书", "← Back to manual")}
         </button>
         <span className="font-mono text-sm text-gray-600">{decodedPath}</span>
         {loadingAnnotations && (
           <span className="ml-auto flex items-center gap-2 text-sm text-gray-400">
             <span className="w-4 h-4 border-2 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
-            生成批注中...
+            {t("生成批注中...", "Generating annotations...")}
           </span>
         )}
       </header>
@@ -240,7 +242,10 @@ function FileContent({
             {/* Hint */}
             {annotations.length > 0 && (
               <div className="bg-blue-50 px-4 py-2 text-sm text-blue-700 border-b border-blue-100">
-                💡 将鼠标悬停在代码上查看中文解释；选中一段代码可在下方就它提问
+                {t(
+                  "💡 将鼠标悬停在代码上查看中文解释；选中一段代码可在下方就它提问",
+                  "💡 Hover over the code for explanations; select a snippet to ask about it below",
+                )}
               </div>
             )}
             <CodeViewer
@@ -254,20 +259,25 @@ function FileContent({
         {/* Terminology dictionary: hover a keyword to see a plain-language definition */}
         {glossary.length > 0 && (
           <div className="mt-6 bg-white rounded-xl shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">术语词典</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("术语词典", "Terminology")}
+            </h3>
             <p className="text-sm text-gray-500 mb-4">
-              这个文件里出现的编程术语，把鼠标移到词上就能看到大白话解释。
+              {t(
+                "这个文件里出现的编程术语，把鼠标移到词上就能看到大白话解释。",
+                "Programming terms found in this file — hover a term for a plain-language definition.",
+              )}
             </p>
             <div className="flex flex-wrap gap-2">
-              {glossary.map((t) => (
-                <span key={t.term} className="relative group">
+              {glossary.map((term) => (
+                <span key={term.term} className="relative group">
                   <span
                     tabIndex={0}
                     className="inline-block font-mono text-sm text-blue-700 bg-blue-50
                                border border-blue-100 rounded px-2 py-1 cursor-help
                                hover:bg-blue-100 transition-colors"
                   >
-                    {t.term}
+                    {term.term}
                   </span>
                   <span
                     role="tooltip"
@@ -276,7 +286,7 @@ function FileContent({
                                text-white opacity-0 shadow-lg transition-opacity
                                group-hover:opacity-100 group-focus-within:opacity-100"
                   >
-                    {t.definition}
+                    {term.definition}
                   </span>
                 </span>
               ))}
@@ -287,25 +297,34 @@ function FileContent({
         {/* Q&A: ask a question about the selected code (or the whole file) */}
         {!loadingCode && code && (
           <div className="mt-6 bg-white rounded-xl shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">问一问这段代码</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("问一问这段代码", "Ask about this code")}
+            </h3>
             <p className="text-sm text-gray-500 mb-3">
-              在上面选中一段代码再提问会更精准；不选就针对整个文件回答。
+              {t(
+                "在上面选中一段代码再提问会更精准；不选就针对整个文件回答。",
+                "Select a snippet above for a sharper answer; otherwise the whole file is used.",
+              )}
             </p>
             {selection ? (
               <div className="mb-3 text-sm">
-                <span className="text-gray-500">已选中 {selection.length} 个字符：</span>
+                <span className="text-gray-500">
+                  {t(`已选中 ${selection.length} 个字符：`, `${selection.length} characters selected:`)}
+                </span>
                 <button
                   onClick={() => setSelection("")}
                   className="ml-2 text-blue-600 hover:underline"
                 >
-                  清除选择
+                  {t("清除选择", "Clear selection")}
                 </button>
                 <pre className="mt-1 max-h-28 overflow-auto rounded bg-gray-50 p-2 font-mono text-xs text-gray-700">
                   {selection.slice(0, 600)}
                 </pre>
               </div>
             ) : (
-              <p className="mb-3 text-sm text-gray-400">未选中代码，将针对整个文件回答。</p>
+              <p className="mb-3 text-sm text-gray-400">
+                {t("未选中代码，将针对整个文件回答。", "No selection — the whole file will be used.")}
+              </p>
             )}
             <div className="flex gap-2">
               <textarea
@@ -314,7 +333,10 @@ function FileContent({
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleAsk();
                 }}
-                placeholder="比如：这段代码是做什么的？这个参数为什么是这个值？"
+                placeholder={t(
+                  "比如：这段代码是做什么的？这个参数为什么是这个值？",
+                  "e.g. What does this code do? Why is this value set this way?",
+                )}
                 rows={2}
                 className="flex-1 resize-y rounded-lg border border-gray-200 px-3 py-2 text-sm
                            focus:border-blue-400 focus:outline-none"
@@ -325,7 +347,7 @@ function FileContent({
                 className="shrink-0 self-start rounded-lg bg-blue-600 px-4 py-2 text-sm
                            font-medium text-white hover:bg-blue-700 disabled:opacity-40"
               >
-                {qaLoading ? "思考中…" : "提问"}
+                {qaLoading ? t("思考中…", "Thinking…") : t("提问", "Ask")}
               </button>
             </div>
             {qaError && (
@@ -343,10 +365,14 @@ function FileContent({
         {/* Natural-language editing: describe a change, get a suggested rewrite */}
         {!loadingCode && code && (
           <div className="mt-6 bg-white rounded-xl shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">用大白话改代码</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("用大白话改代码", "Edit code in plain words")}
+            </h3>
             <p className="text-sm text-gray-500 mb-3">
-              选中一段代码（不选则针对整个文件），用一句话说要怎么改，比如「把茅台换成比亚迪」。
-              改完的代码只供你复制，不会动原文件。
+              {t(
+                "选中一段代码（不选则针对整个文件），用一句话说要怎么改，比如「把茅台换成比亚迪」。改完的代码只供你复制，不会动原文件。",
+                "Select a snippet (or use the whole file) and describe the change in one line, e.g. \"change Maotai to BYD\". The result is yours to copy — your files are never modified.",
+              )}
             </p>
             <div className="flex gap-2">
               <input
@@ -355,7 +381,10 @@ function FileContent({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleEdit();
                 }}
-                placeholder="比如：把所有的茅台换成比亚迪 / 把超时从 3600 改成 600"
+                placeholder={t(
+                  "比如：把所有的茅台换成比亚迪 / 把超时从 3600 改成 600",
+                  "e.g. change all Maotai to BYD / change the timeout from 3600 to 600",
+                )}
                 className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm
                            focus:border-blue-400 focus:outline-none"
               />
@@ -365,19 +394,21 @@ function FileContent({
                 className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium
                            text-white hover:bg-blue-700 disabled:opacity-40"
               >
-                {editLoading ? "改写中…" : "改写"}
+                {editLoading ? t("改写中…", "Rewriting…") : t("改写", "Rewrite")}
               </button>
             </div>
             {editError && <p className="mt-3 text-sm text-red-600">{editError}</p>}
             {editedCode && (
               <div className="mt-4">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-700">改写后的代码</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    {t("改写后的代码", "Rewritten code")}
+                  </span>
                   <button
                     onClick={copyEdited}
                     className="text-sm text-blue-600 hover:underline"
                   >
-                    {copied ? "已复制 ✓" : "复制"}
+                    {copied ? t("已复制 ✓", "Copied ✓") : t("复制", "Copy")}
                   </button>
                 </div>
                 <pre className="max-h-96 overflow-auto rounded-lg bg-gray-900 p-4 font-mono
@@ -393,7 +424,7 @@ function FileContent({
         {annotations.length > 0 && (
           <div className="mt-6 bg-white rounded-xl shadow-sm p-6 lg:hidden">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              代码批注
+              {t("代码批注", "Annotations")}
             </h3>
             <div className="space-y-3">
               {annotations.map((a, i) => (
