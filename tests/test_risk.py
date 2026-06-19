@@ -46,6 +46,15 @@ def test_no_overlap_returns_empty():
     assert risk.rank_risk(_imp(("a.py", 5)), _churn(("b.py", 5))) == []
 
 
+def test_render_markdown():
+    assert risk.render_risk_markdown([]) == ""
+    rows = risk.rank_risk(_imp(("core.py", 8)), _churn(("core.py", 12)))
+    md = risk.render_risk_markdown(rows)
+    assert "风险清单" in md
+    assert "`core.py`" in md
+    assert md.endswith("\n")
+
+
 def test_limit_and_reason():
     imp = _imp(*[(f"f{i}.py", i + 1) for i in range(12)])
     chn = _churn(*[(f"f{i}.py", i + 1) for i in range(12)])

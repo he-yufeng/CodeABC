@@ -68,3 +68,21 @@ def rank_risk(
         )
     ranked.sort(key=lambda r: (-r["score"], -r["commits"], r["path"]))
     return ranked[:limit]
+
+
+def render_risk_markdown(risk_hotspots: list[dict]) -> str:
+    """Render the risk hotspots as a Markdown section, or ``""`` if empty."""
+    if not risk_hotspots:
+        return ""
+    lines = [
+        "# 风险清单（核心 × 高频变动）",
+        "",
+        "> 既被很多文件依赖、又改得频繁的文件——bug 最容易出在这里，优先审查和补测试。",
+        "",
+    ]
+    lines.extend(
+        f"- `{r['path']}` — 风险 {r['score']}"
+        f"（{r['fan_in']} 处依赖 · 改 {r['commits']} 次）：{r['reason']}"
+        for r in risk_hotspots
+    )
+    return "\n".join(lines).rstrip() + "\n"

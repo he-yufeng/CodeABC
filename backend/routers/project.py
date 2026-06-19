@@ -289,6 +289,14 @@ async def get_codemap_markdown(project_id: str):
     if not proj:
         raise HTTPException(404, "Project not found")
     markdown = importgraph.render_codemap_markdown(proj["name"], proj["files"])
+    risk_md = risk.render_risk_markdown(
+        risk.rank_risk(
+            importgraph.rank_hotspots(proj["files"], limit=500),
+            (proj.get("churn") or {}).get("hotspots", []),
+        )
+    )
+    if risk_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{risk_md}"
     churn_md = churn.render_churn_markdown(proj["name"], proj.get("churn"))
     if churn_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{churn_md}"
