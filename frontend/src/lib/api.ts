@@ -262,6 +262,31 @@ export async function getAnnotations(
   return res.json();
 }
 
+/** Ask a free-form question about a selected piece of code. */
+export async function askQuestion(
+  projectId: string,
+  params: { question: string; code?: string; filePath?: string; language?: string }
+): Promise<{ answer: string }> {
+  const res = await fetch(`${BASE}/project/${projectId}/qa`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({
+      question: params.question,
+      code: params.code ?? "",
+      file_path: params.filePath ?? "",
+      language: params.language ?? "",
+    }),
+  });
+  if (!res.ok) {
+    if (res.status === 429) {
+      const err = await res.json().catch(() => ({ detail: "请求过于频繁" }));
+      throw new Error(err.detail || "今日免费额度已用完，请配置 API Key");
+    }
+    throw new Error("Failed to get answer");
+  }
+  return res.json();
+}
+
 /** Get the jargon terms found in a file (deterministic, no API key needed). */
 export async function getGlossary(
   projectId: string,

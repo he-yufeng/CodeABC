@@ -8,8 +8,10 @@ import logging
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
+from backend.models import QARequest
 from backend.prompts.annotate import build_annotation_prompt
 from backend.prompts.overview import build_overview_prompt
+from backend.prompts.qa import build_qa_prompt
 from backend.routers.project import get_project_data
 from backend.services import cache
 from backend.services.llm import call_llm, stream_llm
@@ -153,3 +155,41 @@ async def get_annotations(project_id: str, file_path: str, request: Request):
         await cache.put(cache_key, annotations)
 
     return {"path": file_path, "language": lang, "annotations": annotations}
+
+
+@router.post("/project/{project_id}/qa")
+async def ask_question(project_id: str, req: QARequest, request: Request):
+    """Answer a free-form question about a selected piece of code.
+
+    Powers "select code and ask questions". Caches by question+code so a
+    repeated question is free and doesn't count against the rate limit.
+    """
+    proj = await get_project_data(project_id)
+    if not proj:
+        raise HTTPException(404, "Project not found")
+
+    question = req.question.strip()
+    if not question:
+        raise HTTPException(400, "Question must not be empty")
+
+    combined = question + "\x00" + req.code
+    cache_key = f"qa:{cache.content_hash(combined)}"
+    cached = await cache.get(cache_key)
+    if isinstance(cached, dict) and cached.get("answer"):
+        return {"answer": cached["answer"]}
+
+    await _enforce_rate_limit(request)
+
+    prompt = build_qa_prompt(
+        question,
+        req.code,
+        file_path=req.file_path,
+        language=req.language,
+    )
+    api_key = request.headers.get("x-api-key")
+    answer = (await call_llm(prompt, api_key=api_key)).strip()
+
+    if answer:
+        await cache.put(cache_key, {"answer": answer})
+
+    return {"answer": answer}

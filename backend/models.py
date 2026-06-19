@@ -151,6 +151,13 @@ class FileAnnotations(BaseModel):
     annotations: list[Annotation]
 
 
+class QARequest(BaseModel):
+    question: str
+    code: str = ""
+    file_path: str = ""
+    language: str = ""
+
+
 class GlossaryTerm(BaseModel):
     term: str
     definition: str

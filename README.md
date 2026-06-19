@@ -39,6 +39,10 @@ Click any file to view it with AI-generated annotations. Hover over any line to 
 
 Every file view lists the programming terms that actually appear in that file -- `async`, `decorator`, `closure`, `middleware`, `regex`, and dozens more. Hover a term to see a plain-language explanation that leans on everyday analogies. It is computed deterministically (no LLM, no API key), so it is instant and always available.
 
+### Q&A Mode
+
+Select any snippet in a file (or just leave it unselected for the whole file) and ask a question in plain language -- "what does this do?", "why is this number here?". CodeABC answers in the same patient, jargon-light voice, grounded only in the code you pointed at. Answers are cached, so asking the same thing again is free.
+
 ### Cleaner Project Scans
 
 CodeABC skips build outputs, package caches, minified bundles, generated frontend chunks, and paths ignored by the repository's `.gitignore` before sending files to the LLM. It also leaves out secret-shaped files such as real `.env` files, credential JSON files, API key notes, and private keys while still allowing safe examples like `.env.example`. That keeps the project manual focused on source code instead of `dist/`, `node_modules`, local scratch files, one-line JavaScript bundles, or private credentials.
@@ -149,7 +153,7 @@ CodeABC/
 - [x] Hover annotations (Python priority)
 - [x] Terminology dictionary (hover keywords for definitions)
 - [ ] Natural language editing ("change the stock from Maotai to BYD")
-- [ ] Q&A mode (select code and ask questions)
+- [x] Q&A mode (select code and ask questions)
 - [ ] Multi-language UI (English interface)
 - [ ] Desktop app (Tauri)
 

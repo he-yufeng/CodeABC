@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
+  askQuestion,
   getFileContent,
   getAnnotations,
   getGlossary,
@@ -63,6 +64,38 @@ function FileContent({
   );
   const [glossary, setGlossary] = useState<GlossaryTerm[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // Q&A: select code in the viewer, ask a question about it
+  const [selection, setSelection] = useState("");
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [qaLoading, setQaLoading] = useState(false);
+  const [qaError, setQaError] = useState<string | null>(null);
+
+  const captureSelection = () => {
+    const text = window.getSelection?.()?.toString().trim() ?? "";
+    if (text) setSelection(text);
+  };
+
+  const handleAsk = async () => {
+    if (!projectId || !question.trim() || qaLoading) return;
+    setQaLoading(true);
+    setQaError(null);
+    setAnswer("");
+    try {
+      const res = await askQuestion(projectId, {
+        question: question.trim(),
+        code: selection || code,
+        filePath: decodedPath,
+        language,
+      });
+      setAnswer(res.answer);
+    } catch (e) {
+      setQaError(e instanceof Error ? e.message : "提问失败");
+    } finally {
+      setQaLoading(false);
+    }
+  };
 
   // load file content
   useEffect(() => {
@@ -159,11 +192,14 @@ function FileContent({
             <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div
+            className="bg-white rounded-xl shadow-sm overflow-hidden"
+            onMouseUp={captureSelection}
+          >
             {/* Hint */}
             {annotations.length > 0 && (
               <div className="bg-blue-50 px-4 py-2 text-sm text-blue-700 border-b border-blue-100">
-                💡 将鼠标悬停在代码上，查看中文解释
+                💡 将鼠标悬停在代码上查看中文解释；选中一段代码可在下方就它提问
               </div>
             )}
             <CodeViewer
@@ -204,6 +240,62 @@ function FileContent({
                 </span>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Q&A: ask a question about the selected code (or the whole file) */}
+        {!loadingCode && code && (
+          <div className="mt-6 bg-white rounded-xl shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">问一问这段代码</h3>
+            <p className="text-sm text-gray-500 mb-3">
+              在上面选中一段代码再提问会更精准；不选就针对整个文件回答。
+            </p>
+            {selection ? (
+              <div className="mb-3 text-sm">
+                <span className="text-gray-500">已选中 {selection.length} 个字符：</span>
+                <button
+                  onClick={() => setSelection("")}
+                  className="ml-2 text-blue-600 hover:underline"
+                >
+                  清除选择
+                </button>
+                <pre className="mt-1 max-h-28 overflow-auto rounded bg-gray-50 p-2 font-mono text-xs text-gray-700">
+                  {selection.slice(0, 600)}
+                </pre>
+              </div>
+            ) : (
+              <p className="mb-3 text-sm text-gray-400">未选中代码，将针对整个文件回答。</p>
+            )}
+            <div className="flex gap-2">
+              <textarea
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleAsk();
+                }}
+                placeholder="比如：这段代码是做什么的？这个参数为什么是这个值？"
+                rows={2}
+                className="flex-1 resize-y rounded-lg border border-gray-200 px-3 py-2 text-sm
+                           focus:border-blue-400 focus:outline-none"
+              />
+              <button
+                onClick={handleAsk}
+                disabled={!question.trim() || qaLoading}
+                className="shrink-0 self-start rounded-lg bg-blue-600 px-4 py-2 text-sm
+                           font-medium text-white hover:bg-blue-700 disabled:opacity-40"
+              >
+                {qaLoading ? "思考中…" : "提问"}
+              </button>
+            </div>
+            {qaError && (
+              <p className="mt-3 text-sm text-red-600">{qaError}</p>
+            )}
+            {answer && (
+              <div className="mt-4 whitespace-pre-wrap rounded-lg bg-blue-50 p-4 text-sm
+                              leading-relaxed text-gray-800">
+                {answer}
+              </div>
+            )}
           </div>
         )}
 
