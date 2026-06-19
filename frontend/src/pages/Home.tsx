@@ -4,9 +4,11 @@ import UploadZone from "../components/UploadZone";
 import ApiKeyModal from "../components/ApiKeyModal";
 import { uploadProject, cloneGitHub } from "../lib/api";
 import { useProjectStore } from "../stores/project";
+import { useI18n, LanguageToggle } from "../lib/i18n";
 
 export default function Home() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const { setProject, setLoading, setError, loading, error, reset } =
     useProjectStore();
 
@@ -24,7 +26,7 @@ export default function Home() {
       setProject(proj);
       navigate(`/project/${proj.id}`);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "上传失败");
+      setError(e instanceof Error ? e.message : t("上传失败", "Upload failed"));
     } finally {
       setLoading(false);
     }
@@ -39,7 +41,7 @@ export default function Home() {
       setProject(proj);
       navigate(`/project/${proj.id}`);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "克隆失败");
+      setError(e instanceof Error ? e.message : t("克隆失败", "Clone failed"));
     } finally {
       setLoading(false);
     }
@@ -47,30 +49,34 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4">
-      {/* Settings button (top-right) */}
-      <button
-        onClick={() => setShowKeyModal(true)}
-        className="fixed top-4 right-4 p-2 text-gray-400 hover:text-gray-600
-                   hover:bg-gray-100 rounded-lg transition-colors"
-        title="API Key 设置"
-      >
+      {/* Language toggle + settings (top-right) */}
+      <div className="fixed top-4 right-4 flex items-center gap-1">
+        <LanguageToggle />
+        <button
+          onClick={() => setShowKeyModal(true)}
+          className="p-2 text-gray-400 hover:text-gray-600
+                     hover:bg-gray-100 rounded-lg transition-colors"
+          title={t("API Key 设置", "API Key settings")}
+        >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
-      </button>
+        </button>
+      </div>
       <ApiKeyModal open={showKeyModal} onClose={() => setShowKeyModal(false)} />
 
       <div className="max-w-2xl w-full">
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            码上懂 <span className="text-blue-600">CodeABC</span>
+            {t("码上懂 ", "")}
+            <span className="text-blue-600">CodeABC</span>
           </h1>
           <p className="text-lg text-gray-600">
-            不用学编程，也能读懂代码
+            {t("不用学编程，也能读懂代码", "Read any codebase without learning to code")}
           </p>
         </div>
 
@@ -80,7 +86,7 @@ export default function Home() {
         {/* Divider */}
         <div className="flex items-center my-6">
           <div className="flex-1 border-t border-gray-200" />
-          <span className="px-4 text-sm text-gray-400">或者</span>
+          <span className="px-4 text-sm text-gray-400">{t("或者", "or")}</span>
           <div className="flex-1 border-t border-gray-200" />
         </div>
 
@@ -91,7 +97,10 @@ export default function Home() {
             value={githubUrl}
             onChange={(e) => setGithubUrl(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleGitHub()}
-            placeholder="粘贴 GitHub 仓库链接，如 https://github.com/user/repo"
+            placeholder={t(
+              "粘贴 GitHub 仓库链接，如 https://github.com/user/repo",
+              "Paste a GitHub repo URL, e.g. https://github.com/user/repo",
+            )}
             className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-base
                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             disabled={loading}
@@ -103,7 +112,7 @@ export default function Home() {
                        hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
                        transition-colors"
           >
-            {loading ? "加载中..." : "分析"}
+            {loading ? t("加载中...", "Loading...") : t("分析", "Analyze")}
           </button>
         </div>
 
@@ -118,7 +127,9 @@ export default function Home() {
         {loading && (
           <div className="mt-6 text-center">
             <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-            <p className="mt-2 text-sm text-gray-500">正在分析项目...</p>
+            <p className="mt-2 text-sm text-gray-500">
+              {t("正在分析项目...", "Analyzing the project...")}
+            </p>
           </div>
         )}
 
@@ -127,18 +138,30 @@ export default function Home() {
           <div className="mt-12 grid grid-cols-3 gap-4 text-center">
             <div className="p-4">
               <div className="text-2xl mb-2">📋</div>
-              <p className="text-sm font-medium text-gray-700">项目说明书</p>
-              <p className="text-xs text-gray-400 mt-1">大白话解释每个文件</p>
+              <p className="text-sm font-medium text-gray-700">
+                {t("项目说明书", "Project manual")}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                {t("大白话解释每个文件", "Every file in plain language")}
+              </p>
             </div>
             <div className="p-4">
               <div className="text-2xl mb-2">📖</div>
-              <p className="text-sm font-medium text-gray-700">悬停批注</p>
-              <p className="text-xs text-gray-400 mt-1">鼠标一放就有解释</p>
+              <p className="text-sm font-medium text-gray-700">
+                {t("悬停批注", "Hover annotations")}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                {t("鼠标一放就有解释", "Explanations on hover")}
+              </p>
             </div>
             <div className="p-4">
               <div className="text-2xl mb-2">🔑</div>
-              <p className="text-sm font-medium text-gray-700">自带 Key</p>
-              <p className="text-xs text-gray-400 mt-1">支持多种 AI 模型</p>
+              <p className="text-sm font-medium text-gray-700">
+                {t("自带 Key", "Bring your own key")}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                {t("支持多种 AI 模型", "Works with many AI models")}
+              </p>
             </div>
           </div>
         )}
