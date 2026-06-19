@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useI18n } from "../lib/i18n";
 
 interface Props {
   open: boolean;
@@ -12,6 +13,7 @@ export default function ApiKeyModal({ open, onClose }: Props) {
 }
 
 function ApiKeyDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n();
   const [key, setKey] = useState(() => localStorage.getItem("codeabc_api_key") || "");
   const [saved, setSaved] = useState(false);
 
@@ -34,23 +36,33 @@ function ApiKeyDialog({ onClose }: { onClose: () => void }) {
         className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">API Key 设置</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">
+          {t("API Key 设置", "API Key settings")}
+        </h2>
         <p className="text-sm text-gray-500 mb-4">
-          填入你自己的 API Key 可以无限使用。留空则使用免费额度（每天 20 次）。
+          {t(
+            "填入你自己的 API Key 可以无限使用。留空则使用免费额度（每天 20 次）。",
+            "Add your own API key for unlimited use. Leave it blank to use the free tier (20/day).",
+          )}
         </p>
 
         <input
           type="password"
           value={key}
           onChange={(e) => setKey(e.target.value)}
-          placeholder="sk-... 或其他 LLM 提供商的 Key"
+          placeholder={t(
+            "sk-... 或其他 LLM 提供商的 Key",
+            "sk-... or a key from another LLM provider",
+          )}
           className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm
                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
 
         <p className="text-xs text-gray-400 mt-2 mb-4">
-          Key 仅存在浏览器本地，不会上传到任何服务器。
-          支持 OpenAI / Claude / DeepSeek / Kimi 等所有 litellm 兼容的 Key。
+          {t(
+            "Key 仅存在浏览器本地，不会上传到任何服务器。支持 OpenAI / Claude / DeepSeek / Kimi 等所有 litellm 兼容的 Key。",
+            "The key stays in your browser and is never uploaded to any server. Works with OpenAI / Claude / DeepSeek / Kimi and any litellm-compatible key.",
+          )}
         </p>
 
         <div className="flex gap-3 justify-end">
@@ -58,14 +70,14 @@ function ApiKeyDialog({ onClose }: { onClose: () => void }) {
             onClick={onClose}
             className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
           >
-            取消
+            {t("取消", "Cancel")}
           </button>
           <button
             onClick={handleSave}
             className="px-5 py-2 bg-blue-600 text-white text-sm rounded-lg
                        hover:bg-blue-700 transition-colors"
           >
-            {saved ? "已保存 ✓" : "保存"}
+            {saved ? t("已保存 ✓", "Saved ✓") : t("保存", "Save")}
           </button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { useI18n } from "../lib/i18n";
 
 interface Props {
   onFilesSelected: (files: { path: string; content: string }[], name: string) => void;
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export default function UploadZone({ onFilesSelected, disabled }: Props) {
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -86,10 +88,10 @@ export default function UploadZone({ onFilesSelected, disabled }: Props) {
       />
       <div className="text-4xl mb-4">📂</div>
       <p className="text-lg font-medium text-gray-700">
-        拖入项目文件夹，或点击选择
+        {t("拖入项目文件夹，或点击选择", "Drop a project folder, or click to choose")}
       </p>
       <p className="text-sm text-gray-500 mt-2">
-        支持任何包含源代码的文件夹
+        {t("支持任何包含源代码的文件夹", "Any folder with source code works")}
       </p>
     </div>
   );
