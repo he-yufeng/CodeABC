@@ -323,6 +323,66 @@ export default function Overview() {
             </section>
           )}
 
+        {/* Change history (mined from git log) — the dynamic counterpart to the
+            static code map: how the code actually evolved, not how it imports. */}
+        {project &&
+          ((project.churn_hotspots?.length ?? 0) > 0 ||
+            (project.co_change_couplings?.length ?? 0) > 0) && (
+            <section className="bg-white rounded-xl p-6 shadow-sm mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">变更历史</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                从 git 提交历史算出，看的是代码怎么演化，和上面的静态结构互补。
+              </p>
+
+              {project.churn_hotspots && project.churn_hotspots.length > 0 && (
+                <div className="mb-5">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                    变更热点（改得最频繁）
+                  </h3>
+                  <ul className="space-y-2">
+                    {project.churn_hotspots.map((h) => (
+                      <li key={h.path}>
+                        <button
+                          onClick={() => handleFileClick(h.path)}
+                          className="w-full text-left hover:text-blue-700"
+                        >
+                          <span className="font-mono text-sm text-blue-600">
+                            {h.path}
+                          </span>
+                          <span className="ml-2 text-xs text-gray-400">
+                            {h.commits} 次 · {h.authors} 人 · {h.lines_changed} 行
+                          </span>
+                          <span className="block text-sm text-gray-500 mt-0.5">
+                            {h.reason}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {project.co_change_couplings &&
+                project.co_change_couplings.length > 0 && (
+                  <div className="mt-5">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                      变更耦合（总一起改的文件）
+                    </h3>
+                    <ul className="space-y-2">
+                      {project.co_change_couplings.map((c) => (
+                        <li key={`${c.file_a}|${c.file_b}`} className="text-sm">
+                          <span className="font-mono text-gray-800">
+                            {c.file_a} ↔ {c.file_b}
+                          </span>
+                          <p className="text-gray-500 mt-0.5">{c.reason}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+            </section>
+          )}
+
         {/* Loading: show raw streaming text */}
         {loading && !overview && (
           <div className="bg-white rounded-xl p-6 shadow-sm">

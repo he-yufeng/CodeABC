@@ -120,6 +120,27 @@ def test_binary_files_counted_without_line_churn():
     assert hotspots[0]["lines_changed"] == 0  # "-" binary markers don't add churn
 
 
+def test_render_markdown_empty_when_no_history():
+    assert churn.render_churn_markdown("proj", None) == ""
+    assert churn.render_churn_markdown("proj", {"hotspots": [], "couplings": []}) == ""
+
+
+def test_render_markdown_contains_sections():
+    log = _log(
+        ("amy", [(5, 2, "core.py"), (1, 0, "util.py")]),
+        ("bob", [(3, 1, "core.py"), (1, 0, "util.py")]),
+        ("amy", [(2, 0, "core.py"), (1, 0, "util.py")]),
+    )
+    data = churn.analyze_churn(log, min_coupling_support=2)
+    md = churn.render_churn_markdown("demo", data)
+    assert "# demo — 变更历史" in md
+    assert "## 变更热点" in md
+    assert "## 变更耦合" in md
+    assert "`core.py`" in md
+    assert "`core.py` ↔ `util.py`" in md or "`util.py` ↔ `core.py`" in md
+    assert md.endswith("\n")
+
+
 def test_bulk_commit_skips_coupling_but_counts_changes():
     many = [(1, 0, f"f{i}.py") for i in range(churn._MAX_FILES_FOR_COUPLING + 5)]
     log = _log(

@@ -84,6 +84,22 @@ export interface ProjectHealth {
   notes: string[];
 }
 
+export interface ChurnHotspot {
+  path: string;
+  commits: number;
+  lines_changed: number;
+  authors: number;
+  reason: string;
+}
+
+export interface CoChangeCoupling {
+  file_a: string;
+  file_b: string;
+  co_changes: number;
+  coupling: number;
+  reason: string;
+}
+
 export interface ProjectMeta {
   id: string;
   name: string;
@@ -98,6 +114,8 @@ export interface ProjectMeta {
   import_cycles?: ImportCycle[];
   orphan_modules?: OrphanModule[];
   health?: ProjectHealth;
+  churn_hotspots?: ChurnHotspot[];
+  co_change_couplings?: CoChangeCoupling[];
 }
 
 export interface Annotation {

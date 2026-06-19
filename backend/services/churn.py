@@ -202,3 +202,43 @@ def analyze_churn(
         "couplings": couplings[:limit],
         "commits_analyzed": commits_analyzed,
     }
+
+
+def render_churn_markdown(project_name: str, churn_data: dict | None) -> str:
+    """Render the churn analysis as a Markdown section, or ``""`` if empty.
+
+    Designed to be appended to the static code map: it adds the *dynamic*
+    (git-history) view. Returns an empty string when there's no usable history
+    (e.g. an uploaded project) so callers can skip it cleanly.
+    """
+    data = churn_data or {}
+    hotspots = data.get("hotspots") or []
+    couplings = data.get("couplings") or []
+    if not hotspots and not couplings:
+        return ""
+
+    analyzed = data.get("commits_analyzed", 0)
+    lines = [
+        f"# {project_name} — 变更历史",
+        "",
+        f"> 基于最近 {analyzed} 个提交的 git 历史算出，看的是代码怎么演化，和静态结构互补。",
+        "",
+    ]
+
+    if hotspots:
+        lines.append("## 变更热点（改得最频繁）")
+        lines.append("")
+        lines.extend(
+            f"- `{h['path']}` — 改了 {h['commits']} 次"
+            f"（{h['authors']} 人、{h['lines_changed']} 行）：{h['reason']}"
+            for h in hotspots
+        )
+        lines.append("")
+
+    if couplings:
+        lines.append("## 变更耦合（总一起改的文件）")
+        lines.append("")
+        lines.extend(f"- `{c['file_a']}` ↔ `{c['file_b']}` — {c['reason']}" for c in couplings)
+        lines.append("")
+
+    return "\n".join(lines).rstrip() + "\n"

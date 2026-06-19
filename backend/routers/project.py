@@ -244,6 +244,9 @@ async def get_codemap_markdown(project_id: str):
     if not proj:
         raise HTTPException(404, "Project not found")
     markdown = importgraph.render_codemap_markdown(proj["name"], proj["files"])
+    churn_md = churn.render_churn_markdown(proj["name"], proj.get("churn"))
+    if churn_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{churn_md}"
     return Response(content=markdown, media_type="text/markdown; charset=utf-8")
 
 
