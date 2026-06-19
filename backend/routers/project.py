@@ -11,6 +11,8 @@ from backend.models import (
     AnalyzeRequest,
     ArchitectureLayer,
     BlastRadiusHotspot,
+    ChurnHotspot,
+    CoChangeCoupling,
     CodeWalkStep,
     CouplingHotspot,
     FileInfo,
@@ -24,7 +26,7 @@ from backend.models import (
     ReadingStep,
     UploadedFile,
 )
-from backend.services import cache, github_clone, importgraph, scanner
+from backend.services import cache, churn, github_clone, importgraph, scanner
 
 router = APIRouter(tags=["project"])
 
@@ -109,11 +111,19 @@ async def clone_github_project(req: GitHubRequest):
         except Exception:
             pass
 
+    # Mine git history while the clone is still on disk: change hotspots and
+    # co-change coupling are a dynamic signal the static analyses can't see.
+    churn_result = churn.analyze_churn(
+        churn.collect_git_log(repo_path),
+        scanned_paths={f["path"] for f in scanned},
+    )
+
     repo_name = req.url.rstrip("/").split("/")[-1].replace(".git", "")
     proj_data = {
         "name": repo_name,
         "files": scanned,
         "file_contents": file_contents,
+        "churn": churn_result,
     }
     _projects[project_id] = proj_data
     await cache.save_project(project_id, proj_data)
@@ -136,6 +146,8 @@ async def clone_github_project(req: GitHubRequest):
             PackageDependency(**p) for p in importgraph.summarize_package_dependencies(scanned)
         ],
         health=ProjectHealth(**importgraph.summarize_project_health(scanned)),
+        churn_hotspots=[ChurnHotspot(**h) for h in churn_result.get("hotspots", [])],
+        co_change_couplings=[CoChangeCoupling(**c) for c in churn_result.get("couplings", [])],
         files=[
             FileInfo(
                 path=f["path"],
@@ -187,6 +199,12 @@ async def get_project(project_id: str):
             for p in importgraph.summarize_package_dependencies(proj["files"])
         ],
         health=ProjectHealth(**importgraph.summarize_project_health(proj["files"])),
+        churn_hotspots=[
+            ChurnHotspot(**h) for h in (proj.get("churn") or {}).get("hotspots", [])
+        ],
+        co_change_couplings=[
+            CoChangeCoupling(**c) for c in (proj.get("churn") or {}).get("couplings", [])
+        ],
         files=[
             FileInfo(
                 path=f["path"],

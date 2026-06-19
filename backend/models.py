@@ -90,6 +90,22 @@ class ProjectHealth(BaseModel):
     notes: list[str] = []
 
 
+class ChurnHotspot(BaseModel):
+    path: str
+    commits: int
+    lines_changed: int = 0
+    authors: int = 1
+    reason: str
+
+
+class CoChangeCoupling(BaseModel):
+    file_a: str
+    file_b: str
+    co_changes: int
+    coupling: int  # percentage of the rarer file's commits that touch both
+    reason: str
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
@@ -105,6 +121,8 @@ class ProjectMeta(BaseModel):
     architecture_layers: list[ArchitectureLayer] = []
     package_dependencies: list[PackageDependency] = []
     health: ProjectHealth | None = None
+    churn_hotspots: list[ChurnHotspot] = []
+    co_change_couplings: list[CoChangeCoupling] = []
 
 
 class FileRole(BaseModel):
