@@ -151,6 +151,16 @@ class FileAnnotations(BaseModel):
     annotations: list[Annotation]
 
 
+class GlossaryTerm(BaseModel):
+    term: str
+    definition: str
+
+
+class FileGlossary(BaseModel):
+    path: str
+    terms: list[GlossaryTerm] = []
+
+
 class GitHubRequest(BaseModel):
     url: str = Field(..., pattern=r"^https?://github\.com/.+/.+")
 

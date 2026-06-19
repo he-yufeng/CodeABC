@@ -15,8 +15,10 @@ from backend.models import (
     CoChangeCoupling,
     CodeWalkStep,
     CouplingHotspot,
+    FileGlossary,
     FileInfo,
     GitHubRequest,
+    GlossaryTerm,
     Hotspot,
     ImportCycle,
     OrphanModule,
@@ -26,7 +28,7 @@ from backend.models import (
     ReadingStep,
     UploadedFile,
 )
-from backend.services import cache, churn, github_clone, importgraph, scanner
+from backend.services import cache, churn, github_clone, glossary, importgraph, scanner
 
 router = APIRouter(tags=["project"])
 
@@ -235,6 +237,26 @@ async def get_file_content(project_id: str, file_path: str):
             break
 
     return {"path": file_path, "language": lang, "content": content}
+
+
+@router.get("/project/{project_id}/file/{file_path:path}/glossary", response_model=FileGlossary)
+async def get_file_glossary(project_id: str, file_path: str):
+    """Return the jargon terms found in a file with plain-language definitions.
+
+    Deterministic (no LLM): powers "hover a keyword, see what it means".
+    """
+    proj = await _resolve_project(project_id)
+    if not proj:
+        raise HTTPException(404, "Project not found")
+
+    content = proj.get("file_contents", {}).get(file_path)
+    if content is None:
+        raise HTTPException(404, f"File not found: {file_path}")
+
+    return FileGlossary(
+        path=file_path,
+        terms=[GlossaryTerm(**t) for t in glossary.scan_terms(content)],
+    )
 
 
 @router.get("/project/{project_id}/codemap.md")

@@ -124,6 +124,11 @@ export interface Annotation {
   annotation: string;
 }
 
+export interface GlossaryTerm {
+  term: string;
+  definition: string;
+}
+
 export interface ProjectOverview {
   summary: string;
   description: string;
@@ -254,5 +259,18 @@ export async function getAnnotations(
     }
     throw new Error("Failed to get annotations");
   }
+  return res.json();
+}
+
+/** Get the jargon terms found in a file (deterministic, no API key needed). */
+export async function getGlossary(
+  projectId: string,
+  filePath: string
+): Promise<{ path: string; terms: GlossaryTerm[] }> {
+  const res = await fetch(
+    `${BASE}/project/${projectId}/file/${encodeURIComponent(filePath)}/glossary`,
+    { headers: getHeaders() }
+  );
+  if (!res.ok) throw new Error("Failed to get glossary");
   return res.json();
 }

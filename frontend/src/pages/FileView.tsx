@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getFileContent, getAnnotations, getProject, type Annotation } from "../lib/api";
+import {
+  getFileContent,
+  getAnnotations,
+  getGlossary,
+  getProject,
+  type Annotation,
+  type GlossaryTerm,
+} from "../lib/api";
 import { useProjectStore } from "../stores/project";
 import CodeViewer from "../components/CodeViewer";
 
@@ -54,6 +61,7 @@ function FileContent({
   const [loadingAnnotations, setLoadingAnnotations] = useState(
     Boolean(projectId && decodedPath && !cachedAnnotations),
   );
+  const [glossary, setGlossary] = useState<GlossaryTerm[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // load file content
@@ -72,6 +80,24 @@ function FileContent({
       })
       .finally(() => {
         if (active) setLoadingCode(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [projectId, decodedPath]);
+
+  // load terminology dictionary (deterministic, no API key, so always safe)
+  useEffect(() => {
+    if (!projectId || !decodedPath) return;
+    let active = true;
+
+    getGlossary(projectId, decodedPath)
+      .then((res) => {
+        if (active) setGlossary(res.terms);
+      })
+      .catch(() => {
+        if (active) setGlossary([]);
       });
 
     return () => {
@@ -145,6 +171,39 @@ function FileContent({
               language={language}
               annotations={annotations}
             />
+          </div>
+        )}
+
+        {/* Terminology dictionary: hover a keyword to see a plain-language definition */}
+        {glossary.length > 0 && (
+          <div className="mt-6 bg-white rounded-xl shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">术语词典</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              这个文件里出现的编程术语，把鼠标移到词上就能看到大白话解释。
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {glossary.map((t) => (
+                <span key={t.term} className="relative group">
+                  <span
+                    tabIndex={0}
+                    className="inline-block font-mono text-sm text-blue-700 bg-blue-50
+                               border border-blue-100 rounded px-2 py-1 cursor-help
+                               hover:bg-blue-100 transition-colors"
+                  >
+                    {t.term}
+                  </span>
+                  <span
+                    role="tooltip"
+                    className="pointer-events-none absolute left-0 top-full z-10 mt-1 w-72
+                               rounded-lg bg-gray-900 px-3 py-2 text-sm leading-relaxed
+                               text-white opacity-0 shadow-lg transition-opacity
+                               group-hover:opacity-100 group-focus-within:opacity-100"
+                  >
+                    {t.definition}
+                  </span>
+                </span>
+              ))}
+            </div>
           </div>
         )}
 

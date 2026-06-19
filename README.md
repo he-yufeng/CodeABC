@@ -35,6 +35,10 @@ Click any file to view it with AI-generated annotations. Hover over any line to 
 - Context-aware: explains _why_ a number is 0.05 or a timeout is 3600
 - Cached: annotations are stored locally so repeat visits are instant
 
+### Terminology Dictionary
+
+Every file view lists the programming terms that actually appear in that file -- `async`, `decorator`, `closure`, `middleware`, `regex`, and dozens more. Hover a term to see a plain-language explanation that leans on everyday analogies. It is computed deterministically (no LLM, no API key), so it is instant and always available.
+
 ### Cleaner Project Scans
 
 CodeABC skips build outputs, package caches, minified bundles, generated frontend chunks, and paths ignored by the repository's `.gitignore` before sending files to the LLM. It also leaves out secret-shaped files such as real `.env` files, credential JSON files, API key notes, and private keys while still allowing safe examples like `.env.example`. That keeps the project manual focused on source code instead of `dist/`, `node_modules`, local scratch files, one-line JavaScript bundles, or private credentials.
@@ -143,7 +147,7 @@ CodeABC/
 
 - [x] Project overview generation
 - [x] Hover annotations (Python priority)
-- [ ] Terminology dictionary (hover keywords for definitions)
+- [x] Terminology dictionary (hover keywords for definitions)
 - [ ] Natural language editing ("change the stock from Maotai to BYD")
 - [ ] Q&A mode (select code and ask questions)
 - [ ] Multi-language UI (English interface)
