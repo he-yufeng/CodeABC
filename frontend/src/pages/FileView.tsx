@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   askQuestion,
+  editCode,
   getFileContent,
   getAnnotations,
   getGlossary,
@@ -94,6 +95,46 @@ function FileContent({
       setQaError(e instanceof Error ? e.message : "提问失败");
     } finally {
       setQaLoading(false);
+    }
+  };
+
+  // Natural-language editing: describe a change, get a suggested rewrite
+  const [instruction, setInstruction] = useState("");
+  const [editedCode, setEditedCode] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleEdit = async () => {
+    if (!projectId || !instruction.trim() || editLoading) return;
+    const target = selection || code;
+    if (!target.trim()) return;
+    setEditLoading(true);
+    setEditError(null);
+    setEditedCode("");
+    setCopied(false);
+    try {
+      const res = await editCode(projectId, {
+        instruction: instruction.trim(),
+        code: target,
+        filePath: decodedPath,
+        language,
+      });
+      setEditedCode(res.edited_code);
+    } catch (e) {
+      setEditError(e instanceof Error ? e.message : "改写失败");
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const copyEdited = async () => {
+    try {
+      await navigator.clipboard.writeText(editedCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
     }
   };
 
@@ -294,6 +335,55 @@ function FileContent({
               <div className="mt-4 whitespace-pre-wrap rounded-lg bg-blue-50 p-4 text-sm
                               leading-relaxed text-gray-800">
                 {answer}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Natural-language editing: describe a change, get a suggested rewrite */}
+        {!loadingCode && code && (
+          <div className="mt-6 bg-white rounded-xl shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">用大白话改代码</h3>
+            <p className="text-sm text-gray-500 mb-3">
+              选中一段代码（不选则针对整个文件），用一句话说要怎么改，比如「把茅台换成比亚迪」。
+              改完的代码只供你复制，不会动原文件。
+            </p>
+            <div className="flex gap-2">
+              <input
+                value={instruction}
+                onChange={(e) => setInstruction(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleEdit();
+                }}
+                placeholder="比如：把所有的茅台换成比亚迪 / 把超时从 3600 改成 600"
+                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm
+                           focus:border-blue-400 focus:outline-none"
+              />
+              <button
+                onClick={handleEdit}
+                disabled={!instruction.trim() || editLoading}
+                className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium
+                           text-white hover:bg-blue-700 disabled:opacity-40"
+              >
+                {editLoading ? "改写中…" : "改写"}
+              </button>
+            </div>
+            {editError && <p className="mt-3 text-sm text-red-600">{editError}</p>}
+            {editedCode && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium text-gray-700">改写后的代码</span>
+                  <button
+                    onClick={copyEdited}
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    {copied ? "已复制 ✓" : "复制"}
+                  </button>
+                </div>
+                <pre className="max-h-96 overflow-auto rounded-lg bg-gray-900 p-4 font-mono
+                                text-xs leading-relaxed text-gray-100">
+                  {editedCode}
+                </pre>
               </div>
             )}
           </div>

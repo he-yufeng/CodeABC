@@ -158,6 +158,13 @@ class QARequest(BaseModel):
     language: str = ""
 
 
+class EditRequest(BaseModel):
+    instruction: str
+    code: str
+    file_path: str = ""
+    language: str = ""
+
+
 class GlossaryTerm(BaseModel):
     term: str
     definition: str

@@ -8,8 +8,9 @@ import logging
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from backend.models import QARequest
+from backend.models import EditRequest, QARequest
 from backend.prompts.annotate import build_annotation_prompt
+from backend.prompts.edit import build_edit_prompt, extract_code_block
 from backend.prompts.overview import build_overview_prompt
 from backend.prompts.qa import build_qa_prompt
 from backend.routers.project import get_project_data
@@ -193,3 +194,44 @@ async def ask_question(project_id: str, req: QARequest, request: Request):
         await cache.put(cache_key, {"answer": answer})
 
     return {"answer": answer}
+
+
+@router.post("/project/{project_id}/edit")
+async def edit_code(project_id: str, req: EditRequest, request: Request):
+    """Apply a natural-language instruction to a code snippet.
+
+    Returns a *suggested* edited version (CodeABC never writes to disk).
+    Cached by instruction+code so repeats are free.
+    """
+    proj = await get_project_data(project_id)
+    if not proj:
+        raise HTTPException(404, "Project not found")
+
+    instruction = req.instruction.strip()
+    if not instruction:
+        raise HTTPException(400, "Instruction must not be empty")
+    if not req.code.strip():
+        raise HTTPException(400, "Code must not be empty")
+
+    combined = instruction + "\x00" + req.code
+    cache_key = f"edit:{cache.content_hash(combined)}"
+    cached = await cache.get(cache_key)
+    if isinstance(cached, dict) and cached.get("edited_code"):
+        return {"edited_code": cached["edited_code"]}
+
+    await _enforce_rate_limit(request)
+
+    prompt = build_edit_prompt(
+        instruction,
+        req.code,
+        file_path=req.file_path,
+        language=req.language,
+    )
+    api_key = request.headers.get("x-api-key")
+    raw = await call_llm(prompt, api_key=api_key)
+    edited = extract_code_block(raw)
+
+    if edited:
+        await cache.put(cache_key, {"edited_code": edited})
+
+    return {"edited_code": edited}

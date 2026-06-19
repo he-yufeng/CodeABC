@@ -39,6 +39,10 @@ Click any file to view it with AI-generated annotations. Hover over any line to 
 
 Every file view lists the programming terms that actually appear in that file -- `async`, `decorator`, `closure`, `middleware`, `regex`, and dozens more. Hover a term to see a plain-language explanation that leans on everyday analogies. It is computed deterministically (no LLM, no API key), so it is instant and always available.
 
+### Natural-Language Editing
+
+Describe a change in plain words -- "把茅台换成比亚迪", "change the timeout from 3600 to 600" -- and CodeABC returns a suggested rewrite of the selected snippet, touching only what you asked for. It never writes to your files; the result is yours to review and copy.
+
 ### Q&A Mode
 
 Select any snippet in a file (or just leave it unselected for the whole file) and ask a question in plain language -- "what does this do?", "why is this number here?". CodeABC answers in the same patient, jargon-light voice, grounded only in the code you pointed at. Answers are cached, so asking the same thing again is free.
@@ -152,7 +156,7 @@ CodeABC/
 - [x] Project overview generation
 - [x] Hover annotations (Python priority)
 - [x] Terminology dictionary (hover keywords for definitions)
-- [ ] Natural language editing ("change the stock from Maotai to BYD")
+- [x] Natural language editing ("change the stock from Maotai to BYD")
 - [x] Q&A mode (select code and ask questions)
 - [ ] Multi-language UI (English interface)
 - [ ] Desktop app (Tauri)

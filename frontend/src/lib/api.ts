@@ -287,6 +287,31 @@ export async function askQuestion(
   return res.json();
 }
 
+/** Apply a natural-language instruction to a code snippet (suggested edit). */
+export async function editCode(
+  projectId: string,
+  params: { instruction: string; code: string; filePath?: string; language?: string }
+): Promise<{ edited_code: string }> {
+  const res = await fetch(`${BASE}/project/${projectId}/edit`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({
+      instruction: params.instruction,
+      code: params.code,
+      file_path: params.filePath ?? "",
+      language: params.language ?? "",
+    }),
+  });
+  if (!res.ok) {
+    if (res.status === 429) {
+      const err = await res.json().catch(() => ({ detail: "请求过于频繁" }));
+      throw new Error(err.detail || "今日免费额度已用完，请配置 API Key");
+    }
+    throw new Error("Failed to edit code");
+  }
+  return res.json();
+}
+
 /** Get the jargon terms found in a file (deterministic, no API key needed). */
 export async function getGlossary(
   projectId: string,
