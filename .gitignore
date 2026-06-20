@@ -9,3 +9,6 @@ node_modules/
 .cache/
 *.db
 .DS_Store
+# uv resolves deps from pyproject; CI installs with pip, so the lock is a
+# local-only artifact (don't commit it).
+uv.lock
