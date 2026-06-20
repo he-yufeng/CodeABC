@@ -248,6 +248,10 @@ export async function streamOverview(
 
       try {
         const parsed = JSON.parse(data);
+        if (parsed.error) {
+          onError(parsed.error);
+          return;
+        }
         if (parsed.chunk) onChunk(parsed.chunk);
         if (parsed.result) onResult(parsed.result);
         if (parsed.raw) onChunk(parsed.raw);
@@ -310,7 +314,8 @@ export async function askQuestion(
       const err = await res.json().catch(() => ({ detail: tStatic("请求过于频繁", "Too many requests") }));
       throw new Error(err.detail || tStatic("今日免费额度已用完，请配置 API Key", "Free tier exhausted for today — please configure an API key"));
     }
-    throw new Error("Failed to get answer");
+    const err = await res.json().catch(() => ({ detail: "" }));
+    throw new Error(err.detail || tStatic("没能获取回答，请重试。", "Couldn't get an answer — please try again."));
   }
   return res.json();
 }
@@ -335,7 +340,8 @@ export async function editCode(
       const err = await res.json().catch(() => ({ detail: tStatic("请求过于频繁", "Too many requests") }));
       throw new Error(err.detail || tStatic("今日免费额度已用完，请配置 API Key", "Free tier exhausted for today — please configure an API key"));
     }
-    throw new Error("Failed to edit code");
+    const err = await res.json().catch(() => ({ detail: "" }));
+    throw new Error(err.detail || tStatic("没能改写，请重试。", "Couldn't rewrite — please try again."));
   }
   return res.json();
 }

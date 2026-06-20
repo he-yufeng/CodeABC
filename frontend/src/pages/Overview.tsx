@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { streamOverview, getProject } from "../lib/api";
 import { useProjectStore } from "../stores/project";
 import { useI18n, LanguageToggle } from "../lib/i18n";
+import { friendlyError } from "../lib/errors";
 
 export default function Overview() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -49,7 +50,7 @@ export default function Overview() {
         setLoading(false);
       },
       (err) => {
-        setError(err);
+        setError(friendlyError(err, t));
         setLoading(false);
       }
     );

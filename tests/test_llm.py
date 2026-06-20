@@ -47,3 +47,12 @@ def test_env_override(monkeypatch):
     # an OpenRouter key still routes the bare env model through OpenRouter
     monkeypatch.setenv("CODEABC_MODEL", "mistral-7b")
     assert llm._resolve_model("sk-or-v1-abc") == "openrouter/mistral-7b"
+
+
+def test_is_error_text():
+    assert llm.is_error_text("[LLM Error: AuthenticationError]")
+    assert llm.is_error_text("  [LLM Error: boom]")  # tolerates leading space
+    assert not llm.is_error_text('{"summary": "a real answer"}')
+    assert not llm.is_error_text("")
+    # the call helpers emit exactly this sentinel shape
+    assert llm.is_error_text(f"{llm.LLM_ERROR_PREFIX} something]")

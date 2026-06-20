@@ -11,6 +11,7 @@ import {
   type GlossaryTerm,
 } from "../lib/api";
 import { useI18n, LanguageToggle } from "../lib/i18n";
+import { friendlyError } from "../lib/errors";
 import { useProjectStore } from "../stores/project";
 import CodeViewer from "../components/CodeViewer";
 
@@ -94,7 +95,8 @@ function FileContent({
       });
       setAnswer(res.answer);
     } catch (e) {
-      setQaError(e instanceof Error ? e.message : t("提问失败", "Question failed"));
+      const raw = e instanceof Error ? e.message : "";
+      setQaError(friendlyError(raw, t) || t("提问失败，请重试。", "Question failed — please try again."));
     } finally {
       setQaLoading(false);
     }
@@ -124,7 +126,8 @@ function FileContent({
       });
       setEditedCode(res.edited_code);
     } catch (e) {
-      setEditError(e instanceof Error ? e.message : t("改写失败", "Rewrite failed"));
+      const raw = e instanceof Error ? e.message : "";
+      setEditError(friendlyError(raw, t) || t("改写失败，请重试。", "Rewrite failed — please try again."));
     } finally {
       setEditLoading(false);
     }

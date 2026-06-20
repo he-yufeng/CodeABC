@@ -15,7 +15,7 @@ from backend.prompts.overview import build_overview_prompt
 from backend.prompts.qa import build_qa_prompt
 from backend.routers.project import get_project_data
 from backend.services import cache
-from backend.services.llm import call_llm, stream_llm
+from backend.services.llm import call_llm, is_error_text, stream_llm
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["analyze"])
@@ -100,9 +100,20 @@ async def get_overview(project_id: str, request: Request):
 
     async def generate():
         full_response = ""
+        errored = False
         async for chunk in stream_llm(prompt, api_key=api_key):
             full_response += chunk
+            # Don't stream a raw "[LLM Error: ...]" into the reader's view; once
+            # we see the sentinel, hold it back and report it as an error below.
+            if is_error_text(full_response):
+                errored = True
+                continue
             yield f"data: {json.dumps({'chunk': chunk}, ensure_ascii=False)}\n\n"
+
+        if errored:
+            yield f"data: {json.dumps({'error': full_response}, ensure_ascii=False)}\n\n"
+            yield "data: [DONE]\n\n"
+            return
 
         # try to parse and cache the full response
         parsed = _extract_json(full_response)
@@ -189,6 +200,8 @@ async def ask_question(project_id: str, req: QARequest, request: Request):
     )
     api_key = request.headers.get("x-api-key")
     answer = (await call_llm(prompt, api_key=api_key)).strip()
+    if is_error_text(answer):
+        raise HTTPException(502, answer)
 
     if answer:
         await cache.put(cache_key, {"answer": answer})
@@ -229,6 +242,8 @@ async def edit_code(project_id: str, req: EditRequest, request: Request):
     )
     api_key = request.headers.get("x-api-key")
     raw = await call_llm(prompt, api_key=api_key)
+    if is_error_text(raw):
+        raise HTTPException(502, raw)
     edited = extract_code_block(raw)
 
     if edited:

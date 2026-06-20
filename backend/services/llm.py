@@ -42,6 +42,18 @@ def _resolve_model(api_key: str | None = None, model: str | None = None) -> str:
     return _DEFAULT_OPENROUTER_MODEL if is_openrouter_key else _DEFAULT_MODEL
 
 
+# On failure the call helpers below surface this sentinel instead of raising, so
+# the streaming generator can finish cleanly. Routers detect it (is_error_text)
+# and turn it into a proper error the UI can show in plain language, rather than
+# letting a raw "[LLM Error: ...]" string reach the reader.
+LLM_ERROR_PREFIX = "[LLM Error:"
+
+
+def is_error_text(text: str) -> bool:
+    """True if ``text`` is an LLM failure sentinel rather than real output."""
+    return text.lstrip().startswith(LLM_ERROR_PREFIX)
+
+
 async def stream_llm(
     prompt: str,
     *,
@@ -69,7 +81,7 @@ async def stream_llm(
                 yield delta.content
     except Exception as e:
         logger.error(f"LLM call failed: {e}")
-        yield f"[LLM Error: {e}]"
+        yield f"{LLM_ERROR_PREFIX} {e}]"
 
 
 async def call_llm(
@@ -95,4 +107,4 @@ async def call_llm(
         return response.choices[0].message.content or ""
     except Exception as e:
         logger.error(f"LLM call failed: {e}")
-        return f"[LLM Error: {e}]"
+        return f"{LLM_ERROR_PREFIX} {e}]"
