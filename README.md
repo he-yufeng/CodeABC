@@ -87,7 +87,7 @@ One command, no setup:
 python run.py
 ```
 
-On Windows you can just double-click `start.bat`; on macOS/Linux, run `./start.sh`. The first run builds the web interface and installs dependencies — after that it just starts. Everything is served from one place, and it opens http://127.0.0.1:8000 in your browser for you. Press Ctrl+C to stop.
+On Windows you can just double-click `start.bat`; on macOS/Linux, run `./start.sh`. The first run builds the web interface and installs dependencies — after that it just starts. Everything is served from one place, and it opens in your browser for you once the server is ready — at http://127.0.0.1:8000, or the next free port if 8000 is already taken. Press Ctrl+C to stop.
 
 You need **Python 3.10+**, plus **Node.js 18+** for that first build. Installing [uv](https://docs.astral.sh/uv/) is optional and makes startup faster.
 
