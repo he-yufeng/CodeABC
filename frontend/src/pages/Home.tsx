@@ -5,6 +5,7 @@ import ApiKeyModal from "../components/ApiKeyModal";
 import { uploadProject, cloneGitHub } from "../lib/api";
 import { useProjectStore } from "../stores/project";
 import { useI18n, LanguageToggle } from "../lib/i18n";
+import { friendlyError } from "../lib/errors";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -26,7 +27,8 @@ export default function Home() {
       setProject(proj);
       navigate(`/project/${proj.id}`);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t("上传失败", "Upload failed"));
+      const raw = e instanceof Error ? e.message : "";
+      setError(friendlyError(raw, t) || t("上传失败，请重试。", "Upload failed — please try again."));
     } finally {
       setLoading(false);
     }
@@ -41,7 +43,8 @@ export default function Home() {
       setProject(proj);
       navigate(`/project/${proj.id}`);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t("克隆失败", "Clone failed"));
+      const raw = e instanceof Error ? e.message : "";
+      setError(friendlyError(raw, t) || t("克隆失败，请重试。", "Clone failed — please try again."));
     } finally {
       setLoading(false);
     }
@@ -130,6 +133,12 @@ export default function Home() {
             <p className="mt-2 text-sm text-gray-500">
               {t("正在分析项目...", "Analyzing the project...")}
             </p>
+            <p className="mt-1 text-xs text-gray-400">
+              {t(
+                "第一次分析可能要十几秒，请稍候，别关掉页面。",
+                "The first analysis can take a few seconds — hang tight, don't close the page.",
+              )}
+            </p>
           </div>
         )}
 
@@ -154,15 +163,19 @@ export default function Home() {
                 {t("鼠标一放就有解释", "Explanations on hover")}
               </p>
             </div>
-            <div className="p-4">
+            <button
+              onClick={() => setShowKeyModal(true)}
+              className="p-4 rounded-xl hover:bg-gray-50 transition-colors"
+              title={t("点击设置 API Key", "Click to set your API key")}
+            >
               <div className="text-2xl mb-2">🔑</div>
               <p className="text-sm font-medium text-gray-700">
                 {t("自带 Key", "Bring your own key")}
               </p>
               <p className="text-xs text-gray-400 mt-1">
-                {t("支持多种 AI 模型", "Works with many AI models")}
+                {t("点这里填，支持多种模型", "Click to add — many models work")}
               </p>
-            </div>
+            </button>
           </div>
         )}
       </div>
