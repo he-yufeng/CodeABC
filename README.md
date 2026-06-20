@@ -79,42 +79,38 @@ A blunt but useful question when you're sizing up code you didn't write — work
 | LLM | litellm | Multi-provider support (OpenAI, Claude, DeepSeek, Kimi, etc.) |
 | Cache | SQLite | Simple, no Redis needed for MVP |
 
-## Quick Start
+## Run It
 
-### Prerequisites
-
-- Python 3.10+
-- Node.js 18+
-- An LLM API key (OpenAI, Claude, DeepSeek, or any litellm-compatible provider)
-
-### Backend
+One command, no setup:
 
 ```bash
-cd CodeABC
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e .
-
-# set your API key
-export OPENAI_API_KEY=<OPENAI_API_KEY>
-# or for other providers:
-# export ANTHROPIC_API_KEY=<ANTHROPIC_API_KEY>
-# export DEEPSEEK_API_KEY=xxx
-
-# optional: change the default model
-# export CODEABC_MODEL=deepseek/deepseek-chat
-
-uvicorn backend.app:app --reload
+python run.py
 ```
 
-### Frontend
+On Windows you can just double-click `start.bat`; on macOS/Linux, run `./start.sh`. The first run builds the web interface and installs dependencies — after that it just starts. Everything is served from one place, and it opens http://127.0.0.1:8000 in your browser for you. Press Ctrl+C to stop.
+
+You need **Python 3.10+**, plus **Node.js 18+** for that first build. Installing [uv](https://docs.astral.sh/uv/) is optional and makes startup faster.
+
+Then click the gear icon in the top-right and paste an API key (or use the free tier — see [API Key](#api-key)). An [OpenRouter](https://openrouter.ai) key (`sk-or-...`) is the easiest: one key reaches every provider, and CodeABC recognises it automatically and picks a fast, inexpensive model for you. OpenAI, Anthropic, and DeepSeek keys work too. To force a specific model, set `CODEABC_MODEL` (e.g. `openrouter/anthropic/claude-haiku-4.5`).
+
+### Developing
+
+To run the backend and the Vite dev server separately with hot reload:
 
 ```bash
-cd CodeABC/frontend
+# backend (terminal 1)
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .
+export OPENAI_API_KEY=<OPENAI_API_KEY>   # or ANTHROPIC_API_KEY / OPENROUTER_API_KEY / ...
+uvicorn backend.app:app --reload
+
+# frontend (terminal 2)
+cd frontend
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173 in your browser.
+The dev UI runs at http://localhost:5173 and calls the backend on port 8000.
 
 ### Using It
 
@@ -168,7 +164,9 @@ CodeABC/
 - [x] Q&A mode (select code and ask questions)
 - [x] Multi-language UI (English interface)
 - [x] Test-coverage map (which files have tests; untested core files ranked by risk)
-- [ ] Desktop app (Tauri)
+- [x] One-command launcher (`run.py` / `start.bat` — builds, serves, and opens the app)
+- [x] Single-process serving (the backend serves the built UI; one URL, no separate dev server)
+- [ ] Native desktop app (Tauri)
 
 ## Contributing
 
