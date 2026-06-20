@@ -37,6 +37,7 @@ from backend.services import (
     github_clone,
     glossary,
     importgraph,
+    ownership,
     risk,
     scanner,
 )
@@ -125,12 +126,13 @@ async def clone_github_project(req: GitHubRequest):
         except Exception:
             pass
 
-    # Mine git history while the clone is still on disk: change hotspots and
-    # co-change coupling are a dynamic signal the static analyses can't see.
-    churn_result = churn.analyze_churn(
-        churn.collect_git_log(repo_path),
-        scanned_paths={f["path"] for f in scanned},
-    )
+    # Mine git history while the clone is still on disk: change hotspots,
+    # co-change coupling and code ownership are dynamic signals the static
+    # analyses can't see. Collect the log once and feed both analyses.
+    git_log = churn.collect_git_log(repo_path)
+    scanned_paths = {f["path"] for f in scanned}
+    churn_result = churn.analyze_churn(git_log, scanned_paths=scanned_paths)
+    ownership_result = ownership.analyze_ownership(git_log, scanned_paths=scanned_paths)
 
     repo_name = req.url.rstrip("/").split("/")[-1].replace(".git", "")
     proj_data = {
@@ -138,6 +140,7 @@ async def clone_github_project(req: GitHubRequest):
         "files": scanned,
         "file_contents": file_contents,
         "churn": churn_result,
+        "ownership": ownership_result,
     }
     _projects[project_id] = proj_data
     await cache.save_project(project_id, proj_data)
@@ -221,9 +224,7 @@ async def get_project(project_id: str):
             for p in importgraph.summarize_package_dependencies(proj["files"])
         ],
         health=ProjectHealth(**importgraph.summarize_project_health(proj["files"])),
-        churn_hotspots=[
-            ChurnHotspot(**h) for h in (proj.get("churn") or {}).get("hotspots", [])
-        ],
+        churn_hotspots=[ChurnHotspot(**h) for h in (proj.get("churn") or {}).get("hotspots", [])],
         co_change_couplings=[
             CoChangeCoupling(**c) for c in (proj.get("churn") or {}).get("couplings", [])
         ],
@@ -305,6 +306,9 @@ async def get_codemap_markdown(project_id: str):
     churn_md = churn.render_churn_markdown(proj["name"], proj.get("churn"))
     if churn_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{churn_md}"
+    ownership_md = ownership.render_ownership_markdown(proj["name"], proj.get("ownership"))
+    if ownership_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{ownership_md}"
     coverage_md = coverage.render_coverage_markdown(
         proj["name"], coverage.assess_test_coverage(proj["files"])
     )
