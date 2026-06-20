@@ -104,6 +104,27 @@ def test_uploaded_files_skip_secret_shaped_paths():
     assert paths == {"src/main.py", ".env.sample"}
 
 
+def test_uploaded_files_skip_dependency_and_vcs_dirs():
+    # A dropped-in folder usually carries node_modules / .git / build output.
+    # Those must not eat into the file budget or drown out the real source.
+    files = scan_uploaded_files(
+        [
+            {"path": "src/main.py", "content": "print('keep')\n"},
+            {"path": "frontend/app.ts", "content": "export const x = 1;\n"},
+            {"path": "node_modules/react/index.js", "content": "module.exports = {};\n"},
+            {"path": "frontend/node_modules/lodash/get.js", "content": "module.exports = 1;\n"},
+            {"path": ".git/config", "content": "[core]\n"},
+            {"path": "backend/__pycache__/main.cpython-312.pyc", "content": "x\n"},
+            {"path": ".venv/lib/site.py", "content": "import sys\n"},
+            {"path": "dist/output.js", "content": "console.log(1)\n"},
+            {"path": "pkg.egg-info/PKG-INFO", "content": "Metadata\n"},
+        ]
+    )
+
+    paths = {f["path"] for f in files}
+    assert paths == {"src/main.py", "frontend/app.ts"}
+
+
 def test_reading_map_prioritizes_overview_entrypoint_and_manifest():
     files = [
         {"path": "tests/test_app.py", "language": "python"},

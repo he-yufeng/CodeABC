@@ -135,6 +135,17 @@ def _has_generated_name(path: str | Path) -> bool:
     return name.endswith(_GENERATED_NAME_SUFFIXES)
 
 
+def _in_skipped_dir(path: str | Path) -> bool:
+    """True if the file sits inside a directory we never scan.
+
+    scan_directory prunes these while walking; uploaded files arrive as a flat
+    list of paths (e.g. "node_modules/x/y.js"), so they need the same check or a
+    dropped-in folder full of dependencies would drown out the real source.
+    """
+    parts = Path(str(path).replace("\\", "/")).parts
+    return any(part in _SKIP_DIRS or part.endswith(".egg-info") for part in parts[:-1])
+
+
 def _looks_sensitive_path(path: str | Path) -> bool:
     p = Path(path)
     parts = [part.lower() for part in p.parts]
@@ -385,6 +396,8 @@ def scan_uploaded_files(files: list[dict]) -> list[dict]:
             logger.warning("Skipping unsafe path: %s", path)
             continue
         if _looks_sensitive_path(path):
+            continue
+        if _in_skipped_dir(path):
             continue
 
         ext = Path(path).suffix.lower()

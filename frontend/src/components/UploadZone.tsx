@@ -6,6 +6,20 @@ interface Props {
   disabled?: boolean;
 }
 
+// Folders that are dependencies, build output, or tooling state — never the
+// source someone wants to read. Dropping a real project folder almost always
+// drags these along, so skip them before reading megabytes off disk.
+const SKIP_DIRS = new Set([
+  ".git", "node_modules", "__pycache__", ".venv", "venv", "env",
+  ".idea", ".vscode", ".next", "dist", "build", ".tox",
+  ".mypy_cache", ".pytest_cache", ".ruff_cache",
+]);
+
+function inSkippedDir(path: string): boolean {
+  const dirs = path.split("/").slice(0, -1); // directory segments, excluding the filename
+  return dirs.some((d) => SKIP_DIRS.has(d) || d.endsWith(".egg-info"));
+}
+
 export default function UploadZone({ onFilesSelected, disabled }: Props) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -26,7 +40,8 @@ export default function UploadZone({ onFilesSelected, disabled }: Props) {
           if (topDir) projectName = topDir;
         }
 
-        // skip huge files or binary-looking ones
+        // skip dependency / build / tooling folders, huge files, and dotfiles
+        if (inSkippedDir(path)) continue;
         if (file.size > 100 * 1024) continue;
         if (file.name.startsWith(".")) continue;
 
