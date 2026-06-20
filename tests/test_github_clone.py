@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
+from backend.services import github_clone
 from backend.services.github_clone import _parse_github_url
 
 
@@ -50,3 +53,17 @@ def test_parse_extracts_owner_and_repo(url):
 def test_parse_rejects_non_github_or_incomplete(url):
     with pytest.raises(ValueError):
         _parse_github_url(url)
+
+
+def test_clone_repo_reports_missing_git(monkeypatch, tmp_path):
+    # Redirect the cache dir so we never reuse a real clone, then make spawning
+    # git fail as it would on a machine without git installed.
+    monkeypatch.setattr(github_clone.tempfile, "gettempdir", lambda: str(tmp_path))
+
+    async def no_git(*args, **kwargs):
+        raise FileNotFoundError("git")
+
+    monkeypatch.setattr(github_clone.asyncio, "create_subprocess_exec", no_git)
+
+    with pytest.raises(ValueError, match="Git isn't installed"):
+        asyncio.run(github_clone.clone_repo("https://github.com/he-yufeng/CodeABC"))

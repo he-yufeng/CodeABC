@@ -81,11 +81,21 @@ async def clone_repo(url: str) -> Path:
     # normalize URL to https
     clone_url = f"https://github.com/{owner}/{repo}.git"
 
-    proc = await asyncio.create_subprocess_exec(
-        "git", "clone", "--depth", "1", clone_url, str(dest),
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "git", "clone", "--depth", "1", clone_url, str(dest),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+    except FileNotFoundError:
+        # git isn't installed — the clone path can't work. Say so plainly
+        # instead of letting a raw OSError become a 500. (Uploading a folder
+        # still works without git.)
+        shutil.rmtree(dest, ignore_errors=True)
+        raise ValueError(
+            "Git isn't installed, so cloning from a URL won't work. "
+            "Install Git from https://git-scm.com, or upload the project folder instead."
+        )
 
     try:
         _, stderr = await asyncio.wait_for(proc.communicate(), timeout=_CLONE_TIMEOUT)

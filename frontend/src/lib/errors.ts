@@ -33,6 +33,12 @@ export function friendlyError(raw: string, t: Translate): string {
       "No readable source code was found here. Try a project or repo that has code files in it.",
     );
   }
+  if (low.includes("git") && low.includes("instal")) {
+    return t(
+      "从链接克隆需要用到 Git，但你电脑上好像没装。可以去 https://git-scm.com 装一个，或者直接把项目文件夹拖进来上传。",
+      "Cloning from a URL needs Git, which doesn't seem to be installed. Get it at https://git-scm.com, or just upload the project folder instead.",
+    );
+  }
   if (low.includes("404") || low.includes("not found")) {
     return t(
       "找不到这个仓库。检查一下链接对不对、仓库是不是公开的。",
