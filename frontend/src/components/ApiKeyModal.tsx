@@ -51,17 +51,29 @@ function ApiKeyDialog({ onClose }: { onClose: () => void }) {
           value={key}
           onChange={(e) => setKey(e.target.value)}
           placeholder={t(
-            "sk-... 或其他 LLM 提供商的 Key",
-            "sk-... or a key from another LLM provider",
+            "sk-or-... （OpenRouter）或其他提供商的 Key",
+            "sk-or-... (OpenRouter) or a key from another provider",
           )}
           className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm
                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
 
+        <a
+          href="https://openrouter.ai/keys"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block text-xs text-blue-600 hover:text-blue-700 mt-2"
+        >
+          {t(
+            "还没有 Key？去 OpenRouter 几分钟注册一个（sk-or- 开头）→",
+            "No key yet? Get one from OpenRouter in a couple of minutes (it starts with sk-or-) →",
+          )}
+        </a>
+
         <p className="text-xs text-gray-400 mt-2 mb-4">
           {t(
-            "Key 仅存在浏览器本地，不会上传到任何服务器。支持 OpenAI / Claude / DeepSeek / Kimi 等所有 litellm 兼容的 Key。",
-            "The key stays in your browser and is never uploaded to any server. Works with OpenAI / Claude / DeepSeek / Kimi and any litellm-compatible key.",
+            "粘贴 OpenRouter 的 Key，会自动帮你选一个又快又便宜的模型，不用懂模型。Key 只存在你浏览器本地，绝不上传。OpenAI / Claude / DeepSeek / Kimi 等 litellm 兼容的 Key 也都支持。",
+            "Paste an OpenRouter key and a fast, inexpensive model is picked for you — no model knowledge needed. The key stays in your browser and is never uploaded. OpenAI / Claude / DeepSeek / Kimi and any litellm-compatible key work too.",
           )}
         </p>
 
