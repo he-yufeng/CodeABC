@@ -27,11 +27,13 @@ from backend.models import (
     ProjectMeta,
     ReadingStep,
     RiskHotspot,
+    TestCoverageSummary,
     UploadedFile,
 )
 from backend.services import (
     cache,
     churn,
+    coverage,
     github_clone,
     glossary,
     importgraph,
@@ -87,6 +89,7 @@ async def upload_project(req: AnalyzeRequest):
             PackageDependency(**p) for p in importgraph.summarize_package_dependencies(scanned)
         ],
         health=ProjectHealth(**importgraph.summarize_project_health(scanned)),
+        test_coverage=TestCoverageSummary(**coverage.assess_test_coverage(scanned)),
         files=[
             FileInfo(
                 path=f["path"],
@@ -166,6 +169,7 @@ async def clone_github_project(req: GitHubRequest):
                 churn_result.get("hotspots", []),
             )
         ],
+        test_coverage=TestCoverageSummary(**coverage.assess_test_coverage(scanned)),
         files=[
             FileInfo(
                 path=f["path"],
@@ -230,6 +234,7 @@ async def get_project(project_id: str):
                 (proj.get("churn") or {}).get("hotspots", []),
             )
         ],
+        test_coverage=TestCoverageSummary(**coverage.assess_test_coverage(proj["files"])),
         files=[
             FileInfo(
                 path=f["path"],
@@ -300,6 +305,11 @@ async def get_codemap_markdown(project_id: str):
     churn_md = churn.render_churn_markdown(proj["name"], proj.get("churn"))
     if churn_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{churn_md}"
+    coverage_md = coverage.render_coverage_markdown(
+        proj["name"], coverage.assess_test_coverage(proj["files"])
+    )
+    if coverage_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{coverage_md}"
     return Response(content=markdown, media_type="text/markdown; charset=utf-8")
 
 

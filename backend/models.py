@@ -114,6 +114,23 @@ class RiskHotspot(BaseModel):
     reason: str
 
 
+class TestCoverageFile(BaseModel):
+    path: str
+    language: str = "unknown"
+    fan_in: int = 0  # how many files depend on this untested file
+    reason: str
+
+
+class TestCoverageSummary(BaseModel):
+    total_source_files: int = 0
+    tested_files: int = 0
+    untested_files: int = 0
+    test_files: int = 0
+    coverage_percent: int = 0  # 0-100, tested source files / total source files
+    untested_core: list[TestCoverageFile] = []  # untested, ranked by fan-in
+    notes: list[str] = []
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
@@ -132,6 +149,7 @@ class ProjectMeta(BaseModel):
     churn_hotspots: list[ChurnHotspot] = []
     co_change_couplings: list[CoChangeCoupling] = []
     risk_hotspots: list[RiskHotspot] = []
+    test_coverage: TestCoverageSummary | None = None
 
 
 class FileRole(BaseModel):

@@ -63,6 +63,10 @@ Before an LLM response is ready, CodeABC builds a deterministic reading map from
 
 CodeABC builds a small import graph from the scanned files and ranks them by fan-in: how many other files import each one. The most-imported files are usually where the real logic lives (shared utilities, data models, core services), so they surface next to the reading map as "core modules", each tagged with the number of files that depend on it. It resolves Python imports (including relative and package imports) and JavaScript/TypeScript imports (relative paths with extension and index resolution), and ignores third-party and standard-library imports since they never point at a scanned file. Like the reading map, it runs without an LLM call, so it works with no API key configured.
 
+### Is the Code Tested?
+
+A blunt but useful question when you're sizing up code you didn't write — work you outsourced, say: does it actually have tests? CodeABC pairs each source file with the test files that exercise it, both by import and by the usual `test_scanner.py` / `scanner.test.ts` naming, then shows the share of files that are covered. More usefully, it ranks the *untested* files by how many other files depend on them: an untested file that half the project imports is exactly where a quiet regression spreads furthest, so it sits at the top of the "worth covering first" list with a plain-language note on why. A green progress bar gives the at-a-glance number; the list tells you where to look. Like the other maps it is deterministic and needs no API key.
+
 ## Tech Stack
 
 | Layer | Choice | Why |
@@ -163,6 +167,7 @@ CodeABC/
 - [x] Natural language editing ("change the stock from Maotai to BYD")
 - [x] Q&A mode (select code and ask questions)
 - [x] Multi-language UI (English interface)
+- [x] Test-coverage map (which files have tests; untested core files ranked by risk)
 - [ ] Desktop app (Tauri)
 
 ## Contributing

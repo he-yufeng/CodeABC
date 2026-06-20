@@ -175,6 +175,73 @@ export default function Overview() {
           </section>
         )}
 
+        {project &&
+          project.test_coverage &&
+          project.test_coverage.total_source_files > 0 && (
+            <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-emerald-400">
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                {t("测试覆盖", "Test coverage")}
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">
+                {t(
+                  "有多少代码文件配了测试,哪些核心文件没测——没测又被很多文件依赖的,改起来最容易出隐患。",
+                  "How many code files have tests, and which core files don't — an untested file that many others depend on is the riskiest to change.",
+                )}
+              </p>
+              <div className="mb-4">
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span className="font-medium text-gray-700">
+                    {t(
+                      `${project.test_coverage.tested_files}/${project.test_coverage.total_source_files} 个代码文件有测试`,
+                      `${project.test_coverage.tested_files}/${project.test_coverage.total_source_files} code files tested`,
+                    )}
+                  </span>
+                  <span className="font-semibold text-emerald-600">
+                    {project.test_coverage.coverage_percent}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div
+                    className="bg-emerald-400 h-2 rounded-full"
+                    style={{ width: `${project.test_coverage.coverage_percent}%` }}
+                  />
+                </div>
+              </div>
+              {project.test_coverage.notes.length > 0 && (
+                <ul className="text-sm text-gray-600 space-y-1 mb-4 list-disc list-inside">
+                  {project.test_coverage.notes.map((n) => (
+                    <li key={n}>{n}</li>
+                  ))}
+                </ul>
+              )}
+              {project.test_coverage.untested_core.length > 0 && (
+                <>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                    {t("没有测试、最该补的文件", "Untested files worth covering first")}
+                  </h3>
+                  <ul className="space-y-2">
+                    {project.test_coverage.untested_core.map((u) => (
+                      <li key={u.path}>
+                        <button
+                          onClick={() => handleFileClick(u.path)}
+                          className="w-full text-left hover:text-blue-700"
+                        >
+                          <span className="font-mono text-sm text-blue-600">{u.path}</span>
+                          {u.fan_in > 0 && (
+                            <span className="ml-2 text-xs text-gray-400">
+                              {t(`${u.fan_in} 处依赖`, `${u.fan_in} dependents`)}
+                            </span>
+                          )}
+                          <span className="block text-sm text-gray-500 mt-0.5">{u.reason}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </section>
+          )}
+
         {/* Deterministic architecture maps (computed from imports, no LLM) */}
         {project &&
           ((project.hotspots?.length ?? 0) > 0 ||

@@ -109,6 +109,23 @@ export interface RiskHotspot {
   reason: string;
 }
 
+export interface TestCoverageFile {
+  path: string;
+  language: string;
+  fan_in: number;
+  reason: string;
+}
+
+export interface TestCoverageSummary {
+  total_source_files: number;
+  tested_files: number;
+  untested_files: number;
+  test_files: number;
+  coverage_percent: number;
+  untested_core: TestCoverageFile[];
+  notes: string[];
+}
+
 export interface ProjectMeta {
   id: string;
   name: string;
@@ -126,6 +143,7 @@ export interface ProjectMeta {
   churn_hotspots?: ChurnHotspot[];
   co_change_couplings?: CoChangeCoupling[];
   risk_hotspots?: RiskHotspot[];
+  test_coverage?: TestCoverageSummary;
 }
 
 export interface Annotation {
