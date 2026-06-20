@@ -40,6 +40,7 @@ from backend.services import (
     ownership,
     risk,
     scanner,
+    techdebt,
 )
 
 router = APIRouter(tags=["project"])
@@ -314,6 +315,11 @@ async def get_codemap_markdown(project_id: str):
     )
     if coverage_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{coverage_md}"
+    techdebt_md = techdebt.render_techdebt_markdown(
+        proj["name"], techdebt.scan_tech_debt(proj.get("file_contents", {}))
+    )
+    if techdebt_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{techdebt_md}"
     return Response(content=markdown, media_type="text/markdown; charset=utf-8")
 
 
