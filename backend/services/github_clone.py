@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import re
 import shutil
 import tempfile
 from pathlib import Path
+from urllib.parse import urlparse
 
 # 500 MB max repo size after clone
 _MAX_REPO_SIZE_MB = 500
@@ -22,21 +24,42 @@ def _repo_dir_size(path: Path) -> int:
     return total
 
 
+# A bare "owner/repo" shorthand: a GitHub login (alphanumerics + hyphens) and a
+# repo name (which may contain dots, underscores, hyphens), nothing else.
+_SHORTHAND = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+$")
+
+
 def _parse_github_url(url: str) -> tuple[str, str]:
-    """Extract owner/repo from a GitHub URL. Returns (owner, repo)."""
-    # handle both https://github.com/owner/repo and https://github.com/owner/repo.git
-    url = url.rstrip("/")
-    if url.endswith(".git"):
-        url = url[:-4]
-    parts = url.split("/")
-    # find github.com in parts
-    try:
-        idx = parts.index("github.com")
-    except ValueError:
-        raise ValueError(f"Not a valid GitHub URL: {url}")
-    if len(parts) < idx + 3:
-        raise ValueError(f"Cannot parse owner/repo from: {url}")
-    return parts[idx + 1], parts[idx + 2]
+    """Extract (owner, repo) from the many shapes people paste.
+
+    Handles the plain repo URL, a link pointing somewhere *inside* the repo
+    (``/tree/main``, ``/blob/...``, ``?tab=stars``, ``#readme`` — what you get by
+    copying the browser address bar), the ``.git`` suffix, the ``git@`` SSH form,
+    and the bare ``owner/repo`` shorthand. Rejects non-GitHub hosts.
+    """
+    text = url.strip()
+
+    ssh = re.match(r"^git@github\.com:(.+)$", text, re.IGNORECASE)
+    if ssh:
+        path = ssh.group(1)
+    elif "://" not in text and "github.com" not in text.lower() and _SHORTHAND.match(text):
+        path = text
+    else:
+        parsed = urlparse(text if "://" in text else "https://" + text)
+        host = (parsed.hostname or "").lower()
+        if host not in ("github.com", "www.github.com"):
+            raise ValueError(f"Only GitHub repositories are supported: {url}")
+        path = parsed.path
+
+    # A query string or fragment may still ride along in the SSH/shorthand paths.
+    path = path.split("?")[0].split("#")[0].strip("/")
+    if path.lower().endswith(".git"):
+        path = path[:-4]
+
+    parts = [p for p in path.split("/") if p]
+    if len(parts) < 2:
+        raise ValueError(f"Cannot find owner/repo in: {url}")
+    return parts[0], parts[1]
 
 
 async def clone_repo(url: str) -> Path:
