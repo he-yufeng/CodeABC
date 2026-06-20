@@ -55,7 +55,7 @@ def ensure_frontend_built() -> None:
             "  Install Node 18+ from https://nodejs.org and run this again.\n"
             "  (Node is only needed once, to build the interface.)\n"
         )
-    say("Building the web interface — first run only, about a minute...")
+    say("Building the web interface - first run only, about a minute...")
     installer = "ci" if (FRONTEND / "package-lock.json").is_file() else "install"
     run([npm, installer], FRONTEND)
     run([npm, "run", "build"], FRONTEND)
@@ -90,7 +90,7 @@ def open_browser_when_ready() -> None:
 
 
 def main() -> None:
-    print("\n  CodeABC — read any codebase without learning to code")
+    print("\n  CodeABC - read any codebase without learning to code")
     print("  " + "-" * 50)
     if not have("uv"):
         say("Tip: installing uv (https://docs.astral.sh/uv/) makes startup faster.")
