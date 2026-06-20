@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import threading
@@ -32,8 +33,6 @@ FRONTEND = ROOT / "frontend"
 DIST_INDEX = FRONTEND / "dist" / "index.html"
 HOST = os.getenv("CODEABC_HOST", "127.0.0.1")
 PORT = os.getenv("CODEABC_PORT", "8000")
-URL = f"http://{HOST}:{PORT}"
-HEALTH_URL = f"{URL}/api/health"
 
 
 def say(msg: str) -> None:
@@ -66,9 +65,9 @@ def ensure_frontend_built() -> None:
     say("Web interface ready.")
 
 
-def server_command() -> list[str]:
+def server_command(host: str, port: str) -> list[str]:
     """Command that starts the server, installing backend deps if needed."""
-    uvicorn = ["-m", "uvicorn", "backend.app:app", "--host", HOST, "--port", PORT]
+    uvicorn = ["-m", "uvicorn", "backend.app:app", "--host", host, "--port", port]
     if have("uv"):
         # uv syncs the dependencies from pyproject/uv.lock on the fly
         return ["uv", "run", "python", *uvicorn]
@@ -98,24 +97,41 @@ def wait_until(probe: Callable[[], bool], timeout: float, interval: float = 0.5)
     return False
 
 
-def server_responding() -> bool:
+def find_free_port(preferred: int, host: str, span: int = 20) -> int:
+    """Return ``preferred`` if it's bindable, otherwise the next free port.
+
+    Picking a free port up front means CodeABC still starts when something else
+    already holds 8000 (a stale copy, another app), instead of crashing uvicorn
+    with a cryptic bind error.
+    """
+    for port in range(preferred, preferred + span):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            try:
+                sock.bind((host, port))
+                return port
+            except OSError:
+                continue
+    return preferred
+
+
+def server_responding(health_url: str) -> bool:
     """True once the backend answers its health check."""
     try:
-        with urllib.request.urlopen(HEALTH_URL, timeout=1) as resp:
+        with urllib.request.urlopen(health_url, timeout=1) as resp:
             return resp.status == 200
     except (urllib.error.URLError, OSError):
         return False
 
 
-def open_browser_when_ready() -> None:
+def open_browser_when_ready(url: str, health_url: str) -> None:
     # Wait for the server to actually answer before opening the browser. A first
     # run may still be building a virtualenv or installing dependencies, and
     # popping open the page too early would show a "can't connect" error. Give it
     # a generous window for slow first installs, then open anyway as a fallback
     # so the browser always opens eventually.
-    wait_until(server_responding, timeout=120)
+    wait_until(lambda: server_responding(health_url), timeout=120)
     try:
-        webbrowser.open(URL)
+        webbrowser.open(url)
     except Exception:
         pass
 
@@ -126,11 +142,22 @@ def main() -> None:
     if not have("uv"):
         say("Tip: installing uv (https://docs.astral.sh/uv/) makes startup faster.")
     ensure_frontend_built()
-    threading.Thread(target=open_browser_when_ready, daemon=True).start()
-    say(f"CodeABC will open in your browser at {URL} as soon as it's ready.")
+
+    try:
+        requested = int(PORT)
+    except ValueError:
+        requested = 8000
+    port = find_free_port(requested, HOST)
+    if port != requested:
+        say(f"Port {requested} is busy, using {port} instead.")
+    url = f"http://{HOST}:{port}"
+    health_url = f"{url}/api/health"
+
+    threading.Thread(target=open_browser_when_ready, args=(url, health_url), daemon=True).start()
+    say(f"CodeABC will open in your browser at {url} as soon as it's ready.")
     say("Leave this window open while you use it; press Ctrl+C to stop.\n")
     try:
-        run(server_command(), ROOT)
+        run(server_command(HOST, str(port)), ROOT)
     except KeyboardInterrupt:
         say("Stopped. See you next time.")
     except subprocess.CalledProcessError as exc:
