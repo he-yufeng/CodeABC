@@ -34,6 +34,7 @@ from backend.services import (
     cache,
     churn,
     coverage,
+    envscan,
     github_clone,
     glossary,
     importgraph,
@@ -320,6 +321,11 @@ async def get_codemap_markdown(project_id: str):
     )
     if techdebt_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{techdebt_md}"
+    env_md = envscan.render_env_markdown(
+        proj["name"], envscan.scan_env_vars(proj.get("file_contents", {}))
+    )
+    if env_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{env_md}"
     return Response(content=markdown, media_type="text/markdown; charset=utf-8")
 
 
