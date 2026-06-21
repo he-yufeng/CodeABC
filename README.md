@@ -166,6 +166,7 @@ CodeABC/
 - [x] Test-coverage map (which files have tests; untested core files ranked by risk)
 - [x] Git-history insight (change hotspots, co-change coupling, and code ownership / knowledge silos)
 - [x] Tech-debt map (collect the codebase's own TODO/FIXME/HACK/XXX markers, ranked by file)
+- [x] Env-var surface (the environment variables a project reads, split into required vs optional)
 - [x] One-command launcher (`run.py` / `start.bat` — builds, serves, and opens the app)
 - [x] Single-process serving (the backend serves the built UI; one URL, no separate dev server)
 - [ ] Native desktop app (Tauri)
