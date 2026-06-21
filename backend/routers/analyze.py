@@ -46,6 +46,23 @@ def _extract_json(text: str) -> dict | list | None:
     return None
 
 
+def _coerce_annotation_list(parsed: dict | list | None) -> list:
+    """Normalize the model's parsed JSON into a list of annotations.
+
+    The prompt asks for a bare JSON array, but models sometimes wrap it in an
+    object (``{"annotations": [...]}``, ``{"批注": [...]}``, ...). Salvage the
+    array in that case instead of silently dropping every annotation and showing
+    the reader a file with no explanations.
+    """
+    if isinstance(parsed, list):
+        return parsed
+    if isinstance(parsed, dict):
+        for value in parsed.values():
+            if isinstance(value, list):
+                return value
+    return []
+
+
 def _client_ip(request: Request) -> str:
     """Get the real client IP, respecting X-Forwarded-For behind a proxy."""
     forwarded = request.headers.get("x-forwarded-for")
@@ -87,9 +104,11 @@ async def get_overview(project_id: str, request: Request):
     # check cache first (cached results are free, no rate limit)
     cached = await cache.get(cache_key)
     if cached:
+
         async def cached_stream():
             yield f"data: {json.dumps({'result': cached}, ensure_ascii=False)}\n\n"
             yield "data: [DONE]\n\n"
+
         return StreamingResponse(cached_stream(), media_type="text/event-stream")
 
     # not cached -> requires LLM call -> check rate limit
@@ -161,7 +180,7 @@ async def get_annotations(project_id: str, file_path: str, request: Request):
     result = await call_llm(prompt, api_key=api_key)
 
     parsed = _extract_json(result)
-    annotations = parsed if isinstance(parsed, list) else []
+    annotations = _coerce_annotation_list(parsed)
 
     if annotations:
         await cache.put(cache_key, annotations)
