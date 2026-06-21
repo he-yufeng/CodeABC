@@ -1,7 +1,11 @@
 /** API client for CodeABC backend. */
 import { tStatic } from "./i18n";
 
-const BASE = "/api";
+// On the web the frontend is served next to the API, so a relative "/api" is
+// proxied straight through. The desktop build (Tauri) loads from tauri://localhost
+// instead, where "/api" points nowhere — so it sets VITE_API_BASE at build time to
+// the backend it should talk to (e.g. a locally running or hosted CodeABC server).
+const BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
 function getHeaders(): HeadersInit {
   const headers: Record<string, string> = {

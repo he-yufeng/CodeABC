@@ -100,6 +100,25 @@ npm run dev
 
 打开浏览器访问 http://localhost:5173
 
+### 桌面端（Tauri）
+
+同一套界面通过 [Tauri](https://tauri.app) 打包成原生桌面窗口——一层很薄的 Rust 外壳包住 Web 前端，没有 Electron 那么臃肿。需要先装好 [Rust 工具链](https://www.rust-lang.org/tools/install)。
+
+```bash
+cd frontend
+npm install
+npm run tauri:dev      # 带热重载的桌面窗口
+npm run tauri:build    # 产出原生安装包，在 src-tauri/target/release/bundle/ 下
+```
+
+桌面窗口没有同源后端可以代理，构建时用 `VITE_API_BASE` 指向一个在跑的 CodeABC 服务（Web 构建默认 `/api`）：
+
+```bash
+VITE_API_BASE=http://127.0.0.1:8000/api npm run tauri:build
+```
+
+用 `uvicorn backend.app:app`（或一键 `python run.py`）起一个桌面端能连上的后端即可。
+
 ### 使用方式
 
 1. **本地文件夹**：把项目文件夹拖到上传区域，或点击选择
@@ -125,7 +144,7 @@ npm run dev
 - [ ] 自然语言编辑（"把分析的股票从茅台换成比亚迪"）
 - [ ] 提问模式（选中代码随时问）
 - [ ] 英文界面
-- [ ] 桌面端（Tauri）
+- [x] 桌面端（Tauri —— `npm run tauri:build` 把同一套界面包成原生窗口）
 
 ## 贡献
 

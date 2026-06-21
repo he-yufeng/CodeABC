@@ -112,6 +112,25 @@ npm run dev
 
 The dev UI runs at http://localhost:5173 and calls the backend on port 8000.
 
+### Desktop app (Tauri)
+
+The same UI ships as a native desktop window via [Tauri](https://tauri.app) — a small Rust shell around the web frontend, no Electron-sized bundle. You'll need the [Rust toolchain](https://www.rust-lang.org/tools/install) installed.
+
+```bash
+cd frontend
+npm install
+npm run tauri:dev      # hot-reloading desktop window
+npm run tauri:build    # produces a native installer in src-tauri/target/release/bundle/
+```
+
+The desktop window has no same-origin backend to proxy to, so point it at a running CodeABC server with `VITE_API_BASE` at build time (it defaults to `/api` for the web build):
+
+```bash
+VITE_API_BASE=http://127.0.0.1:8000/api npm run tauri:build
+```
+
+Start a backend the desktop app can reach with `uvicorn backend.app:app` (or the one-command `python run.py`).
+
 ### Using It
 
 1. **Local folder**: Drag a project folder into the upload zone, or click to select
@@ -169,7 +188,7 @@ CodeABC/
 - [x] Env-var surface (the environment variables a project reads, split into required vs optional)
 - [x] One-command launcher (`run.py` / `start.bat` — builds, serves, and opens the app)
 - [x] Single-process serving (the backend serves the built UI; one URL, no separate dev server)
-- [ ] Native desktop app (Tauri)
+- [x] Native desktop app (Tauri — `npm run tauri:build` wraps the same UI in a native window)
 
 ## Contributing
 
