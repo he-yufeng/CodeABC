@@ -126,6 +126,26 @@ export interface TestCoverageSummary {
   notes: string[];
 }
 
+export interface KnowledgeSilo {
+  path: string;
+  primary_author: string;
+  ownership: number;
+  commits: number;
+  bus_factor: number;
+  reason: string;
+}
+
+export interface TechDebtFile {
+  path: string;
+  count: number;
+}
+
+export interface EnvVar {
+  name: string;
+  required: boolean;
+  count: number;
+}
+
 export interface ProjectMeta {
   id: string;
   name: string;
@@ -144,6 +164,9 @@ export interface ProjectMeta {
   co_change_couplings?: CoChangeCoupling[];
   risk_hotspots?: RiskHotspot[];
   test_coverage?: TestCoverageSummary;
+  knowledge_silos?: KnowledgeSilo[];
+  tech_debt_files?: TechDebtFile[];
+  env_vars?: EnvVar[];
 }
 
 export interface Annotation {

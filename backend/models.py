@@ -131,6 +131,26 @@ class TestCoverageSummary(BaseModel):
     notes: list[str] = []
 
 
+class KnowledgeSilo(BaseModel):
+    path: str
+    primary_author: str
+    ownership: int  # percent of the file's commits owned by the primary author
+    commits: int
+    bus_factor: int = 1  # 1 means a single person holds the majority of the history
+    reason: str = ""
+
+
+class TechDebtFile(BaseModel):
+    path: str
+    count: int  # number of TODO/FIXME/HACK/XXX markers in the file
+
+
+class EnvVar(BaseModel):
+    name: str
+    required: bool  # read via os.environ["X"] somewhere, so it must be set
+    count: int = 1  # how many places read it
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
@@ -150,6 +170,9 @@ class ProjectMeta(BaseModel):
     co_change_couplings: list[CoChangeCoupling] = []
     risk_hotspots: list[RiskHotspot] = []
     test_coverage: TestCoverageSummary | None = None
+    knowledge_silos: list[KnowledgeSilo] = []
+    tech_debt_files: list[TechDebtFile] = []
+    env_vars: list[EnvVar] = []
 
 
 class FileRole(BaseModel):

@@ -15,18 +15,21 @@ from backend.models import (
     CoChangeCoupling,
     CodeWalkStep,
     CouplingHotspot,
+    EnvVar,
     FileGlossary,
     FileInfo,
     GitHubRequest,
     GlossaryTerm,
     Hotspot,
     ImportCycle,
+    KnowledgeSilo,
     OrphanModule,
     PackageDependency,
     ProjectHealth,
     ProjectMeta,
     ReadingStep,
     RiskHotspot,
+    TechDebtFile,
     TestCoverageSummary,
     UploadedFile,
 )
@@ -53,6 +56,38 @@ _projects: dict[str, dict] = {}
 def _select_scanned_contents(files: list[UploadedFile], scanned: list[dict]) -> dict[str, str]:
     allowed_paths = {file["path"] for file in scanned}
     return {file.path: file.content for file in files if file.path in allowed_paths}
+
+
+def _content_analyses(
+    file_contents: dict[str, str], ownership_silos: list[dict] | None = None
+) -> dict:
+    """Build the file-content-derived ProjectMeta analyses (debt / env / silos).
+
+    Tech-debt and env vars come straight from the file text, so they work for
+    uploaded projects too; knowledge silos need git history, so callers pass the
+    already-computed ``ownership['silos']`` (empty for non-git uploads).
+    """
+    tech_debt = techdebt.scan_tech_debt(file_contents)
+    env = envscan.scan_env_vars(file_contents)
+    return {
+        "knowledge_silos": [
+            KnowledgeSilo(
+                path=s["path"],
+                primary_author=s["primary_author"],
+                ownership=s["ownership"],
+                commits=s["commits"],
+                bus_factor=s["bus_factor"],
+                reason=s["reason"],
+            )
+            for s in (ownership_silos or [])
+        ],
+        "tech_debt_files": [
+            TechDebtFile(path=f["path"], count=f["count"]) for f in tech_debt["files"]
+        ],
+        "env_vars": [
+            EnvVar(name=v["name"], required=v["required"], count=v["count"]) for v in env["vars"]
+        ],
+    }
 
 
 @router.post("/project/upload", response_model=ProjectMeta)
@@ -93,6 +128,7 @@ async def upload_project(req: AnalyzeRequest):
         ],
         health=ProjectHealth(**importgraph.summarize_project_health(scanned)),
         test_coverage=TestCoverageSummary(**coverage.assess_test_coverage(scanned)),
+        **_content_analyses(_select_scanned_contents(req.files, scanned)),
         files=[
             FileInfo(
                 path=f["path"],
@@ -175,6 +211,7 @@ async def clone_github_project(req: GitHubRequest):
             )
         ],
         test_coverage=TestCoverageSummary(**coverage.assess_test_coverage(scanned)),
+        **_content_analyses(file_contents, ownership_result.get("silos")),
         files=[
             FileInfo(
                 path=f["path"],
@@ -238,6 +275,9 @@ async def get_project(project_id: str):
             )
         ],
         test_coverage=TestCoverageSummary(**coverage.assess_test_coverage(proj["files"])),
+        **_content_analyses(
+            proj.get("file_contents", {}), (proj.get("ownership") or {}).get("silos")
+        ),
         files=[
             FileInfo(
                 path=f["path"],

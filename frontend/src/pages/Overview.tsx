@@ -243,6 +243,101 @@ export default function Overview() {
             </section>
           )}
 
+        {/* Knowledge silos: files whose history is held by a single person (git ownership) */}
+        {project && (project.knowledge_silos?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-rose-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("知识孤岛（只压在一个人身上）", "Knowledge silos (held by one person)")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "这些文件几乎只有一个人改过——ta 离开就没人懂,最该补文档、结对或 code review 分散知识。",
+                "Files almost entirely owned by one person — if they leave, nobody understands this code. Worth documenting, pairing, or reviewing to spread the knowledge.",
+              )}
+            </p>
+            <ul className="space-y-2">
+              {project.knowledge_silos!.map((s) => (
+                <li key={s.path}>
+                  <button
+                    onClick={() => handleFileClick(s.path)}
+                    className="w-full text-left hover:text-blue-700"
+                  >
+                    <span className="font-mono text-sm text-blue-600">{s.path}</span>
+                    <span className="ml-2 text-xs font-medium text-rose-600">
+                      {t(`${s.primary_author} 占 ${s.ownership}%`, `${s.primary_author} ${s.ownership}%`)}
+                    </span>
+                    <span className="ml-2 text-xs text-gray-400">
+                      {t(`改 ${s.commits} 次`, `${s.commits} commits`)}
+                    </span>
+                    <span className="block text-sm text-gray-500 mt-0.5">{s.reason}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Tech-debt markers the authors left themselves (TODO/FIXME/HACK/XXX) */}
+        {project && (project.tech_debt_files?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-orange-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("待办与技术债（TODO / FIXME / HACK / XXX）", "Tech-debt markers (TODO / FIXME / HACK / XXX)")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "作者自己在代码里留的待办标记最多的文件——了解“作者知道哪里还没做好”的最快线索。",
+                "Files with the most TODO/FIXME/HACK/XXX markers the authors left themselves — the fastest read on what they know is unfinished.",
+              )}
+            </p>
+            <ul className="space-y-2">
+              {project.tech_debt_files!.map((d) => (
+                <li key={d.path}>
+                  <button
+                    onClick={() => handleFileClick(d.path)}
+                    className="w-full text-left hover:text-blue-700"
+                  >
+                    <span className="font-mono text-sm text-blue-600">{d.path}</span>
+                    <span className="ml-2 text-xs font-medium text-orange-600">
+                      {t(`${d.count} 处`, `${d.count} markers`)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Environment variables the code reads — the setup checklist */}
+        {project && (project.env_vars?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-sky-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("环境变量（运行前要配什么）", "Environment variables (what to configure)")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "代码读取的环境变量,标“必填”的没有默认值、缺了会直接报错。",
+                "Environment variables the code reads — the ones marked required have no default and will error if unset.",
+              )}
+            </p>
+            <ul className="flex flex-wrap gap-2">
+              {project.env_vars!.map((v) => (
+                <li key={v.name}>
+                  <span
+                    className={`font-mono text-xs px-2 py-1 rounded ${
+                      v.required ? "bg-red-50 text-red-700" : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {v.name}
+                    {v.required && (
+                      <span className="ml-1 font-sans">{t("必填", "required")}</span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Deterministic architecture maps (computed from imports, no LLM) */}
         {project &&
           ((project.hotspots?.length ?? 0) > 0 ||
