@@ -181,6 +181,13 @@ export interface EnvVar {
   count: number;
 }
 
+export interface EntryPoint {
+  path: string;
+  kind: string;
+  command: string;
+  reason: string;
+}
+
 export interface ProjectMeta {
   id: string;
   name: string;
@@ -202,6 +209,7 @@ export interface ProjectMeta {
   knowledge_silos?: KnowledgeSilo[];
   tech_debt_files?: TechDebtFile[];
   env_vars?: EnvVar[];
+  entry_points?: EntryPoint[];
 }
 
 export interface Annotation {

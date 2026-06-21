@@ -338,6 +338,35 @@ export default function Overview() {
           </section>
         )}
 
+        {/* Entry points — where execution starts / how to run the project */}
+        {project && (project.entry_points?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-teal-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("怎么跑起来（入口点）", "How to run it (entry points)")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "程序从这些“门”开始运行——作者声明的命令行命令、能直接跑的脚本、按惯例的入口文件。",
+                "The doors execution starts from — declared commands, runnable scripts, and conventional entry files.",
+              )}
+            </p>
+            <ul className="space-y-2">
+              {project.entry_points!.map((e) => (
+                <li key={`${e.path}:${e.command}`}>
+                  <button
+                    onClick={() => handleFileClick(e.path)}
+                    className="w-full text-left hover:text-blue-700"
+                  >
+                    <span className="font-mono text-sm text-teal-700">{e.command}</span>
+                    <span className="ml-2 text-xs text-gray-400">{e.path}</span>
+                    <span className="block text-sm text-gray-500 mt-0.5">{e.reason}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Deterministic architecture maps (computed from imports, no LLM) */}
         {project &&
           ((project.hotspots?.length ?? 0) > 0 ||

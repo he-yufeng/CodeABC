@@ -151,6 +151,13 @@ class EnvVar(BaseModel):
     count: int = 1  # how many places read it
 
 
+class EntryPoint(BaseModel):
+    path: str
+    kind: str  # "command" (declared CLI) | "script" (__main__ guard) | "convention"
+    command: str  # how to invoke it (e.g. "python run.py" or a console command name)
+    reason: str = ""
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
@@ -173,6 +180,7 @@ class ProjectMeta(BaseModel):
     knowledge_silos: list[KnowledgeSilo] = []
     tech_debt_files: list[TechDebtFile] = []
     env_vars: list[EnvVar] = []
+    entry_points: list[EntryPoint] = []
 
 
 class FileRole(BaseModel):

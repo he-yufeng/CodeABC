@@ -15,6 +15,7 @@ from backend.models import (
     CoChangeCoupling,
     CodeWalkStep,
     CouplingHotspot,
+    EntryPoint,
     EnvVar,
     FileGlossary,
     FileInfo,
@@ -37,6 +38,7 @@ from backend.services import (
     cache,
     churn,
     coverage,
+    entrypoints,
     envscan,
     github_clone,
     glossary,
@@ -69,6 +71,7 @@ def _content_analyses(
     """
     tech_debt = techdebt.scan_tech_debt(file_contents)
     env = envscan.scan_env_vars(file_contents)
+    entries = entrypoints.find_entry_points(file_contents)
     return {
         "knowledge_silos": [
             KnowledgeSilo(
@@ -86,6 +89,10 @@ def _content_analyses(
         ],
         "env_vars": [
             EnvVar(name=v["name"], required=v["required"], count=v["count"]) for v in env["vars"]
+        ],
+        "entry_points": [
+            EntryPoint(path=e["path"], kind=e["kind"], command=e["command"], reason=e["reason"])
+            for e in entries["entry_points"]
         ],
     }
 
@@ -366,6 +373,11 @@ async def get_codemap_markdown(project_id: str):
     )
     if env_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{env_md}"
+    entrypoints_md = entrypoints.render_entrypoints_markdown(
+        proj["name"], entrypoints.find_entry_points(proj.get("file_contents", {}))
+    )
+    if entrypoints_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{entrypoints_md}"
     return Response(content=markdown, media_type="text/markdown; charset=utf-8")
 
 
