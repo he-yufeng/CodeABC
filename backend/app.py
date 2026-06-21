@@ -29,13 +29,19 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — allow frontend dev server
+# CORS — allow the Vite dev server and the Tauri desktop shell. The desktop
+# webview loads from a tauri:// origin (http://tauri.localhost on Windows,
+# tauri://localhost on macOS/Linux) and calls this backend on 127.0.0.1:8000,
+# which is cross-origin, so those origins must be allow-listed too.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",  # vite dev
         "http://localhost:3000",
         "http://127.0.0.1:5173",
+        "tauri://localhost",  # Tauri desktop (macOS/Linux)
+        "http://tauri.localhost",  # Tauri desktop (Windows)
+        "https://tauri.localhost",
         os.getenv("FRONTEND_ORIGIN", ""),
     ],
     allow_credentials=True,

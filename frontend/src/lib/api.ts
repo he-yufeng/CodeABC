@@ -2,10 +2,41 @@
 import { tStatic } from "./i18n";
 
 // On the web the frontend is served next to the API, so a relative "/api" is
-// proxied straight through. The desktop build (Tauri) loads from tauri://localhost
-// instead, where "/api" points nowhere — so it sets VITE_API_BASE at build time to
-// the backend it should talk to (e.g. a locally running or hosted CodeABC server).
-const BASE = import.meta.env.VITE_API_BASE ?? "/api";
+// proxied straight through. The desktop build (Tauri) loads from a tauri://
+// origin where a relative "/api" resolves to the app shell, not the backend —
+// so there we default to the local CodeABC server on 127.0.0.1:8000. An
+// explicit VITE_API_BASE always wins (e.g. to point the desktop app at a
+// hosted backend).
+function isDesktopShell(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.location.protocol === "tauri:" ||
+    window.location.hostname === "tauri.localhost" ||
+    "__TAURI_INTERNALS__" in window
+  );
+}
+
+const BASE =
+  import.meta.env.VITE_API_BASE ??
+  (isDesktopShell() ? "http://127.0.0.1:8000/api" : "/api");
+
+/** fetch wrapper that turns a network-level failure in the desktop shell into a
+ *  clear "the backend isn't running" message instead of a raw "Failed to fetch". */
+async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await window.fetch(input, init);
+  } catch (e) {
+    if (isDesktopShell()) {
+      throw new Error(
+        tStatic(
+          "连不上本地 CodeABC 后端（127.0.0.1:8000）。请先在项目目录运行 python run.py 启动后端，再重试。",
+          "Can't reach the local CodeABC backend (127.0.0.1:8000). Start it with `python run.py` in the project folder, then retry.",
+        ),
+      );
+    }
+    throw e;
+  }
+}
 
 function getHeaders(): HeadersInit {
   const headers: Record<string, string> = {
@@ -194,7 +225,7 @@ export interface ProjectOverview {
 
 /** Fetch project metadata by ID (for page refresh). */
 export async function getProject(projectId: string): Promise<ProjectMeta> {
-  const res = await fetch(`${BASE}/project/${projectId}`, {
+  const res = await apiFetch(`${BASE}/project/${projectId}`, {
     headers: getHeaders(),
   });
   if (!res.ok) throw new Error("Project not found");
@@ -206,7 +237,7 @@ export async function uploadProject(
   files: { path: string; content: string }[],
   projectName: string
 ): Promise<ProjectMeta> {
-  const res = await fetch(`${BASE}/project/upload`, {
+  const res = await apiFetch(`${BASE}/project/upload`, {
     method: "POST",
     headers: getHeaders(),
     body: JSON.stringify({ files, project_name: projectName }),
@@ -220,7 +251,7 @@ export async function uploadProject(
 
 /** Clone a GitHub repo to create a project. */
 export async function cloneGitHub(url: string): Promise<ProjectMeta> {
-  const res = await fetch(`${BASE}/project/github`, {
+  const res = await apiFetch(`${BASE}/project/github`, {
     method: "POST",
     headers: getHeaders(),
     body: JSON.stringify({ url }),
@@ -244,7 +275,7 @@ export async function streamOverview(
   const headers: Record<string, string> = {};
   if (apiKey) headers["x-api-key"] = apiKey;
 
-  const res = await fetch(`${BASE}/project/${projectId}/overview`, { headers });
+  const res = await apiFetch(`${BASE}/project/${projectId}/overview`, { headers });
   if (!res.ok || !res.body) {
     if (res.status === 429) {
       const err = await res.json().catch(() => ({ detail: tStatic("请求过于频繁", "Too many requests") }));
@@ -294,7 +325,7 @@ export async function getFileContent(
   projectId: string,
   filePath: string
 ): Promise<{ path: string; language: string; content: string }> {
-  const res = await fetch(
+  const res = await apiFetch(
     `${BASE}/project/${projectId}/file/${encodeURIComponent(filePath)}`,
     { headers: getHeaders() }
   );
@@ -307,7 +338,7 @@ export async function getAnnotations(
   projectId: string,
   filePath: string
 ): Promise<{ annotations: Annotation[] }> {
-  const res = await fetch(
+  const res = await apiFetch(
     `${BASE}/project/${projectId}/file/${encodeURIComponent(filePath)}/annotations`,
     { headers: getHeaders() }
   );
@@ -326,7 +357,7 @@ export async function askQuestion(
   projectId: string,
   params: { question: string; code?: string; filePath?: string; language?: string }
 ): Promise<{ answer: string }> {
-  const res = await fetch(`${BASE}/project/${projectId}/qa`, {
+  const res = await apiFetch(`${BASE}/project/${projectId}/qa`, {
     method: "POST",
     headers: getHeaders(),
     body: JSON.stringify({
@@ -352,7 +383,7 @@ export async function editCode(
   projectId: string,
   params: { instruction: string; code: string; filePath?: string; language?: string }
 ): Promise<{ edited_code: string }> {
-  const res = await fetch(`${BASE}/project/${projectId}/edit`, {
+  const res = await apiFetch(`${BASE}/project/${projectId}/edit`, {
     method: "POST",
     headers: getHeaders(),
     body: JSON.stringify({
@@ -378,7 +409,7 @@ export async function getGlossary(
   projectId: string,
   filePath: string
 ): Promise<{ path: string; terms: GlossaryTerm[] }> {
-  const res = await fetch(
+  const res = await apiFetch(
     `${BASE}/project/${projectId}/file/${encodeURIComponent(filePath)}/glossary`,
     { headers: getHeaders() }
   );
