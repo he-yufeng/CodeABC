@@ -188,6 +188,13 @@ export interface EntryPoint {
   reason: string;
 }
 
+export interface ComplexFile {
+  path: string;
+  complexity: number;
+  functions: number;
+  reason: string;
+}
+
 export interface ProjectMeta {
   id: string;
   name: string;
@@ -210,6 +217,7 @@ export interface ProjectMeta {
   tech_debt_files?: TechDebtFile[];
   env_vars?: EnvVar[];
   entry_points?: EntryPoint[];
+  complexity_files?: ComplexFile[];
 }
 
 export interface Annotation {

@@ -190,6 +190,7 @@ CodeABC/
 - [x] Tech-debt map (collect the codebase's own TODO/FIXME/HACK/XXX markers, ranked by file)
 - [x] Env-var surface (the environment variables a project reads, split into required vs optional)
 - [x] Entry-point detection (where execution starts: `__main__` scripts, declared console commands, conventional entry files)
+- [x] Logic-complexity ranking (which Python files carry the most tangled branching, from the AST — a different axis than centrality or churn)
 - [x] One-command launcher (`run.py` / `start.bat` — builds, serves, and opens the app)
 - [x] Single-process serving (the backend serves the built UI; one URL, no separate dev server)
 - [x] Native desktop app (Tauri — `npm run tauri:build` wraps the same UI in a native window)

@@ -367,6 +367,37 @@ export default function Overview() {
           </section>
         )}
 
+        {/* Logic complexity — which files carry the gnarliest branching */}
+        {project && (project.complexity_files?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-fuchsia-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("逻辑复杂度（最难看懂的文件）", "Logic complexity (hardest files to follow)")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "按代码里的判断分支（if / 循环 / 异常 / 与或 / 三元等）多少排序——分支越多，逻辑越绕、越要小心读。和“被很多文件依赖”“改得勤”是不同的角度。",
+                "Ranked by decision points (if / loops / except / and-or / ternaries) — the more branches, the more tangled the logic and the more careful the read. A different axis from how central or how frequently changed a file is.",
+              )}
+            </p>
+            <ul className="space-y-2">
+              {project.complexity_files!.map((c) => (
+                <li key={c.path}>
+                  <button
+                    onClick={() => handleFileClick(c.path)}
+                    className="w-full text-left hover:text-blue-700"
+                  >
+                    <span className="font-mono text-sm text-blue-600">{c.path}</span>
+                    <span className="ml-2 text-xs font-medium text-fuchsia-600">
+                      {t(`复杂度 ${c.complexity}`, `complexity ${c.complexity}`)}
+                    </span>
+                    <span className="block text-sm text-gray-500 mt-0.5">{c.reason}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Deterministic architecture maps (computed from imports, no LLM) */}
         {project &&
           ((project.hotspots?.length ?? 0) > 0 ||

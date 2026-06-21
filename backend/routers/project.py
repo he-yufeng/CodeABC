@@ -14,6 +14,7 @@ from backend.models import (
     ChurnHotspot,
     CoChangeCoupling,
     CodeWalkStep,
+    ComplexFile,
     CouplingHotspot,
     EntryPoint,
     EnvVar,
@@ -37,6 +38,7 @@ from backend.models import (
 from backend.services import (
     cache,
     churn,
+    complexity,
     coverage,
     entrypoints,
     envscan,
@@ -72,6 +74,7 @@ def _content_analyses(
     tech_debt = techdebt.scan_tech_debt(file_contents)
     env = envscan.scan_env_vars(file_contents)
     entries = entrypoints.find_entry_points(file_contents)
+    complex_files = complexity.scan_complexity(file_contents)
     return {
         "knowledge_silos": [
             KnowledgeSilo(
@@ -93,6 +96,15 @@ def _content_analyses(
         "entry_points": [
             EntryPoint(path=e["path"], kind=e["kind"], command=e["command"], reason=e["reason"])
             for e in entries["entry_points"]
+        ],
+        "complexity_files": [
+            ComplexFile(
+                path=f["path"],
+                complexity=f["complexity"],
+                functions=f["functions"],
+                reason=f["reason"],
+            )
+            for f in complex_files["files"]
         ],
     }
 
@@ -378,6 +390,11 @@ async def get_codemap_markdown(project_id: str):
     )
     if entrypoints_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{entrypoints_md}"
+    complexity_md = complexity.render_complexity_markdown(
+        proj["name"], complexity.scan_complexity(proj.get("file_contents", {}))
+    )
+    if complexity_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{complexity_md}"
     return Response(content=markdown, media_type="text/markdown; charset=utf-8")
 
 

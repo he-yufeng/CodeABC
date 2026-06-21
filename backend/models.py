@@ -158,6 +158,13 @@ class EntryPoint(BaseModel):
     reason: str = ""
 
 
+class ComplexFile(BaseModel):
+    path: str
+    complexity: int  # approximate cyclomatic complexity (decision points + 1)
+    functions: int = 0
+    reason: str = ""
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
@@ -181,6 +188,7 @@ class ProjectMeta(BaseModel):
     tech_debt_files: list[TechDebtFile] = []
     env_vars: list[EnvVar] = []
     entry_points: list[EntryPoint] = []
+    complexity_files: list[ComplexFile] = []
 
 
 class FileRole(BaseModel):
