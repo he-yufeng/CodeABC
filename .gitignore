@@ -12,3 +12,10 @@ node_modules/
 # uv resolves deps from pyproject; CI installs with pip, so the lock is a
 # local-only artifact (don't commit it).
 uv.lock
+
+# Desktop sidecar build artifacts (the backend binary is produced with
+# PyInstaller at release time, not committed — see frontend/README/docs).
+_pyi_dist/
+_pyi_build/
+_sidecar_venv/
+frontend/src-tauri/binaries/

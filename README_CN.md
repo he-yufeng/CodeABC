@@ -102,22 +102,25 @@ npm run dev
 
 ### 桌面端（Tauri）
 
-同一套界面通过 [Tauri](https://tauri.app) 打包成原生桌面窗口——一层很薄的 Rust 外壳包住 Web 前端，没有 Electron 那么臃肿。需要先装好 [Rust 工具链](https://www.rust-lang.org/tools/install)。
+同一套界面通过 [Tauri](https://tauri.app) 打包成原生桌面窗口——一层很薄的 Rust 外壳包住 Web 前端，没有 Electron 那么臃肿。而且开箱即用：应用把 FastAPI 后端作为 sidecar 一起打包、启动时自动拉起，不用手动起任何东西。构建需要先装好 [Rust 工具链](https://www.rust-lang.org/tools/install)。
 
 ```bash
+# 1. 把后端打包成 sidecar 二进制（用只装了项目依赖的干净 venv + pyinstaller，
+#    在臃肿环境里打包会产出超大文件）
+pip install -e . pyinstaller
+python scripts/build_desktop_sidecar.py
+
+# 2. 构建桌面应用（会把这个 sidecar 一起打进去）
 cd frontend
 npm install
-npm run tauri:dev      # 带热重载的桌面窗口
-npm run tauri:build    # 产出原生安装包，在 src-tauri/target/release/bundle/ 下
+npm run tauri:build    # 安装包在 src-tauri/target/release/bundle/ 下
 ```
 
-桌面窗口没有同源后端可以代理，构建时用 `VITE_API_BASE` 指向一个在跑的 CodeABC 服务（Web 构建默认 `/api`）：
+发布版应用启动时会在 127.0.0.1:8000 拉起后端、退出时关掉它。开发时自己起后端（`uvicorn backend.app:app --reload`）再用热重载窗口即可——`npm run tauri:dev` 不会启动 sidecar：
 
 ```bash
-VITE_API_BASE=http://127.0.0.1:8000/api npm run tauri:build
+npm run tauri:dev
 ```
-
-用 `uvicorn backend.app:app`（或一键 `python run.py`）起一个桌面端能连上的后端即可。
 
 ### 使用方式
 

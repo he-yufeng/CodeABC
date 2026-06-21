@@ -114,22 +114,25 @@ The dev UI runs at http://localhost:5173 and calls the backend on port 8000.
 
 ### Desktop app (Tauri)
 
-The same UI ships as a native desktop window via [Tauri](https://tauri.app) — a small Rust shell around the web frontend, no Electron-sized bundle. You'll need the [Rust toolchain](https://www.rust-lang.org/tools/install) installed.
+The same UI ships as a native desktop window via [Tauri](https://tauri.app) — a small Rust shell around the web frontend, no Electron-sized bundle. It's self-contained: the app bundles the FastAPI backend as a sidecar and starts it automatically, so there's nothing to run by hand. You'll need the [Rust toolchain](https://www.rust-lang.org/tools/install) installed to build it.
 
 ```bash
+# 1. package the backend into the sidecar binary (clean venv with just the
+#    project's deps + pyinstaller; a fat env produces a huge binary)
+pip install -e . pyinstaller
+python scripts/build_desktop_sidecar.py
+
+# 2. build the desktop app (bundles that sidecar)
 cd frontend
 npm install
-npm run tauri:dev      # hot-reloading desktop window
-npm run tauri:build    # produces a native installer in src-tauri/target/release/bundle/
+npm run tauri:build    # installer in src-tauri/target/release/bundle/
 ```
 
-The desktop window has no same-origin backend to proxy to, so point it at a running CodeABC server with `VITE_API_BASE` at build time (it defaults to `/api` for the web build):
+The release app spawns the backend on 127.0.0.1:8000 at launch and stops it on exit. For development, run the backend yourself (`uvicorn backend.app:app --reload`) and use the hot-reloading window — `npm run tauri:dev` doesn't start the sidecar:
 
 ```bash
-VITE_API_BASE=http://127.0.0.1:8000/api npm run tauri:build
+npm run tauri:dev
 ```
-
-Start a backend the desktop app can reach with `uvicorn backend.app:app` (or the one-command `python run.py`).
 
 ### Using It
 
