@@ -281,6 +281,16 @@ export interface ApiMap {
   notes: string[];
 }
 
+export interface HealthScore {
+  score: number;
+  grade: string; // A | B | C | D | F
+  category_scores: Record<string, number>;
+  weights: Record<string, number>;
+  strengths: string[];
+  weaknesses: string[];
+  notes: string[];
+}
+
 export interface ActivityContributor {
   author: string;
   commits: number;
@@ -332,6 +342,7 @@ export interface ProjectMeta {
   dependencies?: Dependency[];
   api_map?: ApiMap;
   activity?: ActivitySummary;
+  health_score?: HealthScore;
 }
 
 export interface Annotation {

@@ -120,6 +120,92 @@ export default function Overview() {
           </section>
         )}
 
+        {/* Health score: a single letter grade + scored breakdown, the
+            quantified executive summary of the structural analyses. */}
+        {project &&
+          project.health_score &&
+          Object.keys(project.health_score.category_scores).length > 0 && (
+            <section className="bg-white rounded-xl p-6 shadow-sm mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                {t("代码体检评分", "Code health score")}
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">
+                {t(
+                  "把上面所有结构分析拧成一个分数和等级，一眼看出这份代码大概什么水平。",
+                  "Every structural analysis above rolled into one grade — a quick sense of where this code stands.",
+                )}
+              </p>
+              {(() => {
+                const h = project.health_score!;
+                const g = (h.grade || "F").toUpperCase();
+                const gradeCls = g.startsWith("A")
+                  ? "bg-green-100 text-green-700"
+                  : g.startsWith("B")
+                    ? "bg-blue-100 text-blue-700"
+                    : g.startsWith("C")
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-red-100 text-red-700";
+                return (
+                  <>
+                    <div className="flex items-center gap-4 mb-4">
+                      <span
+                        className={`flex h-14 w-14 items-center justify-center rounded-xl text-2xl font-bold ${gradeCls}`}
+                      >
+                        {g}
+                      </span>
+                      <span className="text-2xl font-semibold text-gray-900">
+                        {h.score}
+                        <span className="text-base font-normal text-gray-400"> / 100</span>
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-3">
+                      {Object.entries(h.category_scores).map(([cat, sc]) => (
+                        <div key={cat} className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">{cat}</span>
+                          <span className="font-mono text-gray-800">{sc}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {(h.strengths.length > 0 || h.weaknesses.length > 0) && (
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                        {h.strengths.length > 0 && (
+                          <div>
+                            <h3 className="text-sm font-semibold text-green-700 mb-1">
+                              {t("做得好的", "Strengths")}
+                            </h3>
+                            <ul className="space-y-1">
+                              {h.strengths.map((s) => (
+                                <li key={s} className="flex gap-2 text-sm text-gray-600">
+                                  <span className="text-green-500">+</span>
+                                  <span>{s}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {h.weaknesses.length > 0 && (
+                          <div>
+                            <h3 className="text-sm font-semibold text-amber-700 mb-1">
+                              {t("拖后腿的", "Weaknesses")}
+                            </h3>
+                            <ul className="space-y-1">
+                              {h.weaknesses.map((w) => (
+                                <li key={w} className="flex gap-2 text-sm text-gray-600">
+                                  <span className="text-amber-500">−</span>
+                                  <span>{w}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </section>
+          )}
+
         {/* Project health: a one-glance summary computed from imports, no LLM */}
         {project && project.health && project.health.notes.length > 0 && (
           <section className="bg-white rounded-xl p-6 shadow-sm mb-6">
