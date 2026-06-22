@@ -177,6 +177,21 @@ class ErrorHandling(BaseModel):
     notes: list[str] = []
 
 
+class ExternalService(BaseModel):
+    name: str
+    category: str  # AI / 大模型 | 云服务 | 数据库 | 支付 | 通讯 | ...
+    note: str  # plain-language "what you need to run this"
+    file_count: int = 1
+    example: str = ""  # a sample import/usage line
+
+
+class Integrations(BaseModel):
+    total: int = 0
+    services: list[ExternalService] = []  # most-used first
+    categories: dict[str, int] = {}
+    notes: list[str] = []
+
+
 class EnvVar(BaseModel):
     name: str
     required: bool  # read via os.environ["X"] somewhere, so it must be set
@@ -316,6 +331,7 @@ class ProjectMeta(BaseModel):
     action_plan: ActionPlan | None = None
     doc_coverage: DocCoverage | None = None
     error_handling: ErrorHandling | None = None
+    integrations: Integrations | None = None
 
 
 class FileRole(BaseModel):

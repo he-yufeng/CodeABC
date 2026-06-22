@@ -29,6 +29,7 @@ from backend.models import (
     EntryPoint,
     EnvVar,
     ErrorHandling,
+    ExternalService,
     FileGlossary,
     FileInfo,
     GitHubRequest,
@@ -36,6 +37,7 @@ from backend.models import (
     HealthScore,
     Hotspot,
     ImportCycle,
+    Integrations,
     KnowledgeSilo,
     OrphanModule,
     PackageDependency,
@@ -68,6 +70,7 @@ from backend.services import (
     github_clone,
     glossary,
     importgraph,
+    integrations,
     ownership,
     risk,
     scanner,
@@ -176,6 +179,7 @@ def _content_analyses(
     api = apimap.scan_api_routes(file_contents)
     doc = docs.assess_doc_coverage(file_contents)
     silent = error_handling.find_swallowed_errors(file_contents)
+    integ = integrations.detect_external_services(file_contents)
     return {
         "knowledge_silos": [
             KnowledgeSilo(
@@ -236,6 +240,12 @@ def _content_analyses(
             files_affected=silent["files_affected"],
             findings=[SilentFailure(**f) for f in silent["findings"]],
             notes=silent["notes"],
+        ),
+        "integrations": Integrations(
+            total=integ["total"],
+            services=[ExternalService(**s) for s in integ["services"]],
+            categories=integ["categories"],
+            notes=integ["notes"],
         ),
     }
 
@@ -571,6 +581,11 @@ async def get_codemap_markdown(project_id: str):
     )
     if silent_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{silent_md}"
+    integ_md = integrations.render_integrations_markdown(
+        proj["name"], integrations.detect_external_services(proj.get("file_contents", {}))
+    )
+    if integ_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{integ_md}"
     activity_md = activity.render_activity_markdown(proj["name"], proj.get("activity"))
     if activity_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{activity_md}"
