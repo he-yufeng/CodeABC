@@ -103,8 +103,8 @@ def render_complexity_markdown(project_name: str, data: dict | None) -> str:
     lines = [
         f"# {project_name} — 逻辑复杂度（最难看懂的文件）",
         "",
-        "> 按代码里的判断分支（if/循环/异常/与或/三元等）多少排序——分支越多，"
-        "逻辑越绕、越要小心读。这和“被很多文件依赖”“改得勤”是不同的角度。",
+        "> 按代码里「要分情况讨论」的地方（条件判断、循环、异常处理等）多少排序——"
+        "分支越多，逻辑越绕、越要小心读。这和“被很多文件依赖”“改得勤”是不同的角度。",
         "",
     ]
     lines.extend(f"- `{f['path']}` — {f['reason']}（复杂度 {f['complexity']}）" for f in files)
