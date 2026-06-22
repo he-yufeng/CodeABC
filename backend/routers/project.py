@@ -28,6 +28,7 @@ from backend.models import (
     FileInfo,
     GitHubRequest,
     GlossaryTerm,
+    HealthScore,
     Hotspot,
     ImportCycle,
     KnowledgeSilo,
@@ -62,6 +63,9 @@ from backend.services import (
     security,
     techdebt,
 )
+from backend.services import (
+    health_score as health_score_svc,
+)
 
 router = APIRouter(tags=["project"])
 
@@ -89,6 +93,35 @@ def _activity_summary(data: dict | None) -> "ActivitySummary":
         top_contributors=[ActivityContributor(**c) for c in data.get("top_contributors", [])],
         recently_changed=data.get("recently_changed", []),
         notes=data.get("notes", []),
+    )
+
+
+def _health_score_summary(data: dict | None) -> "HealthScore":
+    """Reconstruct a HealthScore Pydantic model from a raw compute_health_score dict."""
+    if not data:
+        return HealthScore()
+    return HealthScore(
+        score=data.get("score", 0),
+        grade=data.get("grade", "F"),
+        category_scores=data.get("category_scores", {}),
+        weights=data.get("weights", {}),
+        strengths=data.get("strengths", []),
+        weaknesses=data.get("weaknesses", []),
+        notes=data.get("notes", []),
+    )
+
+
+def _compute_health_score(meta: "ProjectMeta") -> dict:
+    """Derive health score from an already-built ProjectMeta using .model_dump()."""
+    return health_score_svc.compute_health_score(
+        security=meta.security.model_dump() if meta.security else None,
+        test_coverage=meta.test_coverage.model_dump() if meta.test_coverage else None,
+        activity=meta.activity.model_dump() if meta.activity else None,
+        complexity_files=[f.model_dump() for f in meta.complexity_files],
+        tech_debt_files=[f.model_dump() for f in meta.tech_debt_files],
+        import_cycles=[c.model_dump() for c in meta.import_cycles],
+        orphan_modules=[o.model_dump() for o in meta.orphan_modules],
+        total_files=meta.total_files,
     )
 
 
@@ -174,10 +207,8 @@ async def upload_project(req: AnalyzeRequest):
         "files": scanned,
         "file_contents": _select_scanned_contents(req.files, scanned),
     }
-    _projects[project_id] = proj_data
-    await cache.save_project(project_id, proj_data)
 
-    return ProjectMeta(
+    meta = ProjectMeta(
         id=project_id,
         name=req.project_name,
         total_files=len(scanned),
@@ -207,6 +238,12 @@ async def upload_project(req: AnalyzeRequest):
             for f in scanned
         ],
     )
+    hs_result = _compute_health_score(meta)
+    proj_data["health_score"] = hs_result
+    _projects[project_id] = proj_data
+    await cache.save_project(project_id, proj_data)
+    meta.health_score = _health_score_summary(hs_result)
+    return meta
 
 
 @router.post("/project/github", response_model=ProjectMeta)
@@ -250,10 +287,8 @@ async def clone_github_project(req: GitHubRequest):
         "ownership": ownership_result,
         "activity": activity_result,
     }
-    _projects[project_id] = proj_data
-    await cache.save_project(project_id, proj_data)
 
-    return ProjectMeta(
+    meta = ProjectMeta(
         id=project_id,
         name=repo_name,
         total_files=len(scanned),
@@ -293,6 +328,12 @@ async def clone_github_project(req: GitHubRequest):
             for f in scanned
         ],
     )
+    hs_result = _compute_health_score(meta)
+    proj_data["health_score"] = hs_result
+    _projects[project_id] = proj_data
+    await cache.save_project(project_id, proj_data)
+    meta.health_score = _health_score_summary(hs_result)
+    return meta
 
 
 async def _resolve_project(project_id: str) -> dict | None:
@@ -347,6 +388,7 @@ async def get_project(project_id: str):
         ],
         test_coverage=TestCoverageSummary(**coverage.assess_test_coverage(proj["files"])),
         activity=_activity_summary(proj.get("activity")),
+        health_score=_health_score_summary(proj.get("health_score")),
         **_content_analyses(
             proj.get("file_contents", {}), (proj.get("ownership") or {}).get("silos")
         ),
@@ -463,6 +505,12 @@ async def get_codemap_markdown(project_id: str):
     )
     if apimap_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{apimap_md}"
+    activity_md = activity.render_activity_markdown(proj["name"], proj.get("activity"))
+    if activity_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{activity_md}"
+    hs_md = health_score_svc.render_health_score_markdown(proj["name"], proj.get("health_score"))
+    if hs_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{hs_md}"
     return Response(content=markdown, media_type="text/markdown; charset=utf-8")
 
 

@@ -54,9 +54,7 @@ def content_hash(content: str) -> str:
 async def get(key: str) -> dict | list | None:
     if _db is None:
         return None
-    async with _db.execute(
-        "SELECT value, created_at FROM cache WHERE key = ?", (key,)
-    ) as cursor:
+    async with _db.execute("SELECT value, created_at FROM cache WHERE key = ?", (key,)) as cursor:
         row = await cursor.fetchone()
     if row is None:
         return None

@@ -196,6 +196,16 @@ class ActivitySummary(BaseModel):
     notes: list[str] = []
 
 
+class HealthScore(BaseModel):
+    score: int = 0
+    grade: str = "F"
+    category_scores: dict[str, int] = {}
+    weights: dict[str, float] = {}
+    strengths: list[str] = []
+    weaknesses: list[str] = []
+    notes: list[str] = []
+
+
 class ApiRoute(BaseModel):
     method: str  # GET | POST | PUT | PATCH | DELETE | OPTIONS | HEAD | ANY | ALL
     path: str  # the route path as declared in the source
@@ -255,6 +265,7 @@ class ProjectMeta(BaseModel):
     security: SecuritySummary | None = None
     api_map: ApiMap | None = None
     activity: ActivitySummary | None = None
+    health_score: HealthScore | None = None
 
 
 class FileRole(BaseModel):

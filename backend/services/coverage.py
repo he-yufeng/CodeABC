@@ -71,18 +71,13 @@ def _tested_stem(path: str, lang: str) -> str | None:
 
 def _untested_reason(fan_in: int) -> str:
     if fan_in >= 5:
-        return (
-            f"没有测试，却有 {fan_in} 个文件依赖它——这里出问题会牵连一大片，"
-            "补测试的优先级最高。"
-        )
+        return f"没有测试，却有 {fan_in} 个文件依赖它——这里出问题会牵连一大片，补测试的优先级最高。"
     if fan_in >= 1:
         return f"没有测试，有 {fan_in} 个文件依赖它：改动缺少自动验证，留意回归。"
     return "没有测试：相对孤立的文件，改动靠人工确认即可，风险较低。"
 
 
-def _coverage_notes(
-    total: int, pct: int, test_file_count: int, core_count: int
-) -> list[str]:
+def _coverage_notes(total: int, pct: int, test_file_count: int, core_count: int) -> list[str]:
     if total == 0:
         return ["没有发现源代码文件。"]
     if test_file_count == 0:
@@ -136,9 +131,7 @@ def assess_test_coverage(files: list[dict], *, limit: int = 12) -> dict:
             if dep in source_files:
                 covered.add(dep)
     # 2) name-based: test_scanner.py <-> scanner.py, scanner.test.ts <-> scanner.ts
-    tested_stems = {
-        s for t in test_files if (s := _tested_stem(t, lang_of[t])) is not None
-    }
+    tested_stems = {s for t in test_files if (s := _tested_stem(t, lang_of[t])) is not None}
     tested_stems = {s.lower() for s in tested_stems}
     if tested_stems:
         for s in source_files:

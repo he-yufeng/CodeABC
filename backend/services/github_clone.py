@@ -83,7 +83,12 @@ async def clone_repo(url: str) -> Path:
 
     try:
         proc = await asyncio.create_subprocess_exec(
-            "git", "clone", "--depth", "1", clone_url, str(dest),
+            "git",
+            "clone",
+            "--depth",
+            "1",
+            clone_url,
+            str(dest),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )

@@ -11,21 +11,70 @@ logger = logging.getLogger(__name__)
 
 # dirs we never want to look at
 _SKIP_DIRS = {
-    ".git", "node_modules", "__pycache__", ".venv", "venv", "env",
-    ".idea", ".vscode", ".next", "dist", "build", ".tox", ".mypy_cache",
-    ".pytest_cache", ".ruff_cache", "egg-info",
+    ".git",
+    "node_modules",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "env",
+    ".idea",
+    ".vscode",
+    ".next",
+    "dist",
+    "build",
+    ".tox",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    "egg-info",
 }
 
 # binary / non-text extensions
 _SKIP_EXTS = {
-    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".svg", ".webp",
-    ".mp3", ".mp4", ".wav", ".avi", ".mov", ".mkv",
-    ".zip", ".tar", ".gz", ".bz2", ".7z", ".rar",
-    ".exe", ".dll", ".so", ".dylib", ".bin", ".dat",
-    ".woff", ".woff2", ".ttf", ".eot", ".otf",
-    ".pyc", ".pyo", ".class", ".o", ".obj",
-    ".pdf", ".doc", ".docx", ".xls", ".xlsx",
-    ".db", ".sqlite", ".sqlite3",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".bmp",
+    ".ico",
+    ".svg",
+    ".webp",
+    ".mp3",
+    ".mp4",
+    ".wav",
+    ".avi",
+    ".mov",
+    ".mkv",
+    ".zip",
+    ".tar",
+    ".gz",
+    ".bz2",
+    ".7z",
+    ".rar",
+    ".exe",
+    ".dll",
+    ".so",
+    ".dylib",
+    ".bin",
+    ".dat",
+    ".woff",
+    ".woff2",
+    ".ttf",
+    ".eot",
+    ".otf",
+    ".pyc",
+    ".pyo",
+    ".class",
+    ".o",
+    ".obj",
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+    ".db",
+    ".sqlite",
+    ".sqlite3",
     ".lock",  # package-lock.json etc are huge and useless
 }
 
@@ -95,38 +144,93 @@ _MAX_FILES = 500
 
 # map extensions -> human readable language name
 _LANG_MAP = {
-    ".py": "python", ".js": "javascript", ".ts": "typescript",
-    ".jsx": "jsx", ".tsx": "tsx", ".html": "html", ".css": "css",
-    ".json": "json", ".yaml": "yaml", ".yml": "yaml",
-    ".md": "markdown", ".txt": "text", ".sh": "shell",
-    ".go": "go", ".rs": "rust", ".java": "java",
-    ".c": "c", ".cpp": "cpp", ".h": "c", ".hpp": "cpp",
-    ".rb": "ruby", ".php": "php", ".r": "r", ".R": "r",
-    ".do": "stata", ".sql": "sql", ".toml": "toml",
-    ".cfg": "ini", ".ini": "ini", ".env": "text",
-    ".swift": "swift", ".kt": "kotlin", ".scala": "scala",
-    ".lua": "lua", ".dart": "dart", ".vue": "vue",
-    ".svelte": "svelte", ".zig": "zig", ".nim": "nim",
+    ".py": "python",
+    ".js": "javascript",
+    ".ts": "typescript",
+    ".jsx": "jsx",
+    ".tsx": "tsx",
+    ".html": "html",
+    ".css": "css",
+    ".json": "json",
+    ".yaml": "yaml",
+    ".yml": "yaml",
+    ".md": "markdown",
+    ".txt": "text",
+    ".sh": "shell",
+    ".go": "go",
+    ".rs": "rust",
+    ".java": "java",
+    ".c": "c",
+    ".cpp": "cpp",
+    ".h": "c",
+    ".hpp": "cpp",
+    ".rb": "ruby",
+    ".php": "php",
+    ".r": "r",
+    ".R": "r",
+    ".do": "stata",
+    ".sql": "sql",
+    ".toml": "toml",
+    ".cfg": "ini",
+    ".ini": "ini",
+    ".env": "text",
+    ".swift": "swift",
+    ".kt": "kotlin",
+    ".scala": "scala",
+    ".lua": "lua",
+    ".dart": "dart",
+    ".vue": "vue",
+    ".svelte": "svelte",
+    ".zig": "zig",
+    ".nim": "nim",
 }
 
 # config files that should be read in full (they help LLM understand the project)
 _CONFIG_FILES = {
-    "requirements.txt", "setup.py", "setup.cfg", "pyproject.toml",
-    "package.json", "Cargo.toml", "go.mod", "Makefile", "Dockerfile",
-    "docker-compose.yml", "docker-compose.yaml",
-    ".env.example", "config.py", "config.yaml", "config.json",
-    "README.md", "README.rst", "README.txt", "README",
+    "requirements.txt",
+    "setup.py",
+    "setup.cfg",
+    "pyproject.toml",
+    "package.json",
+    "Cargo.toml",
+    "go.mod",
+    "Makefile",
+    "Dockerfile",
+    "docker-compose.yml",
+    "docker-compose.yaml",
+    ".env.example",
+    "config.py",
+    "config.yaml",
+    "config.json",
+    "README.md",
+    "README.rst",
+    "README.txt",
+    "README",
 }
 
 _ENTRYPOINT_NAMES = {
-    "main.py", "app.py", "__main__.py", "index.py",
-    "main.ts", "main.tsx", "index.ts", "index.tsx",
-    "main.js", "index.js", "main.go", "main.rs",
+    "main.py",
+    "app.py",
+    "__main__.py",
+    "index.py",
+    "main.ts",
+    "main.tsx",
+    "index.ts",
+    "index.tsx",
+    "main.js",
+    "index.js",
+    "main.go",
+    "main.rs",
 }
 
 _MANIFEST_NAMES = {
-    "pyproject.toml", "package.json", "requirements.txt",
-    "go.mod", "cargo.toml", "dockerfile", "makefile",
+    "pyproject.toml",
+    "package.json",
+    "requirements.txt",
+    "go.mod",
+    "cargo.toml",
+    "dockerfile",
+    "makefile",
 }
 
 
@@ -356,12 +460,14 @@ def scan_directory(root: str | Path) -> list[dict]:
                 lines = text.splitlines()
                 preview = "\n".join(lines[:_PREVIEW_LINES])
 
-            results.append({
-                "path": rel,
-                "size": size,
-                "language": lang,
-                "preview": preview,
-            })
+            results.append(
+                {
+                    "path": rel,
+                    "size": size,
+                    "language": lang,
+                    "preview": preview,
+                }
+            )
 
         if len(results) >= _MAX_FILES:
             break
@@ -421,12 +527,14 @@ def scan_uploaded_files(files: list[dict]) -> list[dict]:
             lines = content.splitlines()
             preview = "\n".join(lines[:_PREVIEW_LINES])
 
-        results.append({
-            "path": path,
-            "size": len(content.encode()),
-            "language": lang,
-            "preview": preview,
-        })
+        results.append(
+            {
+                "path": path,
+                "size": len(content.encode()),
+                "language": lang,
+                "preview": preview,
+            }
+        )
 
     def sort_key(f):
         name = Path(f["path"]).name
