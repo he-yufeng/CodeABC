@@ -221,6 +221,9 @@ class Dependency(BaseModel):
     version: str = ""  # the declared version constraint, if any
     kind: str  # "runtime" | "dev" | "optional"
     manifest: str  # the manifest file it was declared in (requirements.txt, etc.)
+    # Plain-language note on what this library is for; None when the package is
+    # not in the curated dictionary.
+    purpose: str | None = None
 
 
 class ActivityWindow(BaseModel):

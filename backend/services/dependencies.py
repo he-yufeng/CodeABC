@@ -19,6 +19,8 @@ from __future__ import annotations
 import json
 import re
 
+from backend.services import package_purposes
+
 _RUNTIME = "runtime"
 _DEV = "dev"
 _OPTIONAL = "optional"
@@ -190,9 +192,10 @@ def scan_dependencies(file_contents: dict[str, str], *, limit: int = 200) -> dic
         limit: how many dependencies to return in the ranked list.
 
     Returns ``{"total", "dependencies", "manifests"}`` where each dependency is
-    ``{"name", "version", "kind", "manifest"}`` and ``kind`` is one of
-    ``runtime``, ``dev`` or ``optional``. A package seen in several roles is kept
-    once at its strongest role (runtime over dev over optional).
+    ``{"name", "version", "kind", "manifest", "purpose"}`` and ``kind`` is one of
+    ``runtime``, ``dev`` or ``optional``. ``purpose`` is a plain-language note for
+    well-known packages (``None`` otherwise). A package seen in several roles is
+    kept once at its strongest role (runtime over dev over optional).
     """
     best: dict[str, dict] = {}
     manifests: list[str] = []
@@ -206,6 +209,7 @@ def scan_dependencies(file_contents: dict[str, str], *, limit: int = 200) -> dic
                 "version": version.strip(),
                 "kind": kind,
                 "manifest": manifest,
+                "purpose": package_purposes.explain_package(name),
             }
 
     for path, content in file_contents.items():

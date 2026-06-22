@@ -257,6 +257,14 @@ export interface ActionPlan {
   notes: string[];
 }
 
+export interface Dependency {
+  name: string;
+  version: string;
+  kind: string; // "runtime" | "dev" | "optional"
+  manifest: string;
+  purpose?: string | null;
+}
+
 export interface ProjectMeta {
   id: string;
   name: string;
@@ -289,6 +297,7 @@ export interface ProjectMeta {
   error_handling?: ErrorHandling;
   integrations?: Integrations;
   action_plan?: ActionPlan;
+  dependencies?: Dependency[];
 }
 
 export interface Annotation {

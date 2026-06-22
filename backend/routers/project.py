@@ -224,7 +224,13 @@ def _content_analyses(
             for f in complex_files["files"]
         ],
         "dependencies": [
-            Dependency(name=d["name"], version=d["version"], kind=d["kind"], manifest=d["manifest"])
+            Dependency(
+                name=d["name"],
+                version=d["version"],
+                kind=d["kind"],
+                manifest=d["manifest"],
+                purpose=d.get("purpose"),
+            )
             for d in deps["dependencies"]
         ],
         "security": SecuritySummary(

@@ -403,6 +403,42 @@ export default function Overview() {
           </section>
         )}
 
+        {/* Third-party dependencies — what libraries it installs, each in plain words */}
+        {project && (project.dependencies?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("用了哪些第三方库", "Third-party libraries it uses")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "这个项目装了哪些现成的库，每个大概是干嘛的。常见的库给了大白话解释，没收录的只列名字。",
+                "The off-the-shelf libraries this project installs, and what each is for. Common ones get a plain-language note; the rest just list the name.",
+              )}
+            </p>
+            <ul className="space-y-2">
+              {project.dependencies!.map((d) => {
+                const kindLabel =
+                  d.kind === "dev"
+                    ? t("开发依赖", "dev")
+                    : d.kind === "optional"
+                      ? t("可选依赖", "optional")
+                      : t("运行依赖", "runtime");
+                return (
+                  <li key={`${d.manifest}-${d.name}`} className="text-sm">
+                    <span className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-gray-800">{d.name}</span>
+                      <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
+                        {kindLabel}
+                      </span>
+                    </span>
+                    {d.purpose && <p className="text-gray-600 mt-0.5">{d.purpose}</p>}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
         {/* Silent failures — where errors are swallowed without a trace */}
         {project && (project.error_handling?.findings?.length ?? 0) > 0 && (
           <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-red-400">
