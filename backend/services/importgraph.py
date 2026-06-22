@@ -242,8 +242,11 @@ def rank_hotspots(files: list[dict], *, limit: int = 8) -> list[dict]:
 
 def _coupling_reason(fan_out: int) -> str:
     if fan_out >= 5:
-        return f"它直接依赖 {fan_out} 个本地模块，耦合很高，是优先的重构/拆分候选。"
-    return f"它依赖 {fan_out} 个本地模块，耦合中等。"
+        return (
+            f"它自己要用到项目里另外 {fan_out} 个文件才能干活，牵扯太多——"
+            "改它容易顾此失彼，是最该考虑拆小、理顺的文件。"
+        )
+    return f"它要用到项目里另外 {fan_out} 个文件，牵扯一般。"
 
 
 def rank_coupling(files: list[dict], *, limit: int = 8) -> list[dict]:
@@ -509,8 +512,8 @@ def find_import_cycles(files: list[dict], *, limit: int = 8) -> list[dict]:
             "files": comp,
             "size": len(comp),
             "reason": (
-                f"这 {len(comp)} 个文件互相 import 形成依赖环，"
-                "建议放在一起读、并考虑解开循环以降低耦合。"
+                f"这 {len(comp)} 个文件互相缠在一起、谁也离不开谁（A 要用 B、B 又回头要用 A），"
+                "最好放在一起读；想改干净，得先把这种相互依赖解开。"
             ),
         }
         for comp in cycles[:limit]
@@ -544,8 +547,8 @@ def find_orphan_modules(files: list[dict], *, limit: int = 8) -> list[dict]:
                 "path": path,
                 "language": lang,
                 "reason": (
-                    "没有任何文件 import 它，它也不 import 项目里的其他文件，"
-                    "是脱离依赖图的孤岛——可能是死代码、独立脚本，或漏接的模块。"
+                    "项目里没有任何文件用到它，它也不用别的文件，像座孤岛——"
+                    "可能是没人再用的废弃代码、一个独立的小脚本，或者本该接上却漏接了的部分。"
                 ),
             }
         )
@@ -554,8 +557,11 @@ def find_orphan_modules(files: list[dict], *, limit: int = 8) -> list[dict]:
 
 def _blast_reason(blast: int, direct: int) -> str:
     if blast >= 5:
-        return f"改它会波及 {blast} 个文件（其中 {direct} 个直接依赖），改动前最该先评估影响范围。"
-    return f"改它大约波及 {blast} 个文件，影响范围中等。"
+        return (
+            f"改动它会连带影响 {blast} 个文件（其中 {direct} 个直接用到它），"
+            "动手前最该先掂量牵连有多大。"
+        )
+    return f"改动它大约连带影响 {blast} 个文件，牵连一般。"
 
 
 def rank_blast_radius(files: list[dict], *, limit: int = 8) -> list[dict]:
@@ -896,7 +902,7 @@ def render_codemap_markdown(project_name: str, files: list[dict]) -> str:
 
     cycles = find_import_cycles(files)
     if cycles:
-        lines.append("## 循环依赖（文件互相 import，建议理清）")
+        lines.append("## 循环依赖（几个文件互相用到对方，绕成一圈，建议理清）")
         lines.append("")
         for c in cycles:
             chain = " → ".join(f"`{p}`" for p in c["files"])
@@ -919,7 +925,7 @@ def render_codemap_markdown(project_name: str, files: list[dict]) -> str:
 
     orphans = find_orphan_modules(files)
     if orphans:
-        lines.append("## 可能没人用的文件（没有被其他文件 import）")
+        lines.append("## 可能没人用的文件（项目里没有别的文件用到它）")
         lines.append("")
         lines.extend(f"- `{o['path']}` — {o['reason']}" for o in orphans)
         lines.append("")
