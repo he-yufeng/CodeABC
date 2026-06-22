@@ -8,6 +8,7 @@ import {
   getGlossary,
   getProject,
   type Annotation,
+  type FilePurpose,
   type GlossaryTerm,
 } from "../lib/api";
 import { useI18n, LanguageToggle } from "../lib/i18n";
@@ -67,6 +68,7 @@ function FileContent({
     Boolean(projectId && decodedPath && !cachedAnnotations),
   );
   const [glossary, setGlossary] = useState<GlossaryTerm[]>([]);
+  const [purpose, setPurpose] = useState<FilePurpose | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Q&A: select code in the viewer, ask a question about it
@@ -153,6 +155,7 @@ function FileContent({
         if (!active) return;
         setCode(res.content);
         setLanguage(res.language);
+        setPurpose(res.purpose ?? null);
       })
       .catch((e) => {
         if (active) setError(e.message);
@@ -228,6 +231,25 @@ function FileContent({
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-6">
+        {/* What this file is, inferred from its name — helps a non-coder
+            who is staring at an unfamiliar filename. */}
+        {purpose && (
+          <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
+            <span className="text-lg leading-none">📄</span>
+            <div className="text-sm">
+              <span className="font-semibold text-amber-900">
+                {t("这个文件是什么", "What this file is")}
+              </span>
+              <span className="ml-2 rounded bg-amber-200 px-1.5 py-0.5 text-xs font-medium text-amber-900">
+                {purpose.kind}
+              </span>
+              <p className="mt-1 leading-relaxed text-amber-900/90">
+                {purpose.explanation}
+              </p>
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
             {error}

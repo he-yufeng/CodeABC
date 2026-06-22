@@ -386,11 +386,23 @@ export async function streamOverview(
   }
 }
 
+/** What a file conventionally is, inferred from its name alone. */
+export interface FilePurpose {
+  name: string;
+  kind: string;
+  explanation: string;
+}
+
 /** Get file content. */
 export async function getFileContent(
   projectId: string,
   filePath: string
-): Promise<{ path: string; language: string; content: string }> {
+): Promise<{
+  path: string;
+  language: string;
+  content: string;
+  purpose: FilePurpose | null;
+}> {
   const res = await apiFetch(
     `${BASE}/project/${projectId}/file/${encodeURIComponent(filePath)}`,
     { headers: getHeaders() }

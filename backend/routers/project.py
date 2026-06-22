@@ -67,6 +67,7 @@ from backend.services import (
     entrypoints,
     envscan,
     error_handling,
+    filenames,
     github_clone,
     glossary,
     importgraph,
@@ -487,7 +488,12 @@ async def get_file_content(project_id: str, file_path: str):
             lang = f["language"]
             break
 
-    return {"path": file_path, "language": lang, "content": content}
+    return {
+        "path": file_path,
+        "language": lang,
+        "content": content,
+        "purpose": filenames.explain_path(file_path),
+    }
 
 
 @router.get("/project/{project_id}/file/{file_path:path}/glossary", response_model=FileGlossary)
