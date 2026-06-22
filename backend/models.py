@@ -16,6 +16,10 @@ class ReadingStep(BaseModel):
     order: int
     path: str
     reason: str
+    # Plain-language category of the file (e.g. "数据结构", "测试代码"), inferred
+    # from its name so a non-coder can tell entries apart at a glance. None when
+    # the filename follows no known convention.
+    kind: str | None = None
 
 
 class Hotspot(BaseModel):

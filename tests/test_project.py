@@ -1,5 +1,29 @@
 from backend.models import ProjectMeta, UploadedFile
-from backend.routers.project import _content_analyses, _select_scanned_contents
+from backend.routers.project import (
+    _content_analyses,
+    _reading_steps,
+    _select_scanned_contents,
+)
+
+
+def test_reading_steps_tag_each_file_with_its_kind():
+    # The reading map should label entries by what kind of file they are, so a
+    # non-coder can tell them apart without opening each one.
+    files = [
+        {"path": "README.md", "content": "# Demo\n"},
+        {"path": "app/models.py", "content": "class User: ...\n"},
+        {"path": "app/urls.py", "content": "urlpatterns = []\n"},
+    ]
+    by_path = {s.path: s.kind for s in _reading_steps(files)}
+
+    # Only assert on files the map is guaranteed to surface (README always leads).
+    assert by_path.get("README.md") == "项目简介"
+    # Any file that does appear carries a kind drawn from the filename dictionary.
+    for step in _reading_steps(files):
+        if step.path == "app/models.py":
+            assert step.kind == "数据结构"
+        if step.path == "app/urls.py":
+            assert step.kind == "地址路由表"
 
 
 def test_select_scanned_contents_does_not_retain_filtered_files():

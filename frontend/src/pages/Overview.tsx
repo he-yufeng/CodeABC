@@ -99,8 +99,15 @@ export default function Overview() {
                       {step.order}
                     </span>
                     <span>
-                      <span className="block font-mono text-sm text-blue-600">
-                        {step.path}
+                      <span className="flex items-center gap-2">
+                        <span className="font-mono text-sm text-blue-600">
+                          {step.path}
+                        </span>
+                        {step.kind && (
+                          <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
+                            {step.kind}
+                          </span>
+                        )}
                       </span>
                       <span className="block text-sm text-gray-500 mt-0.5">
                         {step.reason}

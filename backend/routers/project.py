@@ -93,6 +93,17 @@ def _select_scanned_contents(files: list[UploadedFile], scanned: list[dict]) -> 
     return {file.path: file.content for file in files if file.path in allowed_paths}
 
 
+def _reading_steps(files: list[dict]) -> list["ReadingStep"]:
+    """Build the deterministic reading map, tagging each step with what kind of
+    file it is so a non-coder can tell ``urls.py`` from ``models.py`` without
+    opening either."""
+    steps = []
+    for step in scanner.build_reading_map(files):
+        purpose = filenames.explain_path(step["path"])
+        steps.append(ReadingStep(**step, kind=purpose["kind"] if purpose else None))
+    return steps
+
+
 def _activity_summary(data: dict | None) -> "ActivitySummary":
     """Reconstruct an ActivitySummary Pydantic model from a raw activity dict."""
     if not data:
@@ -272,7 +283,7 @@ async def upload_project(req: AnalyzeRequest):
         id=project_id,
         name=req.project_name,
         total_files=len(scanned),
-        reading_map=[ReadingStep(**step) for step in scanner.build_reading_map(scanned)],
+        reading_map=_reading_steps(scanned),
         hotspots=[Hotspot(**h) for h in importgraph.rank_hotspots(scanned)],
         code_walk=[CodeWalkStep(**s) for s in importgraph.suggest_reading_order(scanned)],
         import_cycles=[ImportCycle(**c) for c in importgraph.find_import_cycles(scanned)],
@@ -355,7 +366,7 @@ async def clone_github_project(req: GitHubRequest):
         id=project_id,
         name=repo_name,
         total_files=len(scanned),
-        reading_map=[ReadingStep(**step) for step in scanner.build_reading_map(scanned)],
+        reading_map=_reading_steps(scanned),
         hotspots=[Hotspot(**h) for h in importgraph.rank_hotspots(scanned)],
         code_walk=[CodeWalkStep(**s) for s in importgraph.suggest_reading_order(scanned)],
         import_cycles=[ImportCycle(**c) for c in importgraph.find_import_cycles(scanned)],
@@ -424,7 +435,7 @@ async def get_project(project_id: str):
         id=project_id,
         name=proj["name"],
         total_files=len(proj["files"]),
-        reading_map=[ReadingStep(**step) for step in scanner.build_reading_map(proj["files"])],
+        reading_map=_reading_steps(proj["files"]),
         hotspots=[Hotspot(**h) for h in importgraph.rank_hotspots(proj["files"])],
         code_walk=[CodeWalkStep(**s) for s in importgraph.suggest_reading_order(proj["files"])],
         import_cycles=[ImportCycle(**c) for c in importgraph.find_import_cycles(proj["files"])],

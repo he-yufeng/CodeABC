@@ -247,7 +247,12 @@ export interface ProjectMeta {
   name: string;
   total_files: number;
   files: FileInfo[];
-  reading_map?: { order: number; path: string; reason: string }[];
+  reading_map?: {
+    order: number;
+    path: string;
+    reason: string;
+    kind?: string | null;
+  }[];
   hotspots?: Hotspot[];
   architecture_layers?: ArchitectureLayer[];
   package_dependencies?: PackageDependency[];
