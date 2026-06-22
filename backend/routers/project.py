@@ -9,6 +9,8 @@ from fastapi.responses import Response
 
 from backend.models import (
     AnalyzeRequest,
+    ApiMap,
+    ApiRoute,
     ArchitectureLayer,
     BlastRadiusHotspot,
     ChurnHotspot,
@@ -39,6 +41,7 @@ from backend.models import (
     UploadedFile,
 )
 from backend.services import (
+    apimap,
     cache,
     churn,
     complexity,
@@ -82,6 +85,7 @@ def _content_analyses(
     complex_files = complexity.scan_complexity(file_contents)
     deps = dependencies.scan_dependencies(file_contents)
     sec = security.scan_security(file_contents)
+    api = apimap.scan_api_routes(file_contents)
     return {
         "knowledge_silos": [
             KnowledgeSilo(
@@ -122,6 +126,12 @@ def _content_analyses(
             critical=sec["critical"],
             findings=[SecurityFinding(**f) for f in sec["findings"]],
             notes=sec["notes"],
+        ),
+        "api_map": ApiMap(
+            total=api["total"],
+            routes=[ApiRoute(**r) for r in api["routes"]],
+            frameworks=api["frameworks"],
+            notes=api["notes"],
         ),
     }
 
@@ -422,6 +432,11 @@ async def get_codemap_markdown(project_id: str):
     )
     if security_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{security_md}"
+    apimap_md = apimap.render_apimap_markdown(
+        proj["name"], apimap.scan_api_routes(proj.get("file_contents", {}))
+    )
+    if apimap_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{apimap_md}"
     return Response(content=markdown, media_type="text/markdown; charset=utf-8")
 
 

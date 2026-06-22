@@ -172,6 +172,22 @@ class Dependency(BaseModel):
     manifest: str  # the manifest file it was declared in (requirements.txt, etc.)
 
 
+class ApiRoute(BaseModel):
+    method: str  # GET | POST | PUT | PATCH | DELETE | OPTIONS | HEAD | ANY | ALL
+    path: str  # the route path as declared in the source
+    handler: str = ""  # handler function / class name
+    description: str = ""  # brief description from docstring or annotation
+    file: str
+    line: int
+
+
+class ApiMap(BaseModel):
+    total: int = 0
+    routes: list[ApiRoute] = []
+    frameworks: list[str] = []  # detected framework names
+    notes: list[str] = []
+
+
 class SecurityFinding(BaseModel):
     file: str
     line: int
@@ -213,6 +229,7 @@ class ProjectMeta(BaseModel):
     complexity_files: list[ComplexFile] = []
     dependencies: list[Dependency] = []
     security: SecuritySummary | None = None
+    api_map: ApiMap | None = None
 
 
 class FileRole(BaseModel):
