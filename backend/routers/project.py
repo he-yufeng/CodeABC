@@ -16,6 +16,7 @@ from backend.models import (
     CodeWalkStep,
     ComplexFile,
     CouplingHotspot,
+    Dependency,
     EntryPoint,
     EnvVar,
     FileGlossary,
@@ -40,6 +41,7 @@ from backend.services import (
     churn,
     complexity,
     coverage,
+    dependencies,
     entrypoints,
     envscan,
     github_clone,
@@ -75,6 +77,7 @@ def _content_analyses(
     env = envscan.scan_env_vars(file_contents)
     entries = entrypoints.find_entry_points(file_contents)
     complex_files = complexity.scan_complexity(file_contents)
+    deps = dependencies.scan_dependencies(file_contents)
     return {
         "knowledge_silos": [
             KnowledgeSilo(
@@ -105,6 +108,10 @@ def _content_analyses(
                 reason=f["reason"],
             )
             for f in complex_files["files"]
+        ],
+        "dependencies": [
+            Dependency(name=d["name"], version=d["version"], kind=d["kind"], manifest=d["manifest"])
+            for d in deps["dependencies"]
         ],
     }
 
@@ -395,6 +402,11 @@ async def get_codemap_markdown(project_id: str):
     )
     if complexity_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{complexity_md}"
+    dependencies_md = dependencies.render_dependencies_markdown(
+        proj["name"], dependencies.scan_dependencies(proj.get("file_contents", {}))
+    )
+    if dependencies_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{dependencies_md}"
     return Response(content=markdown, media_type="text/markdown; charset=utf-8")
 
 

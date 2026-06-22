@@ -165,6 +165,13 @@ class ComplexFile(BaseModel):
     reason: str = ""
 
 
+class Dependency(BaseModel):
+    name: str
+    version: str = ""  # the declared version constraint, if any
+    kind: str  # "runtime" | "dev" | "optional"
+    manifest: str  # the manifest file it was declared in (requirements.txt, etc.)
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
@@ -189,6 +196,7 @@ class ProjectMeta(BaseModel):
     env_vars: list[EnvVar] = []
     entry_points: list[EntryPoint] = []
     complexity_files: list[ComplexFile] = []
+    dependencies: list[Dependency] = []
 
 
 class FileRole(BaseModel):
