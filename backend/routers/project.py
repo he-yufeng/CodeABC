@@ -32,6 +32,8 @@ from backend.models import (
     ProjectMeta,
     ReadingStep,
     RiskHotspot,
+    SecurityFinding,
+    SecuritySummary,
     TechDebtFile,
     TestCoverageSummary,
     UploadedFile,
@@ -50,6 +52,7 @@ from backend.services import (
     ownership,
     risk,
     scanner,
+    security,
     techdebt,
 )
 
@@ -78,6 +81,7 @@ def _content_analyses(
     entries = entrypoints.find_entry_points(file_contents)
     complex_files = complexity.scan_complexity(file_contents)
     deps = dependencies.scan_dependencies(file_contents)
+    sec = security.scan_security(file_contents)
     return {
         "knowledge_silos": [
             KnowledgeSilo(
@@ -113,6 +117,12 @@ def _content_analyses(
             Dependency(name=d["name"], version=d["version"], kind=d["kind"], manifest=d["manifest"])
             for d in deps["dependencies"]
         ],
+        "security": SecuritySummary(
+            total=sec["total"],
+            critical=sec["critical"],
+            findings=[SecurityFinding(**f) for f in sec["findings"]],
+            notes=sec["notes"],
+        ),
     }
 
 
@@ -407,6 +417,11 @@ async def get_codemap_markdown(project_id: str):
     )
     if dependencies_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{dependencies_md}"
+    security_md = security.render_security_markdown(
+        proj["name"], security.scan_security(proj.get("file_contents", {}))
+    )
+    if security_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{security_md}"
     return Response(content=markdown, media_type="text/markdown; charset=utf-8")
 
 

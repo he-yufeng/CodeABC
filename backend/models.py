@@ -172,6 +172,21 @@ class Dependency(BaseModel):
     manifest: str  # the manifest file it was declared in (requirements.txt, etc.)
 
 
+class SecurityFinding(BaseModel):
+    file: str
+    line: int
+    category: str  # "hardcoded_secret" | "dangerous_call" | "shell_injection" | "debug_mode"
+    snippet: str  # the matching line, truncated
+    reason: str  # plain-language explanation for a non-programmer
+
+
+class SecuritySummary(BaseModel):
+    total: int = 0
+    critical: int = 0  # hardcoded_secret + dangerous_call count (non-test files)
+    findings: list[SecurityFinding] = []
+    notes: list[str] = []
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str
@@ -197,6 +212,7 @@ class ProjectMeta(BaseModel):
     entry_points: list[EntryPoint] = []
     complexity_files: list[ComplexFile] = []
     dependencies: list[Dependency] = []
+    security: SecuritySummary | None = None
 
 
 class FileRole(BaseModel):
