@@ -145,6 +145,23 @@ class TechDebtFile(BaseModel):
     count: int  # number of TODO/FIXME/HACK/XXX markers in the file
 
 
+class DocCoverageFile(BaseModel):
+    path: str
+    code_lines: int
+    comment_lines: int
+    ratio: int  # 0-100, comment/(code+comment) as a percentage
+    reason: str
+
+
+class DocCoverage(BaseModel):
+    total_source_files: int = 0
+    documented_files: int = 0
+    undocumented_files: int = 0
+    doc_percent: int = 0  # 0-100, documented source files / total source files
+    under_documented: list[DocCoverageFile] = []  # ranked by code size
+    notes: list[str] = []
+
+
 class EnvVar(BaseModel):
     name: str
     required: bool  # read via os.environ["X"] somewhere, so it must be set
@@ -282,6 +299,7 @@ class ProjectMeta(BaseModel):
     activity: ActivitySummary | None = None
     health_score: HealthScore | None = None
     action_plan: ActionPlan | None = None
+    doc_coverage: DocCoverage | None = None
 
 
 class FileRole(BaseModel):

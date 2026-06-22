@@ -24,6 +24,8 @@ from backend.models import (
     ComplexFile,
     CouplingHotspot,
     Dependency,
+    DocCoverage,
+    DocCoverageFile,
     EntryPoint,
     EnvVar,
     FileGlossary,
@@ -57,6 +59,7 @@ from backend.services import (
     complexity,
     coverage,
     dependencies,
+    docs,
     entrypoints,
     envscan,
     github_clone,
@@ -168,6 +171,7 @@ def _content_analyses(
     deps = dependencies.scan_dependencies(file_contents)
     sec = security.scan_security(file_contents)
     api = apimap.scan_api_routes(file_contents)
+    doc = docs.assess_doc_coverage(file_contents)
     return {
         "knowledge_silos": [
             KnowledgeSilo(
@@ -214,6 +218,14 @@ def _content_analyses(
             routes=[ApiRoute(**r) for r in api["routes"]],
             frameworks=api["frameworks"],
             notes=api["notes"],
+        ),
+        "doc_coverage": DocCoverage(
+            total_source_files=doc["total_source_files"],
+            documented_files=doc["documented_files"],
+            undocumented_files=doc["undocumented_files"],
+            doc_percent=doc["doc_percent"],
+            under_documented=[DocCoverageFile(**f) for f in doc["under_documented"]],
+            notes=doc["notes"],
         ),
     }
 
@@ -539,6 +551,11 @@ async def get_codemap_markdown(project_id: str):
     )
     if apimap_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{apimap_md}"
+    docs_md = docs.render_doc_coverage_markdown(
+        proj["name"], docs.assess_doc_coverage(proj.get("file_contents", {}))
+    )
+    if docs_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{docs_md}"
     activity_md = activity.render_activity_markdown(proj["name"], proj.get("activity"))
     if activity_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{activity_md}"
