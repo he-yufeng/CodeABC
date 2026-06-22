@@ -8,6 +8,9 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 
 from backend.models import (
+    ActivityContributor,
+    ActivitySummary,
+    ActivityWindow,
     AnalyzeRequest,
     ApiMap,
     ApiRoute,
@@ -41,6 +44,7 @@ from backend.models import (
     UploadedFile,
 )
 from backend.services import (
+    activity,
     apimap,
     cache,
     churn,
@@ -68,6 +72,24 @@ _projects: dict[str, dict] = {}
 def _select_scanned_contents(files: list[UploadedFile], scanned: list[dict]) -> dict[str, str]:
     allowed_paths = {file["path"] for file in scanned}
     return {file.path: file.content for file in files if file.path in allowed_paths}
+
+
+def _activity_summary(data: dict | None) -> "ActivitySummary":
+    """Reconstruct an ActivitySummary Pydantic model from a raw activity dict."""
+    if not data:
+        return ActivitySummary()
+    return ActivitySummary(
+        available=data.get("available", False),
+        total_commits=data.get("total_commits", 0),
+        first_commit_days_ago=data.get("first_commit_days_ago"),
+        last_commit_days_ago=data.get("last_commit_days_ago"),
+        label=data.get("label", ""),
+        label_zh=data.get("label_zh", ""),
+        windows={k: ActivityWindow(**v) for k, v in data.get("windows", {}).items()},
+        top_contributors=[ActivityContributor(**c) for c in data.get("top_contributors", [])],
+        recently_changed=data.get("recently_changed", []),
+        notes=data.get("notes", []),
+    )
 
 
 def _content_analyses(
@@ -217,6 +239,7 @@ async def clone_github_project(req: GitHubRequest):
     scanned_paths = {f["path"] for f in scanned}
     churn_result = churn.analyze_churn(git_log, scanned_paths=scanned_paths)
     ownership_result = ownership.analyze_ownership(git_log, scanned_paths=scanned_paths)
+    activity_result = activity.analyze_activity(git_log)
 
     repo_name = req.url.rstrip("/").split("/")[-1].replace(".git", "")
     proj_data = {
@@ -225,6 +248,7 @@ async def clone_github_project(req: GitHubRequest):
         "file_contents": file_contents,
         "churn": churn_result,
         "ownership": ownership_result,
+        "activity": activity_result,
     }
     _projects[project_id] = proj_data
     await cache.save_project(project_id, proj_data)
@@ -257,6 +281,7 @@ async def clone_github_project(req: GitHubRequest):
             )
         ],
         test_coverage=TestCoverageSummary(**coverage.assess_test_coverage(scanned)),
+        activity=_activity_summary(activity_result),
         **_content_analyses(file_contents, ownership_result.get("silos")),
         files=[
             FileInfo(
@@ -321,6 +346,7 @@ async def get_project(project_id: str):
             )
         ],
         test_coverage=TestCoverageSummary(**coverage.assess_test_coverage(proj["files"])),
+        activity=_activity_summary(proj.get("activity")),
         **_content_analyses(
             proj.get("file_contents", {}), (proj.get("ownership") or {}).get("silos")
         ),

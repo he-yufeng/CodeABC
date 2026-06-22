@@ -172,6 +172,30 @@ class Dependency(BaseModel):
     manifest: str  # the manifest file it was declared in (requirements.txt, etc.)
 
 
+class ActivityWindow(BaseModel):
+    commits: int = 0
+    authors: list[str] = []
+    files: list[str] = []
+
+
+class ActivityContributor(BaseModel):
+    author: str
+    commits: int
+
+
+class ActivitySummary(BaseModel):
+    available: bool = False
+    total_commits: int = 0
+    first_commit_days_ago: float | None = None
+    last_commit_days_ago: float | None = None
+    label: str = ""  # active | slowing | quiet | stale | abandoned | unknown
+    label_zh: str = ""
+    windows: dict[str, ActivityWindow] = {}
+    top_contributors: list[ActivityContributor] = []
+    recently_changed: list[str] = []
+    notes: list[str] = []
+
+
 class ApiRoute(BaseModel):
     method: str  # GET | POST | PUT | PATCH | DELETE | OPTIONS | HEAD | ANY | ALL
     path: str  # the route path as declared in the source
@@ -230,6 +254,7 @@ class ProjectMeta(BaseModel):
     dependencies: list[Dependency] = []
     security: SecuritySummary | None = None
     api_map: ApiMap | None = None
+    activity: ActivitySummary | None = None
 
 
 class FileRole(BaseModel):
