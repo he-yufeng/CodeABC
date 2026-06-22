@@ -403,6 +403,57 @@ export default function Overview() {
           </section>
         )}
 
+        {/* API endpoints — the URLs a web project exposes to the outside */}
+        {project && (project.api_map?.routes?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("对外提供的接口", "Endpoints it exposes")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "如果这是一个网络服务，下面是它对外开放的地址（接口）。每条是「用什么方式访问 + 访问哪个地址 + 由哪段代码处理」。",
+                "If this is a web service, these are the addresses (endpoints) it opens up — each is a method, a path, and the code that handles it.",
+              )}
+              {(project.api_map?.frameworks?.length ?? 0) > 0 && (
+                <span className="ml-1 text-gray-400">
+                  {t("框架", "framework")}: {project.api_map!.frameworks.join(", ")}
+                </span>
+              )}
+            </p>
+            <ul className="space-y-1.5">
+              {project.api_map!.routes.map((r, i) => {
+                const m = r.method.toUpperCase();
+                const cls = m.startsWith("GET")
+                  ? "bg-green-100 text-green-700"
+                  : m.startsWith("POST")
+                    ? "bg-blue-100 text-blue-700"
+                    : m.startsWith("DELETE")
+                      ? "bg-red-100 text-red-700"
+                      : m === "PUT" || m === "PATCH"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-gray-100 text-gray-500";
+                return (
+                  <li key={`${r.file}-${r.line}-${i}`} className="text-sm flex items-baseline gap-2 flex-wrap">
+                    <span className={`rounded px-1.5 py-0.5 text-xs font-mono font-medium ${cls}`}>
+                      {m}
+                    </span>
+                    <span className="font-mono text-gray-800">{r.path}</span>
+                    {r.handler && <span className="text-xs text-gray-400">{r.handler}</span>}
+                    {r.file && (
+                      <button
+                        onClick={() => handleFileClick(r.file)}
+                        className="font-mono text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        {r.file}:{r.line}
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
         {/* Third-party dependencies — what libraries it installs, each in plain words */}
         {project && (project.dependencies?.length ?? 0) > 0 && (
           <section className="bg-white rounded-xl p-6 shadow-sm mb-6">

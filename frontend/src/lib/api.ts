@@ -265,6 +265,22 @@ export interface Dependency {
   purpose?: string | null;
 }
 
+export interface ApiRoute {
+  method: string;
+  path: string;
+  handler?: string;
+  description?: string;
+  file: string;
+  line: number;
+}
+
+export interface ApiMap {
+  total: number;
+  routes: ApiRoute[];
+  frameworks: string[];
+  notes: string[];
+}
+
 export interface ProjectMeta {
   id: string;
   name: string;
@@ -298,6 +314,7 @@ export interface ProjectMeta {
   integrations?: Integrations;
   action_plan?: ActionPlan;
   dependencies?: Dependency[];
+  api_map?: ApiMap;
 }
 
 export interface Annotation {
