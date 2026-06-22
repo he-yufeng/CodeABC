@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import pytest
-
 from backend.services.security import (
     _is_real_secret,
     _is_test_file,
     render_security_markdown,
     scan_security,
 )
-
 
 # ---------------------------------------------------------------------------
 # _is_real_secret helper
