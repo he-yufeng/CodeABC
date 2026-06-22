@@ -336,6 +336,17 @@ def render_health_score_markdown(project_name: str, data: dict | None) -> str:
         w = int(weights.get(key, 0) * 100)
         lines.append(f"| {label} | {s} | {w}% |")
 
+    lines += [
+        "",
+        "> 维度说明（每项满分 100，越高越好）："
+        "**安全性**＝有没有把密码写死在代码里、用了危险写法等隐患；"
+        "**测试覆盖**＝有多少代码配了自动测试兜底，改动后能第一时间发现问题；"
+        "**活跃度**＝最近还有没有人在维护更新；"
+        "**代码复杂度**＝逻辑绕不绕、新人好不好读懂；"
+        "**技术债**＝代码里堆了多少迟早要还的「烂账」（TODO、临时凑合的写法）；"
+        "**架构健康**＝文件之间的依赖关系清不清爽、乱不乱。",
+    ]
+
     strengths = data.get("strengths", [])
     if strengths:
         lines += ["", "## 做得好的地方", ""]
