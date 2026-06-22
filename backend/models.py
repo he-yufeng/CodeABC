@@ -162,6 +162,21 @@ class DocCoverage(BaseModel):
     notes: list[str] = []
 
 
+class SilentFailure(BaseModel):
+    path: str
+    line: int
+    category: str  # "bare_except" | "swallowed" | "empty_catch"
+    snippet: str
+    reason: str  # plain-language explanation for a non-programmer
+
+
+class ErrorHandling(BaseModel):
+    total: int = 0
+    files_affected: int = 0
+    findings: list[SilentFailure] = []  # ranked worst-first
+    notes: list[str] = []
+
+
 class EnvVar(BaseModel):
     name: str
     required: bool  # read via os.environ["X"] somewhere, so it must be set
@@ -300,6 +315,7 @@ class ProjectMeta(BaseModel):
     health_score: HealthScore | None = None
     action_plan: ActionPlan | None = None
     doc_coverage: DocCoverage | None = None
+    error_handling: ErrorHandling | None = None
 
 
 class FileRole(BaseModel):

@@ -28,6 +28,7 @@ from backend.models import (
     DocCoverageFile,
     EntryPoint,
     EnvVar,
+    ErrorHandling,
     FileGlossary,
     FileInfo,
     GitHubRequest,
@@ -44,6 +45,7 @@ from backend.models import (
     RiskHotspot,
     SecurityFinding,
     SecuritySummary,
+    SilentFailure,
     TechDebtFile,
     TestCoverageSummary,
     UploadedFile,
@@ -62,6 +64,7 @@ from backend.services import (
     docs,
     entrypoints,
     envscan,
+    error_handling,
     github_clone,
     glossary,
     importgraph,
@@ -172,6 +175,7 @@ def _content_analyses(
     sec = security.scan_security(file_contents)
     api = apimap.scan_api_routes(file_contents)
     doc = docs.assess_doc_coverage(file_contents)
+    silent = error_handling.find_swallowed_errors(file_contents)
     return {
         "knowledge_silos": [
             KnowledgeSilo(
@@ -226,6 +230,12 @@ def _content_analyses(
             doc_percent=doc["doc_percent"],
             under_documented=[DocCoverageFile(**f) for f in doc["under_documented"]],
             notes=doc["notes"],
+        ),
+        "error_handling": ErrorHandling(
+            total=silent["total"],
+            files_affected=silent["files_affected"],
+            findings=[SilentFailure(**f) for f in silent["findings"]],
+            notes=silent["notes"],
         ),
     }
 
@@ -556,6 +566,11 @@ async def get_codemap_markdown(project_id: str):
     )
     if docs_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{docs_md}"
+    silent_md = error_handling.render_error_handling_markdown(
+        proj["name"], error_handling.find_swallowed_errors(proj.get("file_contents", {}))
+    )
+    if silent_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{silent_md}"
     activity_md = activity.render_activity_markdown(proj["name"], proj.get("activity"))
     if activity_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{activity_md}"
