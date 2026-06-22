@@ -195,6 +195,53 @@ export interface ComplexFile {
   reason: string;
 }
 
+export interface DocCoverageFile {
+  path: string;
+  code_lines: number;
+  comment_lines: number;
+  ratio: number;
+  reason: string;
+}
+
+export interface DocCoverage {
+  total_source_files: number;
+  documented_files: number;
+  undocumented_files: number;
+  doc_percent: number;
+  under_documented: DocCoverageFile[];
+  notes: string[];
+}
+
+export interface SilentFailure {
+  path: string;
+  line: number;
+  category: string;
+  snippet: string;
+  reason: string;
+}
+
+export interface ErrorHandling {
+  total: number;
+  files_affected: number;
+  findings: SilentFailure[];
+  notes: string[];
+}
+
+export interface ExternalService {
+  name: string;
+  category: string;
+  note: string;
+  file_count: number;
+  example: string;
+}
+
+export interface Integrations {
+  total: number;
+  services: ExternalService[];
+  categories: Record<string, number>;
+  notes: string[];
+}
+
 export interface ProjectMeta {
   id: string;
   name: string;
@@ -218,6 +265,9 @@ export interface ProjectMeta {
   env_vars?: EnvVar[];
   entry_points?: EntryPoint[];
   complexity_files?: ComplexFile[];
+  doc_coverage?: DocCoverage;
+  error_handling?: ErrorHandling;
+  integrations?: Integrations;
 }
 
 export interface Annotation {

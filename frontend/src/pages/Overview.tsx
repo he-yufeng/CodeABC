@@ -307,6 +307,88 @@ export default function Overview() {
           </section>
         )}
 
+        {/* External services — what accounts / keys you need to run it */}
+        {project && (project.integrations?.services?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-purple-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("外部服务依赖", "External services it depends on")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "想在自己电脑上把它跑起来，下面这些服务的账号或密钥可能绕不开（有些按使用量收费）。",
+                "To run this on your own machine you'll likely need accounts or keys for these services (some bill by usage).",
+              )}
+            </p>
+            <ul className="space-y-2">
+              {project.integrations!.services.map((s) => (
+                <li key={s.name} className="text-sm">
+                  <span className="font-medium text-purple-700">{s.name}</span>
+                  <span className="ml-2 text-xs text-gray-400">({s.category})</span>
+                  <p className="text-gray-600 mt-0.5">{s.note}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Silent failures — where errors are swallowed without a trace */}
+        {project && (project.error_handling?.findings?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-red-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("静默失败的地方", "Where errors are silently swallowed")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "这些地方把错误接住后什么都不做：出问题时既不报错也不留日志，是 bug 最容易长期藏身的角落。",
+                "These catch an error and then do nothing — a real failure leaves no error and no log, the corner where bugs hide longest.",
+              )}
+            </p>
+            <ul className="space-y-2">
+              {project.error_handling!.findings.map((f) => (
+                <li key={`${f.path}:${f.line}`}>
+                  <button
+                    onClick={() => handleFileClick(f.path)}
+                    className="w-full text-left hover:text-blue-700"
+                  >
+                    <span className="font-mono text-sm text-blue-600">
+                      {f.path}:{f.line}
+                    </span>
+                    <p className="text-xs text-gray-600 mt-0.5">{f.reason}</p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Documentation coverage — code that's there but unexplained */}
+        {project && (project.doc_coverage?.under_documented?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-sky-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("最该补文档的文件", "Files that most need documentation")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                `${project.doc_coverage!.total_source_files} 个源文件里约 ${project.doc_coverage!.doc_percent}% 带注释或文档。下面这些「代码不少、却几乎没解释」的文件，对刚接手的人最难读、改起来最容易踩坑。`,
+                `About ${project.doc_coverage!.doc_percent}% of ${project.doc_coverage!.total_source_files} source files carry comments or docs. These have plenty of code but almost no explanation — the hardest to read and the riskiest to change blind.`,
+              )}
+            </p>
+            <ul className="space-y-2">
+              {project.doc_coverage!.under_documented.map((d) => (
+                <li key={d.path}>
+                  <button
+                    onClick={() => handleFileClick(d.path)}
+                    className="w-full text-left hover:text-blue-700"
+                  >
+                    <span className="font-mono text-sm text-blue-600">{d.path}</span>
+                    <p className="text-xs text-gray-600 mt-0.5">{d.reason}</p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Environment variables the code reads — the setup checklist */}
         {project && (project.env_vars?.length ?? 0) > 0 && (
           <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-sky-400">
