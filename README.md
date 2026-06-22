@@ -67,6 +67,22 @@ CodeABC builds a small import graph from the scanned files and ranks them by fan
 
 A blunt but useful question when you're sizing up code you didn't write — work you outsourced, say: does it actually have tests? CodeABC pairs each source file with the test files that exercise it, both by import and by the usual `test_scanner.py` / `scanner.test.ts` naming, then shows the share of files that are covered. More usefully, it ranks the *untested* files by how many other files depend on them: an untested file that half the project imports is exactly where a quiet regression spreads furthest, so it sits at the top of the "worth covering first" list with a plain-language note on why. A green progress bar gives the at-a-glance number; the list tells you where to look. Like the other maps it is deterministic and needs no API key.
 
+### What Does This File Even Do?
+
+`conftest.py`, `serializers.py`, `__init__.py`, `urls.py`, `Dockerfile` — to a developer these names are self-explanatory; to everyone else they are a wall. Open any file and CodeABC puts a one-line plain-language note at the top telling you what a file with that name usually is: that `__init__.py` just marks a folder as a package and is often empty, that `conftest.py` holds shared test setup and isn't project logic, that a `migrations/` file is an auto-generated database change you rarely need to read. It works off the filename alone, matching from the most specific convention down to a bare extension, so it is instant, needs no API key, and is right before the AI has said a word.
+
+### Does It Talk to the Outside World?
+
+Before trusting a script you didn't write, you usually want to know what it reaches out to: which AI provider, which cloud, which database, whether it moves money. CodeABC reads the imports and the hostnames in the code and lists the external services it depends on — OpenAI, AWS, a Postgres database, a Stripe payment call — each with a plain note on what that dependency means and why you might care. No API key required.
+
+### Where Do Errors Get Swallowed?
+
+The most dangerous line in a codebase is often the one that quietly hides a problem: a bare `except:` that catches everything, an empty `catch {}` that throws the error away, a failure that gets logged and then ignored. To a non-coder these are invisible; to a maintainer they are where bugs go to hide. CodeABC flags these silent-failure spots and explains, in everyday terms, why "the program kept going as if nothing happened" can be worse than crashing loudly.
+
+### Which Files Are Begging for Docs?
+
+Not every file needs a comment, but the ones that other files lean on heavily and that still have almost no explanation are the ones that cost a newcomer the most. CodeABC scores each file on how under-documented it is relative to how central it is, and surfaces the handful that would help the most if someone wrote a few sentences at the top. It is a reading aid as much as a writing one: these are usually the files worth understanding first.
+
 ## Tech Stack
 
 | Layer | Choice | Why |
