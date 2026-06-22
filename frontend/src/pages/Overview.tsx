@@ -146,6 +146,71 @@ export default function Overview() {
           </section>
         )}
 
+        {/* Priority action plan: turns every analysis into a ranked "what do
+            I fix first?" list — the obvious next question after the health score. */}
+        {project && (project.action_plan?.items.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-blue-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("先做什么？", "What to fix first")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "把上面所有的体检结果拧成一句话：如果你只有时间做几件事，按这个顺序做。每条都标了大概多大工程量。",
+                "Every check above, distilled into one ordered list — if you only have time for a few things, do them in this order. Each is tagged with roughly how big the job is.",
+              )}
+            </p>
+            <ol className="space-y-3">
+              {project.action_plan!.items.map((item, i) => {
+                const prio =
+                  item.priority === "high"
+                    ? { zh: "高", en: "high", cls: "bg-red-100 text-red-700" }
+                    : item.priority === "medium"
+                      ? { zh: "中", en: "medium", cls: "bg-amber-100 text-amber-700" }
+                      : { zh: "低", en: "low", cls: "bg-gray-100 text-gray-500" };
+                const effort =
+                  item.effort === "small"
+                    ? t("小改动", "small")
+                    : item.effort === "large"
+                      ? t("大工程", "large")
+                      : t("中等", "medium");
+                return (
+                  <li key={`${item.title}-${i}`} className="flex gap-3">
+                    <span className="w-6 h-6 shrink-0 rounded-full bg-blue-50 text-blue-700 text-sm flex items-center justify-center">
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className={`rounded px-1.5 py-0.5 text-xs font-medium ${prio.cls}`}
+                        >
+                          {t(prio.zh, prio.en)}
+                        </span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {item.title}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {t("工程量", "effort")}: {effort}
+                        </span>
+                      </div>
+                      {item.detail && (
+                        <p className="text-sm text-gray-500 mt-0.5">{item.detail}</p>
+                      )}
+                      {item.target && (
+                        <button
+                          onClick={() => handleFileClick(item.target)}
+                          className="font-mono text-xs text-blue-600 hover:text-blue-800 mt-0.5"
+                        >
+                          {item.target}
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        )}
+
         {/* Risk hotspots: fuse import centrality with git churn (where bugs concentrate) */}
         {project && (project.risk_hotspots?.length ?? 0) > 0 && (
           <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-amber-400">

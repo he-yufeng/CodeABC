@@ -242,6 +242,21 @@ export interface Integrations {
   notes: string[];
 }
 
+export interface ActionItem {
+  priority: string; // "high" | "medium" | "low"
+  category: string;
+  title: string;
+  target: string;
+  detail: string;
+  effort: string; // "small" | "medium" | "large"
+}
+
+export interface ActionPlan {
+  total: number;
+  items: ActionItem[];
+  notes: string[];
+}
+
 export interface ProjectMeta {
   id: string;
   name: string;
@@ -273,6 +288,7 @@ export interface ProjectMeta {
   doc_coverage?: DocCoverage;
   error_handling?: ErrorHandling;
   integrations?: Integrations;
+  action_plan?: ActionPlan;
 }
 
 export interface Annotation {
