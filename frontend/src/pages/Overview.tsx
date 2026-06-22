@@ -146,6 +146,73 @@ export default function Overview() {
           </section>
         )}
 
+        {/* Is the project still alive? — git activity tells you whether code
+            you're evaluating is maintained or effectively abandoned. */}
+        {project && project.activity?.available && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("还在维护吗？", "Is it still maintained?")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "从 git 提交历史看这个项目的「生命体征」：还在更新，还是已经没人动了。",
+                "The project's vital signs, read from its git history — still moving, or effectively abandoned.",
+              )}
+            </p>
+            {(() => {
+              const a = project.activity!;
+              const lbl = a.label;
+              const cls =
+                lbl === "active"
+                  ? "bg-green-100 text-green-700"
+                  : lbl === "slowing"
+                    ? "bg-amber-100 text-amber-700"
+                    : lbl === "abandoned"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-gray-100 text-gray-500";
+              return (
+                <>
+                  <div className="flex items-center gap-3 flex-wrap mb-3">
+                    <span className={`rounded px-2 py-0.5 text-sm font-medium ${cls}`}>
+                      {t(a.label_zh || lbl, lbl)}
+                    </span>
+                    {a.last_commit_days_ago != null && (
+                      <span className="text-sm text-gray-600">
+                        {t(
+                          `最近一次提交：${Math.round(a.last_commit_days_ago)} 天前`,
+                          `last commit ${Math.round(a.last_commit_days_ago)} days ago`,
+                        )}
+                      </span>
+                    )}
+                    <span className="text-sm text-gray-400">
+                      {t(`共 ${a.total_commits} 次提交`, `${a.total_commits} commits`)}
+                    </span>
+                  </div>
+                  {a.top_contributors.length > 0 && (
+                    <p className="text-sm text-gray-500">
+                      {t("主要贡献者：", "Top contributors: ")}
+                      {a.top_contributors
+                        .slice(0, 5)
+                        .map((c) => `${c.author} (${c.commits})`)
+                        .join(" · ")}
+                    </p>
+                  )}
+                  {a.notes.length > 0 && (
+                    <ul className="mt-2 space-y-1">
+                      {a.notes.map((n) => (
+                        <li key={n} className="flex gap-2 text-sm text-gray-600">
+                          <span className="text-blue-500">•</span>
+                          <span>{n}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              );
+            })()}
+          </section>
+        )}
+
         {/* Priority action plan: turns every analysis into a ranked "what do
             I fix first?" list — the obvious next question after the health score. */}
         {project && (project.action_plan?.items.length ?? 0) > 0 && (

@@ -281,6 +281,22 @@ export interface ApiMap {
   notes: string[];
 }
 
+export interface ActivityContributor {
+  author: string;
+  commits: number;
+}
+
+export interface ActivitySummary {
+  available: boolean;
+  total_commits: number;
+  first_commit_days_ago?: number | null;
+  last_commit_days_ago?: number | null;
+  label: string; // active | slowing | quiet | stale | abandoned | unknown
+  label_zh: string;
+  top_contributors: ActivityContributor[];
+  notes: string[];
+}
+
 export interface ProjectMeta {
   id: string;
   name: string;
@@ -315,6 +331,7 @@ export interface ProjectMeta {
   action_plan?: ActionPlan;
   dependencies?: Dependency[];
   api_map?: ApiMap;
+  activity?: ActivitySummary;
 }
 
 export interface Annotation {
