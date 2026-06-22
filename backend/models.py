@@ -206,6 +206,21 @@ class HealthScore(BaseModel):
     notes: list[str] = []
 
 
+class ActionItem(BaseModel):
+    priority: str  # "high" | "medium" | "low"
+    category: str  # security | test_coverage | complexity | architecture | tech_debt
+    title: str
+    target: str = ""  # file path, or "" when not file-specific
+    detail: str = ""
+    effort: str = "medium"  # "small" | "medium" | "large"
+
+
+class ActionPlan(BaseModel):
+    total: int = 0
+    items: list[ActionItem] = []
+    notes: list[str] = []
+
+
 class ApiRoute(BaseModel):
     method: str  # GET | POST | PUT | PATCH | DELETE | OPTIONS | HEAD | ANY | ALL
     path: str  # the route path as declared in the source
@@ -266,6 +281,7 @@ class ProjectMeta(BaseModel):
     api_map: ApiMap | None = None
     activity: ActivitySummary | None = None
     health_score: HealthScore | None = None
+    action_plan: ActionPlan | None = None
 
 
 class FileRole(BaseModel):

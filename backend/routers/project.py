@@ -8,6 +8,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 
 from backend.models import (
+    ActionItem,
+    ActionPlan,
     ActivityContributor,
     ActivitySummary,
     ActivityWindow,
@@ -43,6 +45,9 @@ from backend.models import (
     TechDebtFile,
     TestCoverageSummary,
     UploadedFile,
+)
+from backend.services import (
+    action_plan as action_plan_svc,
 )
 from backend.services import (
     activity,
@@ -122,6 +127,28 @@ def _compute_health_score(meta: "ProjectMeta") -> dict:
         import_cycles=[c.model_dump() for c in meta.import_cycles],
         orphan_modules=[o.model_dump() for o in meta.orphan_modules],
         total_files=meta.total_files,
+    )
+
+
+def _action_plan_summary(data: dict | None) -> "ActionPlan":
+    """Reconstruct an ActionPlan Pydantic model from a raw build_action_plan dict."""
+    if not data:
+        return ActionPlan()
+    return ActionPlan(
+        total=data.get("total", 0),
+        items=[ActionItem(**i) for i in data.get("items", [])],
+        notes=data.get("notes", []),
+    )
+
+
+def _compute_action_plan(meta: "ProjectMeta") -> dict:
+    """Derive the priority action plan from an already-built ProjectMeta."""
+    return action_plan_svc.build_action_plan(
+        security=meta.security.model_dump() if meta.security else None,
+        test_coverage=meta.test_coverage.model_dump() if meta.test_coverage else None,
+        complexity_files=[f.model_dump() for f in meta.complexity_files],
+        tech_debt_files=[f.model_dump() for f in meta.tech_debt_files],
+        import_cycles=[c.model_dump() for c in meta.import_cycles],
     )
 
 
@@ -239,10 +266,13 @@ async def upload_project(req: AnalyzeRequest):
         ],
     )
     hs_result = _compute_health_score(meta)
+    ap_result = _compute_action_plan(meta)
     proj_data["health_score"] = hs_result
+    proj_data["action_plan"] = ap_result
     _projects[project_id] = proj_data
     await cache.save_project(project_id, proj_data)
     meta.health_score = _health_score_summary(hs_result)
+    meta.action_plan = _action_plan_summary(ap_result)
     return meta
 
 
@@ -329,10 +359,13 @@ async def clone_github_project(req: GitHubRequest):
         ],
     )
     hs_result = _compute_health_score(meta)
+    ap_result = _compute_action_plan(meta)
     proj_data["health_score"] = hs_result
+    proj_data["action_plan"] = ap_result
     _projects[project_id] = proj_data
     await cache.save_project(project_id, proj_data)
     meta.health_score = _health_score_summary(hs_result)
+    meta.action_plan = _action_plan_summary(ap_result)
     return meta
 
 
@@ -389,6 +422,7 @@ async def get_project(project_id: str):
         test_coverage=TestCoverageSummary(**coverage.assess_test_coverage(proj["files"])),
         activity=_activity_summary(proj.get("activity")),
         health_score=_health_score_summary(proj.get("health_score")),
+        action_plan=_action_plan_summary(proj.get("action_plan")),
         **_content_analyses(
             proj.get("file_contents", {}), (proj.get("ownership") or {}).get("silos")
         ),
@@ -511,6 +545,9 @@ async def get_codemap_markdown(project_id: str):
     hs_md = health_score_svc.render_health_score_markdown(proj["name"], proj.get("health_score"))
     if hs_md:
         markdown = f"{markdown.rstrip()}\n\n---\n\n{hs_md}"
+    ap_md = action_plan_svc.render_action_plan_markdown(proj["name"], proj.get("action_plan"))
+    if ap_md:
+        markdown = f"{markdown.rstrip()}\n\n---\n\n{ap_md}"
     return Response(content=markdown, media_type="text/markdown; charset=utf-8")
 
 
