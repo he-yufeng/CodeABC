@@ -159,12 +159,25 @@ export default function Overview() {
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-3">
-                      {Object.entries(h.category_scores).map(([cat, sc]) => (
-                        <div key={cat} className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">{cat}</span>
-                          <span className="font-mono text-gray-800">{sc}</span>
-                        </div>
-                      ))}
+                      {Object.entries(h.category_scores).map(([cat, sc]) => {
+                        const labels: Record<string, [string, string]> = {
+                          security: ["安全", "security"],
+                          test_coverage: ["测试覆盖", "test coverage"],
+                          activity: ["活跃度", "activity"],
+                          complexity: ["复杂度", "complexity"],
+                          tech_debt: ["技术债", "tech debt"],
+                          architecture: ["架构", "architecture"],
+                        };
+                        const lab = labels[cat];
+                        return (
+                          <div key={cat} className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">
+                              {lab ? t(lab[0], lab[1]) : cat}
+                            </span>
+                            <span className="font-mono text-gray-800">{sc}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                     {(h.strengths.length > 0 || h.weaknesses.length > 0) && (
                       <div className="mt-4 grid gap-4 sm:grid-cols-2">
