@@ -59,7 +59,33 @@ def test_file_dependencies_both_directions():
 
 def test_file_dependencies_unknown_file_is_empty():
     files = [_py("app.py", "import config\n"), _py("config.py", "X = 1\n")]
-    assert file_dependencies(files, "missing.py") == {"imports": [], "imported_by": []}
+    assert file_dependencies(files, "missing.py") == {
+        "imports": [],
+        "imported_by": [],
+        "blast_radius": 0,
+        "blast_files": [],
+        "change_impact": "没有别的文件用到它，改它不会牵连项目里其他文件，可以放心改。",
+    }
+
+
+def test_file_dependencies_includes_transitive_blast_radius():
+    # a -> b -> c -> d (each imports the next); changing d ripples up to c, b, a.
+    files = [
+        _py("a.py", "import b\n"),
+        _py("b.py", "import c\n"),
+        _py("c.py", "import d\n"),
+        _py("d.py", "X = 1\n"),
+    ]
+    d = file_dependencies(files, "d.py")
+    assert d["imported_by"] == ["c.py"]  # only c imports d directly
+    assert d["blast_radius"] == 3  # c, b and a all transitively depend on d
+    assert d["blast_files"] == ["a.py", "b.py", "c.py"]
+    assert "3 个文件" in d["change_impact"]
+
+    # a top entry that nothing imports is safe to change: empty blast radius.
+    a = file_dependencies(files, "a.py")
+    assert a["blast_radius"] == 0
+    assert a["change_impact"] == "没有别的文件用到它，改它不会牵连项目里其他文件，可以放心改。"
 
 
 def test_ranks_files_by_fan_out_coupling():

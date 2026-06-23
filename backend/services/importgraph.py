@@ -438,21 +438,53 @@ def _build_import_graph(
     return by_path, imports, fan_in
 
 
-def file_dependencies(files: list[dict], target: str) -> dict:
-    """What a single file connects to, both directions.
+def _file_change_impact(blast: int, direct: int) -> str:
+    if blast == 0:
+        return "没有别的文件用到它，改它不会牵连项目里其他文件，可以放心改。"
+    if blast == direct:
+        return f"有 {direct} 个文件直接用到它，改它前最好看一眼这几个文件会不会受影响。"
+    return (
+        f"有 {direct} 个文件直接用到它，顺着依赖链一共会牵连约 {blast} 个文件——"
+        "改它要格外小心，最好连带检查这些受影响的文件。"
+    )
 
-    Returns ``{"imports", "imported_by"}`` — the in-project files ``target``
-    imports, and the in-project files that import ``target`` — each sorted so a
-    reader of one file can see "this uses X and Y" and "A and B rely on this"
-    without reading the whole graph. Paths outside the scanned set (third-party
-    / stdlib) are already excluded by the graph builder. Empty lists when the
-    file stands alone or isn't in the project.
+
+def file_dependencies(files: list[dict], target: str) -> dict:
+    """What a single file connects to, plus how far a change to it would reach.
+
+    Returns ``{"imports", "imported_by", "blast_radius", "blast_files",
+    "change_impact"}`` — the in-project files ``target`` imports, the files that
+    import it directly, and the *transitive* set that would be in scope if it
+    changed (its importers, their importers, and so on). ``change_impact`` puts
+    that in plain language so a reader of one file can tell "is this safe to
+    change, and what should I check?" without reading the whole graph. Paths
+    outside the scanned set (third-party / stdlib) are excluded by the graph
+    builder; lists are empty and counts zero when the file stands alone or isn't
+    in the project.
     """
     posix_target = _posix(target)
     _by_path, imports, fan_in = _build_import_graph(files)
+
+    # reverse BFS along fan-in edges: every file that (transitively) imports the
+    # target and would therefore be touched by a change to it.
+    blast: set[str] = set()
+    queue: deque[str] = deque(fan_in.get(posix_target, ()))
+    while queue:
+        dep = queue.popleft()
+        if dep in blast or dep == posix_target:
+            continue
+        blast.add(dep)
+        for upstream in fan_in.get(dep, ()):
+            if upstream not in blast and upstream != posix_target:
+                queue.append(upstream)
+
+    direct = len(fan_in.get(posix_target, set()))
     return {
         "imports": sorted(imports.get(posix_target, set())),
         "imported_by": sorted(fan_in.get(posix_target, set())),
+        "blast_radius": len(blast),
+        "blast_files": sorted(blast)[:_MAX_DEPENDENTS],
+        "change_impact": _file_change_impact(len(blast), direct),
     }
 
 
