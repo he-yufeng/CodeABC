@@ -206,21 +206,22 @@ CodeABC/
 
 ## Roadmap
 
-- [x] Project overview generation
-- [x] Hover annotations (Python priority)
-- [x] Terminology dictionary (hover keywords for definitions)
-- [x] Natural language editing ("change the stock from Maotai to BYD")
-- [x] Q&A mode (select code and ask questions)
-- [x] Multi-language UI (English interface)
-- [x] Test-coverage map (which files have tests; untested core files ranked by risk)
-- [x] Git-history insight (change hotspots, co-change coupling, and code ownership / knowledge silos)
-- [x] Tech-debt map (collect the codebase's own TODO/FIXME/HACK/XXX markers, ranked by file)
-- [x] Env-var surface (the environment variables a project reads, split into required vs optional)
-- [x] Entry-point detection (where execution starts: `__main__` scripts, declared console commands, conventional entry files)
-- [x] Logic-complexity ranking (which Python files carry the most tangled branching, from the AST — a different axis than centrality or churn)
-- [x] One-command launcher (`run.py` / `start.bat` — builds, serves, and opens the app)
-- [x] Single-process serving (the backend serves the built UI; one URL, no separate dev server)
-- [x] Native desktop app (Tauri — `npm run tauri:build` wraps the same UI in a native window)
+### Shipped
+
+The reading experience is already complete end to end: a plain-language project manual, hover annotations, a terminology dictionary, natural-language editing, and snippet Q&A, all in a bilingual UI you launch with one command (or as a native Tauri desktop app). On top of that sit a dozen deterministic, no-API-key maps — reading map, core-module ranking, test coverage, git-history hotspots and ownership, tech-debt markers, env-var surface, entry points, external integrations, silent-failure spots, under-documented files, and logic complexity.
+
+### Planned
+
+These are the directions I want to take next, roughly in priority order:
+
+- **Pull-request reading mode** — paste a PR link and get the diff explained in plain language: what changed, why it might matter, and which files to look at first. This is the most-requested extension and a natural fit for the existing annotation engine.
+- **Whole-project chat** — Q&A today is grounded in one file or snippet; the next step is a conversation that can reach across the project's maps and source at once, while staying honest about what it actually read.
+- **Shareable report export** — turn the generated manual and maps into a single self-contained HTML/PDF you can hand to a non-technical stakeholder, no server required.
+- **Annotation coverage beyond Python** — hover annotations lead with Python today; bringing JavaScript/TypeScript and Go up to the same depth is mostly prompt and tokenizer work.
+- **Persistent project library** — the project store is in-memory and single-process today; a small on-disk library would let you reopen past analyses without re-scanning.
+- **Jump-to-definition reading** — click a function or import and jump to where it's defined or used, so reading a call doesn't mean losing your place.
+
+Have an idea or a codebase that confuses CodeABC? Open an issue — the roadmap is shaped by what real non-coders get stuck on.
 
 ## Contributing
 
