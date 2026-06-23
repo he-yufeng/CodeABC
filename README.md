@@ -217,7 +217,11 @@ Issues and PRs welcome. This project is in early development.
 
 ## Related projects
 
+Other tools I build for reading and understanding code:
+
 - [RepoWiki](https://github.com/he-yufeng/RepoWiki) — generate wiki documentation for any codebase
+- [GitSense](https://github.com/he-yufeng/GitSense) — find open-source issues to work on and gauge how hard a repo is to contribute to
+- [RuleForge](https://github.com/he-yufeng/RuleForge) — auto-generate AI assistant rules (CLAUDE.md, .cursorrules) from a codebase
 
 ## License
 

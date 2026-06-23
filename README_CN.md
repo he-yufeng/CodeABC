@@ -194,6 +194,14 @@ npm run tauri:dev
 
 欢迎提 Issue 和 PR。项目处于早期开发阶段。
 
+## 相关项目
+
+我做的其他「读代码 / 懂代码」工具：
+
+- [RepoWiki](https://github.com/he-yufeng/RepoWiki) —— 给任意代码库生成 wiki 文档
+- [GitSense](https://github.com/he-yufeng/GitSense) —— 找可以上手的开源 issue、评估一个仓库的贡献难度
+- [RuleForge](https://github.com/he-yufeng/RuleForge) —— 从代码库自动生成 AI 助手规则（CLAUDE.md、.cursorrules）
+
 ## 许可证
 
 MIT
