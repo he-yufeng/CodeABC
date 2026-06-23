@@ -61,6 +61,7 @@ from backend.services import (
     apimap,
     cache,
     churn,
+    codemap_export,
     complexity,
     coverage,
     dependencies,
@@ -564,85 +565,7 @@ async def get_codemap_markdown(project_id: str):
     proj = await _resolve_project(project_id)
     if not proj:
         raise HTTPException(404, "Project not found")
-    markdown = importgraph.render_codemap_markdown(proj["name"], proj["files"])
-    risk_md = risk.render_risk_markdown(
-        risk.rank_risk(
-            importgraph.rank_hotspots(proj["files"], limit=500),
-            (proj.get("churn") or {}).get("hotspots", []),
-        )
-    )
-    if risk_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{risk_md}"
-    churn_md = churn.render_churn_markdown(proj["name"], proj.get("churn"))
-    if churn_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{churn_md}"
-    ownership_md = ownership.render_ownership_markdown(proj["name"], proj.get("ownership"))
-    if ownership_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{ownership_md}"
-    coverage_md = coverage.render_coverage_markdown(
-        proj["name"], coverage.assess_test_coverage(proj["files"])
-    )
-    if coverage_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{coverage_md}"
-    techdebt_md = techdebt.render_techdebt_markdown(
-        proj["name"], techdebt.scan_tech_debt(proj.get("file_contents", {}))
-    )
-    if techdebt_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{techdebt_md}"
-    env_md = envscan.render_env_markdown(
-        proj["name"], envscan.scan_env_vars(proj.get("file_contents", {}))
-    )
-    if env_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{env_md}"
-    entrypoints_md = entrypoints.render_entrypoints_markdown(
-        proj["name"], entrypoints.find_entry_points(proj.get("file_contents", {}))
-    )
-    if entrypoints_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{entrypoints_md}"
-    complexity_md = complexity.render_complexity_markdown(
-        proj["name"], complexity.scan_complexity(proj.get("file_contents", {}))
-    )
-    if complexity_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{complexity_md}"
-    dependencies_md = dependencies.render_dependencies_markdown(
-        proj["name"], dependencies.scan_dependencies(proj.get("file_contents", {}))
-    )
-    if dependencies_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{dependencies_md}"
-    security_md = security.render_security_markdown(
-        proj["name"], security.scan_security(proj.get("file_contents", {}))
-    )
-    if security_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{security_md}"
-    apimap_md = apimap.render_apimap_markdown(
-        proj["name"], apimap.scan_api_routes(proj.get("file_contents", {}))
-    )
-    if apimap_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{apimap_md}"
-    docs_md = docs.render_doc_coverage_markdown(
-        proj["name"], docs.assess_doc_coverage(proj.get("file_contents", {}))
-    )
-    if docs_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{docs_md}"
-    silent_md = error_handling.render_error_handling_markdown(
-        proj["name"], error_handling.find_swallowed_errors(proj.get("file_contents", {}))
-    )
-    if silent_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{silent_md}"
-    integ_md = integrations.render_integrations_markdown(
-        proj["name"], integrations.detect_external_services(proj.get("file_contents", {}))
-    )
-    if integ_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{integ_md}"
-    activity_md = activity.render_activity_markdown(proj["name"], proj.get("activity"))
-    if activity_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{activity_md}"
-    hs_md = health_score_svc.render_health_score_markdown(proj["name"], proj.get("health_score"))
-    if hs_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{hs_md}"
-    ap_md = action_plan_svc.render_action_plan_markdown(proj["name"], proj.get("action_plan"))
-    if ap_md:
-        markdown = f"{markdown.rstrip()}\n\n---\n\n{ap_md}"
+    markdown = codemap_export.build_codemap_markdown(proj)
     return Response(content=markdown, media_type="text/markdown; charset=utf-8")
 
 
