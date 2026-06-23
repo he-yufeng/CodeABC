@@ -1,5 +1,6 @@
 from backend.services.importgraph import (
     assign_architecture_layers,
+    file_dependencies,
     find_import_cycles,
     find_orphan_modules,
     rank_blast_radius,
@@ -36,6 +37,29 @@ def test_ranks_python_files_by_fan_in():
     assert hotspots[0]["dependents"] == ["app.py", "service.py"]
     assert hotspots[1]["path"] == "config.py"
     assert hotspots[1]["fan_in"] == 1
+
+
+def test_file_dependencies_both_directions():
+    files = [
+        _py("app.py", "from utils import helper\nfrom service import run\n"),
+        _py("service.py", "from utils import helper\n"),
+        _py("utils.py", "def helper():\n    return 1\n"),
+    ]
+
+    # utils is imported by both app and service, imports nothing in-project.
+    utils = file_dependencies(files, "utils.py")
+    assert utils["imports"] == []
+    assert utils["imported_by"] == ["app.py", "service.py"]
+
+    # service imports utils and is imported by app.
+    service = file_dependencies(files, "service.py")
+    assert service["imports"] == ["utils.py"]
+    assert service["imported_by"] == ["app.py"]
+
+
+def test_file_dependencies_unknown_file_is_empty():
+    files = [_py("app.py", "import config\n"), _py("config.py", "X = 1\n")]
+    assert file_dependencies(files, "missing.py") == {"imports": [], "imported_by": []}
 
 
 def test_ranks_files_by_fan_out_coupling():

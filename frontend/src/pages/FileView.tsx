@@ -6,6 +6,7 @@ import {
   getFileContent,
   getAnnotations,
   getGlossary,
+  getFileDependencies,
   getProject,
   type Annotation,
   type FilePurpose,
@@ -55,7 +56,10 @@ function FileContent({
   onBack: () => void;
 }) {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const { annotationsCache, cacheAnnotations } = useProjectStore();
+  const openFile = (path: string) =>
+    navigate(`/project/${projectId}/file/${encodeURIComponent(path)}`);
   const cachedAnnotations = decodedPath ? annotationsCache[decodedPath] : undefined;
 
   const [code, setCode] = useState("");
@@ -69,6 +73,8 @@ function FileContent({
   );
   const [glossary, setGlossary] = useState<GlossaryTerm[]>([]);
   const [purpose, setPurpose] = useState<FilePurpose | null>(null);
+  const [imports, setImports] = useState<string[]>([]);
+  const [importedBy, setImportedBy] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Q&A: select code in the viewer, ask a question about it
@@ -182,6 +188,18 @@ function FileContent({
         if (active) setGlossary([]);
       });
 
+    getFileDependencies(projectId, decodedPath)
+      .then((res) => {
+        if (!active) return;
+        setImports(res.imports);
+        setImportedBy(res.imported_by);
+      })
+      .catch(() => {
+        if (!active) return;
+        setImports([]);
+        setImportedBy([]);
+      });
+
     return () => {
       active = false;
     };
@@ -279,6 +297,65 @@ function FileContent({
               language={language}
               annotations={annotations}
             />
+          </div>
+        )}
+
+        {/* What this file connects to — its place in the project, no LLM */}
+        {(imports.length > 0 || importedBy.length > 0) && (
+          <div className="mt-6 bg-white rounded-xl shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("这个文件连到哪", "How this file connects")}
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "它用到了项目里的哪些文件，又被哪些文件用到。点一下就能跳过去看。",
+                "Which project files this one uses, and which ones rely on it. Click to jump.",
+              )}
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                  {t(`它用到（${imports.length}）`, `It uses (${imports.length})`)}
+                </h4>
+                {imports.length > 0 ? (
+                  <ul className="space-y-1">
+                    {imports.map((p) => (
+                      <li key={p}>
+                        <button
+                          onClick={() => openFile(p)}
+                          className="font-mono text-xs text-blue-600 hover:text-blue-800 break-all text-left"
+                        >
+                          {p}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-gray-400">{t("不依赖项目里的其他文件。", "Depends on no other project files.")}</p>
+                )}
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                  {t(`谁用到它（${importedBy.length}）`, `Used by (${importedBy.length})`)}
+                </h4>
+                {importedBy.length > 0 ? (
+                  <ul className="space-y-1">
+                    {importedBy.map((p) => (
+                      <li key={p}>
+                        <button
+                          onClick={() => openFile(p)}
+                          className="font-mono text-xs text-blue-600 hover:text-blue-800 break-all text-left"
+                        >
+                          {p}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-gray-400">{t("没有别的文件用到它。", "No other file relies on it.")}</p>
+                )}
+              </div>
+            </div>
           </div>
         )}
 

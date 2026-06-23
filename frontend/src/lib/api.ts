@@ -569,3 +569,22 @@ export async function getGlossary(
   if (!res.ok) throw new Error("Failed to get glossary");
   return res.json();
 }
+
+export interface FileDependencies {
+  path: string;
+  imports: string[];
+  imported_by: string[];
+}
+
+/** What a single file imports and is imported by, inside the project. */
+export async function getFileDependencies(
+  projectId: string,
+  filePath: string
+): Promise<FileDependencies> {
+  const res = await apiFetch(
+    `${BASE}/project/${projectId}/file/${encodeURIComponent(filePath)}/dependencies`,
+    { headers: getHeaders() }
+  );
+  if (!res.ok) throw new Error("Failed to get dependencies");
+  return res.json();
+}

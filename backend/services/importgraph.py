@@ -438,6 +438,24 @@ def _build_import_graph(
     return by_path, imports, fan_in
 
 
+def file_dependencies(files: list[dict], target: str) -> dict:
+    """What a single file connects to, both directions.
+
+    Returns ``{"imports", "imported_by"}`` — the in-project files ``target``
+    imports, and the in-project files that import ``target`` — each sorted so a
+    reader of one file can see "this uses X and Y" and "A and B rely on this"
+    without reading the whole graph. Paths outside the scanned set (third-party
+    / stdlib) are already excluded by the graph builder. Empty lists when the
+    file stands alone or isn't in the project.
+    """
+    posix_target = _posix(target)
+    _by_path, imports, fan_in = _build_import_graph(files)
+    return {
+        "imports": sorted(imports.get(posix_target, set())),
+        "imported_by": sorted(fan_in.get(posix_target, set())),
+    }
+
+
 def _strongly_connected_components(imports: dict[str, set[str]]) -> list[list[str]]:
     """Tarjan's SCC algorithm (iterative, so deep graphs don't blow the stack).
 

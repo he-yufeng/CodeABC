@@ -391,6 +391,12 @@ class FileGlossary(BaseModel):
     terms: list[GlossaryTerm] = []
 
 
+class FileDependencies(BaseModel):
+    path: str
+    imports: list[str] = []  # in-project files this file imports
+    imported_by: list[str] = []  # in-project files that import this file
+
+
 class GitHubRequest(BaseModel):
     url: str = Field(..., pattern=r"^https?://github\.com/.+/.+")
 

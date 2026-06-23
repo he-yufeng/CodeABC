@@ -30,6 +30,7 @@ from backend.models import (
     EnvVar,
     ErrorHandling,
     ExternalService,
+    FileDependencies,
     FileGlossary,
     FileInfo,
     GitHubRequest,
@@ -530,6 +531,30 @@ async def get_file_glossary(project_id: str, file_path: str):
     return FileGlossary(
         path=file_path,
         terms=[GlossaryTerm(**t) for t in glossary.scan_terms(content)],
+    )
+
+
+@router.get(
+    "/project/{project_id}/file/{file_path:path}/dependencies",
+    response_model=FileDependencies,
+)
+async def get_file_dependencies(project_id: str, file_path: str):
+    """Return what a single file connects to inside the project.
+
+    Deterministic (no LLM): the in-project files this file imports, and the ones
+    that import it — so a reader sees "this uses X" and "Y relies on this".
+    """
+    proj = await _resolve_project(project_id)
+    if not proj:
+        raise HTTPException(404, "Project not found")
+    if proj.get("file_contents", {}).get(file_path) is None:
+        raise HTTPException(404, f"File not found: {file_path}")
+
+    deps = importgraph.file_dependencies(proj["files"], file_path)
+    return FileDependencies(
+        path=file_path,
+        imports=deps["imports"],
+        imported_by=deps["imported_by"],
     )
 
 
