@@ -1,9 +1,14 @@
-# CodeABC (码上懂)
+<div align="center">
+
+<img src="docs/banner.png" alt="CodeABC — read code without learning to code" width="100%">
 
 [![Python](https://img.shields.io/badge/python-3.10+-blue)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![CI](https://github.com/he-yufeng/CodeABC/actions/workflows/ci.yml/badge.svg)](https://github.com/he-yufeng/CodeABC/actions)
-[![中文](https://img.shields.io/badge/lang-中文-red)](README_CN.md)
+
+[**Quick Start**](#run-it) · [**How It Works**](#how-it-works) · [**Features**](#features) · [中文](README_CN.md)
+
+</div>
 
 **Read code without learning to code.** An AI-powered code reader built for non-programmers.
 
@@ -14,6 +19,12 @@ Cursor and VS Code are Swiss army knives for developers. CodeABC is a magnifying
 More and more non-programmers need to deal with code: grad students running Python data analysis scripts, product managers reviewing what developers built, founders evaluating outsourced code quality. But every existing tool assumes you already know how to code.
 
 **AI can already explain code perfectly.** What's missing is a product that wraps this capability in a UX designed for people who don't code.
+
+## How It Works
+
+![CodeABC architecture](docs/architecture.png)
+
+Drop in a folder or paste a GitHub link. CodeABC scans the project (skipping build output, caches, and secret-shaped files), builds **instant deterministic maps that need no API key** — a reading map, core-module ranking, test-coverage view, and more — then layers AI explanations on top: a plain-language project manual, line-by-line hover annotations, and a Q&A box. Everything shows up in a bilingual browser UI.
 
 ## Features
 
