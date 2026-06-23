@@ -1,8 +1,16 @@
-# 码上懂 CodeABC
+<div align="center">
+
+<img src="docs/banner.png" alt="CodeABC — 不用学编程也能读懂代码" width="100%">
+
+[![Python](https://img.shields.io/badge/python-3.10+-blue)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![CI](https://github.com/he-yufeng/CodeABC/actions/workflows/ci.yml/badge.svg)](https://github.com/he-yufeng/CodeABC/actions)
+
+[**快速开始**](#快速开始) · [**工作原理**](#工作原理) · [**功能**](#功能) · [English](README.md)
+
+</div>
 
 **不用学编程，也能读懂代码。** 一款面向零编程基础用户的 AI 代码阅读工具。
-
-[English README](README.md)
 
 Cursor/VS Code 是给程序员用的瑞士军刀，码上懂是给普通人用的放大镜 -- 让你像读文章一样读代码，像批注文章一样理解代码。
 
@@ -19,6 +27,12 @@ Cursor/VS Code 是给程序员用的瑞士军刀，码上懂是给普通人用�
 | 编程入门者 | 在学 Python，但课程代码看不懂 |
 
 **AI 已经能完美解释代码了，缺的是一款把这个能力包装成好用体验的产品。**
+
+## 工作原理
+
+![CodeABC 架构](docs/architecture.png)
+
+拖入一个文件夹或粘贴 GitHub 链接。码上懂扫描项目（跳过构建产物、缓存和疑似密钥的文件），先生成**无需 API key 的即时确定性图谱**——阅读路线图、核心模块排序、测试覆盖视图等，再在上面叠加 AI 解释：大白话项目说明书、逐行悬停批注、问答框。一切都在双语浏览器界面里呈现。
 
 ## 功能
 
