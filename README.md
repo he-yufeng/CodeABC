@@ -215,6 +215,10 @@ CodeABC/
 
 Issues and PRs welcome. This project is in early development.
 
+## Related projects
+
+- [RepoWiki](https://github.com/he-yufeng/RepoWiki) — generate wiki documentation for any codebase
+
 ## License
 
 MIT
