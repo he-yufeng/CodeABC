@@ -8,6 +8,13 @@ from collections.abc import AsyncGenerator
 
 import litellm
 
+# Some models reject a custom temperature: gpt-5 / gpt-5-mini / gpt-5-codex and
+# the o1 / o3 reasoning families only accept the default (temperature=1) and
+# error on `temperature=0.3`. Since gpt-5-mini is our default OpenAI model, let
+# litellm silently drop any param a given model doesn't support instead of
+# crashing the request — models that do support temperature still honor it.
+litellm.drop_params = True
+
 logger = logging.getLogger(__name__)
 
 # Default model for a direct-provider key (OpenAI etc.). gpt-5-mini is the

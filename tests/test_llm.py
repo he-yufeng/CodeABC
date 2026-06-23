@@ -17,6 +17,16 @@ def test_default_without_key():
     assert llm._resolve_model() == "gpt-5-mini"
 
 
+def test_litellm_drops_unsupported_params():
+    # gpt-5 / o1 / o3 models reject a custom temperature; importing the llm
+    # module must enable litellm.drop_params so those requests don't crash
+    # (regression: a user hit UnsupportedParamsError on temperature=0.3 with the
+    # default gpt-5-mini).
+    import litellm
+
+    assert litellm.drop_params is True
+
+
 def test_openrouter_key_auto_routes():
     # an sk-or- key with no model picks the OpenRouter default
     assert llm._resolve_model("sk-or-v1-abc") == "openrouter/deepseek/deepseek-v4-flash"
