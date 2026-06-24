@@ -824,13 +824,22 @@ export default function Overview() {
                   "No AI needed — a structural overview computed straight from the import graph.",
                 )}
               </p>
-              <a
-                href={`/api/project/${projectId}/codemap.md`}
-                download={`${project.name || "codemap"}-codemap.md`}
-                className="inline-block text-sm text-blue-600 hover:underline mb-4"
-              >
-                {t("↓ 下载为 Markdown", "↓ Download as Markdown")}
-              </a>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4">
+                <a
+                  href={`/api/project/${projectId}/codemap.md`}
+                  download={`${project.name || "codemap"}-codemap.md`}
+                  className="inline-block text-sm text-blue-600 hover:underline"
+                >
+                  {t("↓ 下载为 Markdown", "↓ Download as Markdown")}
+                </a>
+                <a
+                  href={`/api/project/${projectId}/report.html`}
+                  download={`${project.name || "codemap"}-report.html`}
+                  className="inline-block text-sm text-blue-600 hover:underline"
+                >
+                  {t("↓ 下载网页报告（可离线发给同事）", "↓ Download HTML report (offline, shareable)")}
+                </a>
+              </div>
 
               {project.hotspots && project.hotspots.length > 0 && (
                 <div className="mb-5">
