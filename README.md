@@ -208,7 +208,7 @@ CodeABC/
 
 ### Shipped
 
-The reading experience is already complete end to end: a plain-language project manual, hover annotations, a terminology dictionary, natural-language editing, and snippet Q&A, all in a bilingual UI you launch with one command (or as a native Tauri desktop app). On top of that sit a dozen deterministic, no-API-key maps — reading map, core-module ranking, test coverage, git-history hotspots and ownership, tech-debt markers, env-var surface, entry points, external integrations, silent-failure spots, under-documented files, and logic complexity. It all exports offline too: every map stitches into a single `codemap.md`, or a self-contained HTML report you can email to a non-technical stakeholder — no server, no API key, nothing fetched from the network. Analyses also persist to a small on-disk library (`GET /api/projects`), so you can list past projects and reopen one without remembering its id or re-scanning.
+The reading experience is already complete end to end: a plain-language project manual, hover annotations, a terminology dictionary, natural-language editing, and snippet Q&A, all in a bilingual UI you launch with one command (or as a native Tauri desktop app). On top of that sit a dozen deterministic, no-API-key maps — reading map, core-module ranking, a project-wide definition index (look up any name and jump to where it's declared), test coverage, git-history hotspots and ownership, tech-debt markers, env-var surface, entry points, external integrations, silent-failure spots, under-documented files, and logic complexity. It all exports offline too: every map stitches into a single `codemap.md`, or a self-contained HTML report you can email to a non-technical stakeholder — no server, no API key, nothing fetched from the network. Analyses also persist to a small on-disk library (`GET /api/projects`), so you can list past projects and reopen one without remembering its id or re-scanning.
 
 ### Planned
 
@@ -217,7 +217,7 @@ These are the directions I want to take next, roughly in priority order:
 - **Pull-request reading mode** — paste a PR link and get the diff explained in plain language: what changed, why it might matter, and which files to look at first. This is the most-requested extension and a natural fit for the existing annotation engine.
 - **Whole-project chat** — Q&A today is grounded in one file or snippet; the next step is a conversation that can reach across the project's maps and source at once, while staying honest about what it actually read.
 - **Annotation coverage beyond Python** — hover annotations lead with Python today; bringing JavaScript/TypeScript and Go up to the same depth is mostly prompt and tokenizer work.
-- **Jump-to-definition reading** — click a function or import and jump to where it's defined or used, so reading a call doesn't mean losing your place.
+- **Find-all-references** — the definition index already answers "where is this declared?" (`GET /api/project/{id}/definition?name=...`); the other half is "where is it used?", so clicking a name shows every call site, not just the declaration.
 
 Have an idea or a codebase that confuses CodeABC? Open an issue — the roadmap is shaped by what real non-coders get stuck on.
 

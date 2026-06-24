@@ -23,6 +23,8 @@ from backend.models import (
     CodeWalkStep,
     ComplexFile,
     CouplingHotspot,
+    Definition,
+    DefinitionMatches,
     Dependency,
     DocCoverage,
     DocCoverageFile,
@@ -80,6 +82,7 @@ from backend.services import (
     risk,
     scanner,
     security,
+    symbols,
     techdebt,
 )
 from backend.services import (
@@ -582,6 +585,27 @@ async def get_file_dependencies(project_id: str, file_path: str):
         path=file_path,
         imports=deps["imports"],
         imported_by=deps["imported_by"],
+    )
+
+
+@router.get("/project/{project_id}/definition", response_model=DefinitionMatches)
+async def get_definition(project_id: str, name: str):
+    """Return where a name is defined — the jump-to-definition lookup.
+
+    Deterministic (no LLM): click a function, class, or import and find the
+    file and line that declares it. Tries an exact match, then a
+    case-insensitive one, and returns every place a shared name is defined.
+    """
+    proj = await _resolve_project(project_id)
+    if not proj:
+        raise HTTPException(404, "Project not found")
+
+    matches = symbols.find_definition(proj.get("file_contents", {}), name)
+    return DefinitionMatches(
+        name=name,
+        total=len(matches),
+        definitions=[Definition(**m) for m in matches],
+        notes=[] if matches else [f"No definition of '{name}' found in this project."],
     )
 
 

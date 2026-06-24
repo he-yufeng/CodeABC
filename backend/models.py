@@ -406,6 +406,25 @@ class FileDependencies(BaseModel):
     imported_by: list[str] = []  # in-project files that import this file
 
 
+class Definition(BaseModel):
+    name: str
+    qualname: str = ""  # "Class.method" for methods, plain name otherwise
+    kind: str  # function | class | method
+    parent: str | None = None  # enclosing class for a method
+    lang: str = ""  # python | js
+    file: str
+    line: int
+
+
+class DefinitionMatches(BaseModel):
+    """Where a clicked name is defined — the jump-to-definition payload."""
+
+    name: str  # the queried name
+    total: int = 0  # number of places that define it
+    definitions: list[Definition] = []
+    notes: list[str] = []
+
+
 class GitHubRequest(BaseModel):
     url: str = Field(..., pattern=r"^https?://github\.com/.+/.+")
 

@@ -107,3 +107,42 @@ def test_list_projects_endpoint_merges_persisted_and_in_memory(tmp_path, monkeyp
     assert by_id["persisted"].created_at is not None
     assert by_id["memory-only"].name == "仅内存"
     assert by_id["memory-only"].created_at is None  # not persisted yet
+
+
+def test_definition_endpoint_returns_location(monkeypatch):
+    # Jump-to-definition: looking up a name returns the file and line that
+    # declares it, drawn from the project's loaded file contents.
+    import asyncio
+
+    from backend.routers import project as project_router
+
+    source = "class Scanner:\n    def scan(self):\n        pass\n"
+    monkeypatch.setattr(
+        project_router,
+        "_projects",
+        {"p1": {"file_contents": {"app/scanner.py": source}}},
+    )
+
+    result = asyncio.run(project_router.get_definition("p1", "scan"))
+
+    assert result.name == "scan"
+    assert result.total == 1
+    hit = result.definitions[0]
+    assert hit.file == "app/scanner.py"
+    assert hit.line == 2
+    assert hit.kind == "method"
+    assert hit.parent == "Scanner"
+
+
+def test_definition_endpoint_reports_missing_name(monkeypatch):
+    import asyncio
+
+    from backend.routers import project as project_router
+
+    monkeypatch.setattr(project_router, "_projects", {"p1": {"file_contents": {"a.py": "x = 1\n"}}})
+
+    result = asyncio.run(project_router.get_definition("p1", "nope"))
+
+    assert result.total == 0
+    assert result.definitions == []
+    assert any("nope" in n for n in result.notes)
