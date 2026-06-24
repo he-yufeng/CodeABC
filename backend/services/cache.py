@@ -140,3 +140,44 @@ async def load_project(project_id: str) -> dict | None:
         await _db.commit()
         return None
     return json.loads(data)
+
+
+async def list_projects(limit: int = 50) -> list[dict]:
+    """List stored projects, newest first, for the on-disk library view.
+
+    Returns lightweight entries (id, name, total_files, created_at) so a user
+    can reopen a past analysis without re-scanning. The heavy file contents stay
+    in the row and are only read back when a project is actually opened via
+    load_project(). Expired rows are skipped (and purged lazily, like get()).
+    """
+    if _db is None:
+        return []
+    async with _db.execute(
+        "SELECT id, data, created_at FROM projects ORDER BY created_at DESC"
+    ) as cursor:
+        rows = await cursor.fetchall()
+    now = time.time()
+    expired: list[str] = []
+    projects: list[dict] = []
+    for project_id, data, created_at in rows:
+        if now - created_at > _TTL_SECONDS:
+            expired.append(project_id)
+            continue
+        if len(projects) >= limit:
+            continue
+        try:
+            parsed = json.loads(data)
+        except (json.JSONDecodeError, ValueError):
+            continue
+        projects.append(
+            {
+                "id": project_id,
+                "name": parsed.get("name") or project_id,
+                "total_files": len(parsed.get("files") or []),
+                "created_at": created_at,
+            }
+        )
+    if expired:
+        await _db.executemany("DELETE FROM projects WHERE id = ?", [(pid,) for pid in expired])
+        await _db.commit()
+    return projects

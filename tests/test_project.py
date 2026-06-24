@@ -73,3 +73,37 @@ def test_content_analyses_maps_knowledge_silos_from_ownership():
     assert len(extras["knowledge_silos"]) == 1
     silo = extras["knowledge_silos"][0]
     assert silo.path == "core.py" and silo.primary_author == "amy" and silo.bus_factor == 1
+
+
+def test_list_projects_endpoint_merges_persisted_and_in_memory(tmp_path, monkeypatch):
+    # The library list should surface both projects saved to SQLite and any only
+    # held in memory this process, without duplicating one that is in both.
+    import asyncio
+
+    from backend.routers import project as project_router
+    from backend.services import cache
+
+    monkeypatch.setattr(cache, "_DB_PATH", tmp_path / "cache.db")
+    monkeypatch.setattr(project_router, "_projects", {})
+
+    async def main():
+        await cache.init_db()
+        try:
+            await cache.save_project("persisted", {"name": "已存盘", "files": [1, 2]})
+            project_router._projects["persisted"] = {"name": "已存盘", "files": [1, 2]}
+            project_router._projects["memory-only"] = {"name": "仅内存", "files": [1]}
+            return await project_router.list_projects()
+        finally:
+            if cache._db is not None:
+                await cache._db.close()
+                cache._db = None
+
+    summaries = asyncio.run(main())
+    by_id = {s.id: s for s in summaries}
+
+    assert set(by_id) == {"persisted", "memory-only"}  # persisted one not duplicated
+    assert by_id["persisted"].name == "已存盘"
+    assert by_id["persisted"].total_files == 2
+    assert by_id["persisted"].created_at is not None
+    assert by_id["memory-only"].name == "仅内存"
+    assert by_id["memory-only"].created_at is None  # not persisted yet

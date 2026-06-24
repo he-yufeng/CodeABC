@@ -306,6 +306,15 @@ class SecuritySummary(BaseModel):
     notes: list[str] = []
 
 
+class ProjectSummary(BaseModel):
+    """A lightweight entry in the project library list (no file contents)."""
+
+    id: str
+    name: str
+    total_files: int = 0
+    created_at: float | None = None  # unix seconds; None for in-memory-only
+
+
 class ProjectMeta(BaseModel):
     id: str
     name: str

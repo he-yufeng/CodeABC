@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 
 
 def _with_cache(tmp_path, monkeypatch, scenario):
@@ -140,6 +141,47 @@ def test_expired_project_is_evicted_on_load(tmp_path, monkeypatch):
     assert remaining == 0
 
 
+def test_list_projects_newest_first_without_file_contents(tmp_path, monkeypatch):
+    async def scenario(cache):
+        await cache.save_project("old", {"name": "旧项目", "files": [1, 2]})
+        await cache.save_project("new", {"name": "新项目", "files": [1, 2, 3]})
+        # pin created_at so the ordering doesn't depend on wall-clock resolution
+        base = time.time()
+        await cache._db.execute(
+            "UPDATE projects SET created_at = ? WHERE id = ?", (base - 10, "old")
+        )
+        await cache._db.execute(
+            "UPDATE projects SET created_at = ? WHERE id = ?", (base - 5, "new")
+        )
+        await cache._db.commit()
+        return await cache.list_projects()
+
+    projects = _with_cache(tmp_path, monkeypatch, scenario)
+    assert [p["id"] for p in projects] == ["new", "old"]  # newest first
+    assert projects[0]["name"] == "新项目"
+    assert projects[0]["total_files"] == 3
+    assert "files" not in projects[0]  # the heavy contents stay out of the listing
+
+
+def test_list_projects_skips_and_purges_expired(tmp_path, monkeypatch):
+    async def scenario(cache):
+        await cache.save_project("fresh", {"name": "在", "files": [1]})
+        await cache.save_project("stale", {"name": "过期", "files": [1]})
+        await cache._db.execute(
+            "UPDATE projects SET created_at = ? WHERE id = ?",
+            (time.time() - cache._TTL_SECONDS - 1, "stale"),
+        )
+        await cache._db.commit()
+        listed = await cache.list_projects()
+        async with cache._db.execute("SELECT COUNT(*) FROM projects") as cur:
+            (remaining,) = await cur.fetchone()
+        return [p["id"] for p in listed], remaining
+
+    ids, remaining = _with_cache(tmp_path, monkeypatch, scenario)
+    assert ids == ["fresh"]
+    assert remaining == 1  # the expired row was purged on listing
+
+
 def test_operations_are_safe_before_init(monkeypatch):
     """Every accessor degrades gracefully when the DB was never initialised."""
     from backend.services import cache
@@ -151,6 +193,7 @@ def test_operations_are_safe_before_init(monkeypatch):
         await cache.put("k", {"v": 1})  # no-op, must not raise
         await cache.save_project("p", {"v": 1})  # no-op, must not raise
         assert await cache.load_project("p") is None
+        assert await cache.list_projects() == []
         await cache.increment_rate_limit("ip")  # no-op, must not raise
         # storage unavailable -> fail open: allow, with the full quota
         return await cache.check_rate_limit("ip")

@@ -44,6 +44,7 @@ from backend.models import (
     PackageDependency,
     ProjectHealth,
     ProjectMeta,
+    ProjectSummary,
     ReadingStep,
     RiskHotspot,
     SecurityFinding,
@@ -432,6 +433,30 @@ async def _resolve_project(project_id: str) -> dict | None:
     if proj:
         _projects[project_id] = proj  # re-populate memory cache
     return proj
+
+
+@router.get("/projects", response_model=list[ProjectSummary])
+async def list_projects():
+    """List previously analyzed projects (the on-disk library), newest first.
+
+    Lets you reopen a past analysis without re-cloning or re-scanning. The
+    persisted SQLite store is the source of truth; a project created in this
+    process that isn't persisted yet (e.g. the cache DB is unavailable) is
+    merged in so it still shows up.
+    """
+    stored = await cache.list_projects()
+    seen = {p["id"] for p in stored}
+    summaries = [ProjectSummary(**p) for p in stored]
+    summaries.extend(
+        ProjectSummary(
+            id=project_id,
+            name=proj.get("name") or project_id,
+            total_files=len(proj.get("files") or []),
+        )
+        for project_id, proj in _projects.items()
+        if project_id not in seen
+    )
+    return summaries
 
 
 @router.get("/project/{project_id}")
