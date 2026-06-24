@@ -425,6 +425,24 @@ class DefinitionMatches(BaseModel):
     notes: list[str] = []
 
 
+class Reference(BaseModel):
+    name: str
+    file: str
+    line: int
+    text: str = ""  # the trimmed source line, for a one-line preview
+    is_definition: bool = False  # True when this occurrence is the declaration
+
+
+class ReferenceMatches(BaseModel):
+    """Where a clicked name is used — the find-all-references payload."""
+
+    name: str  # the queried name
+    total: int = 0  # number of use sites (including the definition)
+    files: int = 0  # number of distinct files it appears in
+    references: list[Reference] = []
+    notes: list[str] = []
+
+
 class GitHubRequest(BaseModel):
     url: str = Field(..., pattern=r"^https?://github\.com/.+/.+")
 

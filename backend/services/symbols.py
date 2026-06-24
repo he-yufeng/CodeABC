@@ -24,10 +24,12 @@ Limitations (kept honest on purpose):
   * Matching is regex over indentation, not a real parser. Decorators that
     rename, ``setattr`` / ``globals()`` tricks, conditional re-exports, and
     names built at runtime are out of scope.
-  * Only definitions are indexed, not references — this points at where a name
-    is born, not everywhere it is used.
   * A name defined in several files yields one entry per file; the caller
     decides which is meant.
+
+The companion lookup :func:`find_references` answers the other half — where a
+name is *used*, not just where it is born — by whole-word text search across the
+same source files, flagging the occurrence that is the declaration itself.
 """
 
 from __future__ import annotations
@@ -251,3 +253,92 @@ def find_definition(file_contents: dict[str, str], name: str, *, limit: int = 50
 
     matches.sort(key=lambda d: (d["file"], d["line"]))
     return matches[:limit]
+
+
+# ---------------------------------------------------------------------------
+# References — where a name is used, not just where it is defined
+# ---------------------------------------------------------------------------
+
+
+def find_references(file_contents: dict[str, str], name: str, *, limit: int = 200) -> dict:
+    """Return every place ``name`` appears as a whole word — its use sites.
+
+    This is the other half of :func:`find_definition`: where that points at the
+    one line a name is born, this lists every line it shows up on, with a
+    trimmed one-line preview and an ``is_definition`` flag so the UI can tell the
+    declaration apart from the call sites. Matching is whole-word and
+    case-sensitive (``scan`` does not match ``scanner``, ``rescan`` or
+    ``my_scan``), and an attribute access like ``self.scan`` counts as a use.
+
+    Returns ``{"name", "total", "files", "references", "notes"}`` where
+    ``references`` is ordered by file then line and truncated to ``limit`` while
+    ``total`` and ``files`` count every match.
+
+    Limitations (kept honest, same as the definition index): it is text search,
+    not a parser. A use hidden inside a string literal or a comment may be
+    missed, and a same-named attribute on an unrelated object may be counted.
+    """
+    target = (name or "").strip()
+    if not target:
+        return {"name": name, "total": 0, "files": 0, "references": [], "notes": []}
+
+    pattern = re.compile(r"(?<![\w$])" + re.escape(target) + r"(?![\w$])")
+
+    index = build_definition_index(file_contents, limit=100_000)
+    def_sites = {(d["file"], d["line"]) for d in index["definitions"] if d["name"] == target}
+
+    references: list[dict] = []
+    for path in sorted(file_contents):
+        if _lang(path) not in ("python", "js"):
+            continue
+        for lineno, raw in enumerate(file_contents[path].splitlines(), start=1):
+            stripped = raw.strip()
+            if not stripped or stripped.startswith("#") or stripped.startswith("//"):
+                continue
+            if not pattern.search(raw):
+                continue
+            references.append(
+                {
+                    "name": target,
+                    "file": path,
+                    "line": lineno,
+                    "text": stripped,
+                    "is_definition": (path, lineno) in def_sites,
+                }
+            )
+
+    references.sort(key=lambda r: (r["file"], r["line"]))
+    total = len(references)
+    files = len({r["file"] for r in references})
+    notes = _reference_notes(target, references, total, files, file_contents)
+    return {
+        "name": target,
+        "total": total,
+        "files": files,
+        "references": references[:limit],
+        "notes": notes,
+    }
+
+
+def _reference_notes(
+    target: str, references: list[dict], total: int, files: int, file_contents: dict[str, str]
+) -> list[str]:
+    scanned = sum(1 for p in file_contents if _lang(p) in ("python", "js"))
+    if scanned == 0:
+        return ["No Python or JS/TS files were found to search."]
+    if total == 0:
+        return [
+            f"'{target}' is not used in any Python or JS/TS file "
+            "(or it only appears inside strings or comments)."
+        ]
+
+    notes = [f"Found {total} reference(s) to '{target}' across {files} file(s)."]
+    def_count = sum(1 for r in references if r["is_definition"])
+    if def_count:
+        where = "is where" if def_count == 1 else "are where"
+        notes.append(f"{def_count} of these {where} '{target}' is defined; the rest are uses.")
+    notes.append(
+        "Whole-word text search: a use hidden inside a string or comment may be "
+        "missed, and a same-named field on an unrelated object may be counted."
+    )
+    return notes

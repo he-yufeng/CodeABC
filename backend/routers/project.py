@@ -48,6 +48,8 @@ from backend.models import (
     ProjectMeta,
     ProjectSummary,
     ReadingStep,
+    Reference,
+    ReferenceMatches,
     RiskHotspot,
     SecurityFinding,
     SecuritySummary,
@@ -606,6 +608,29 @@ async def get_definition(project_id: str, name: str):
         total=len(matches),
         definitions=[Definition(**m) for m in matches],
         notes=[] if matches else [f"No definition of '{name}' found in this project."],
+    )
+
+
+@router.get("/project/{project_id}/references", response_model=ReferenceMatches)
+async def get_references(project_id: str, name: str):
+    """Return where a name is used — the find-all-references lookup.
+
+    Deterministic (no LLM): the companion to jump-to-definition. Where the
+    definition index answers "where is this declared?", this answers "where is
+    it used?" — every call site with a one-line preview, with the declaration
+    itself flagged so a reader can tell the source from the uses.
+    """
+    proj = await _resolve_project(project_id)
+    if not proj:
+        raise HTTPException(404, "Project not found")
+
+    result = symbols.find_references(proj.get("file_contents", {}), name)
+    return ReferenceMatches(
+        name=result["name"],
+        total=result["total"],
+        files=result["files"],
+        references=[Reference(**r) for r in result["references"]],
+        notes=result["notes"],
     )
 
 

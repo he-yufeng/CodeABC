@@ -5,6 +5,7 @@ from __future__ import annotations
 from backend.services.symbols import (
     build_definition_index,
     find_definition,
+    find_references,
 )
 
 # ---------------------------------------------------------------------------
@@ -174,3 +175,78 @@ class TestFindDefinition:
 
     def test_blank_query(self):
         assert find_definition({"a.py": "def f():\n    pass\n"}, "  ") == []
+
+
+# ---------------------------------------------------------------------------
+# Find-all-references — the other half of the definition index
+# ---------------------------------------------------------------------------
+
+
+class TestFindReferences:
+    def test_finds_definition_and_use_sites(self):
+        files = {
+            "config.py": "def parse_config(path):\n    return {}\n",
+            "main.py": "from config import parse_config\n\ncfg = parse_config('a.toml')\n",
+        }
+        result = find_references(files, "parse_config")
+        assert {r["file"] for r in result["references"]} == {"config.py", "main.py"}
+        assert result["total"] == len(result["references"])
+
+        defs = [r for r in result["references"] if r["is_definition"]]
+        assert len(defs) == 1
+        assert defs[0]["file"] == "config.py"
+        assert defs[0]["line"] == 1
+        # the import and the call site are uses, not definitions
+        uses = [r for r in result["references"] if not r["is_definition"]]
+        assert {r["file"] for r in uses} == {"main.py"}
+
+    def test_word_boundary_rejects_partial_matches(self):
+        files = {"a.py": "scan()\nscanner()\nrescan()\nmy_scan = 1\n"}
+        result = find_references(files, "scan")
+        assert sorted(r["line"] for r in result["references"]) == [1]
+
+    def test_attribute_access_counts_as_use(self):
+        files = {"a.py": "class S:\n    def scan(self):\n        return self.scan\n"}
+        result = find_references(files, "scan")
+        assert sorted(r["line"] for r in result["references"]) == [2, 3]
+        by_line = {r["line"]: r["is_definition"] for r in result["references"]}
+        assert by_line[2] is True  # the method definition
+        assert by_line[3] is False  # self.scan is a use
+
+    def test_comment_only_line_skipped(self):
+        files = {"a.py": "# call handler here\nhandler()\n"}
+        result = find_references(files, "handler")
+        assert [r["line"] for r in result["references"]] == [2]
+
+    def test_text_preview_is_trimmed(self):
+        files = {"a.py": "    result = compute(x)\n"}
+        result = find_references(files, "compute")
+        assert result["references"][0]["text"] == "result = compute(x)"
+
+    def test_files_count(self):
+        files = {"a.py": "foo()\n", "b.py": "foo()\nfoo()\n"}
+        result = find_references(files, "foo")
+        assert result["files"] == 2
+        assert result["total"] == 3
+
+    def test_limit_truncates_but_total_counts(self):
+        code = "".join("foo()\n" for _ in range(10))
+        result = find_references({"a.py": code}, "foo", limit=3)
+        assert result["total"] == 10
+        assert len(result["references"]) == 3
+
+    def test_js_reference(self):
+        files = {"app.js": "function greet(n){}\ngreet('a');\n"}
+        result = find_references(files, "greet")
+        assert sorted(r["line"] for r in result["references"]) == [1, 2]
+
+    def test_not_found(self):
+        result = find_references({"a.py": "x = 1\n"}, "missing")
+        assert result["total"] == 0
+        assert result["references"] == []
+        assert any("not used" in n.lower() for n in result["notes"])
+
+    def test_blank_query(self):
+        result = find_references({"a.py": "x = 1\n"}, "  ")
+        assert result["total"] == 0
+        assert result["references"] == []
