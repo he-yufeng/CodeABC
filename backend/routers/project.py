@@ -75,6 +75,7 @@ from backend.services import (
     importgraph,
     integrations,
     ownership,
+    report_export,
     risk,
     scanner,
     security,
@@ -567,6 +568,16 @@ async def get_codemap_markdown(project_id: str):
         raise HTTPException(404, "Project not found")
     markdown = codemap_export.build_codemap_markdown(proj)
     return Response(content=markdown, media_type="text/markdown; charset=utf-8")
+
+
+@router.get("/project/{project_id}/report.html")
+async def get_report_html(project_id: str):
+    """Export the full analysis as one self-contained, offline HTML report."""
+    proj = await _resolve_project(project_id)
+    if not proj:
+        raise HTTPException(404, "Project not found")
+    report = report_export.build_report_html(proj)
+    return Response(content=report, media_type="text/html; charset=utf-8")
 
 
 async def get_project_data(project_id: str) -> dict | None:
