@@ -188,6 +188,15 @@ export interface EntryPoint {
   reason: string;
 }
 
+export interface CliCommand {
+  name: string;
+  framework: string;
+  help: string;
+  options: string[];
+  path: string;
+  line: number;
+}
+
 export interface ComplexFile {
   path: string;
   complexity: number;
@@ -334,6 +343,7 @@ export interface ProjectMeta {
   tech_debt_files?: TechDebtFile[];
   env_vars?: EnvVar[];
   entry_points?: EntryPoint[];
+  cli_commands?: CliCommand[];
   complexity_files?: ComplexFile[];
   doc_coverage?: DocCoverage;
   error_handling?: ErrorHandling;

@@ -19,6 +19,7 @@ from backend.models import (
     ArchitectureLayer,
     BlastRadiusHotspot,
     ChurnHotspot,
+    CliCommand,
     CoChangeCoupling,
     CodeWalkStep,
     ComplexFile,
@@ -67,6 +68,7 @@ from backend.services import (
     cache,
     churn,
     codemap_export,
+    commands,
     complexity,
     coverage,
     dependencies,
@@ -194,6 +196,7 @@ def _content_analyses(
     tech_debt = techdebt.scan_tech_debt(file_contents)
     env = envscan.scan_env_vars(file_contents)
     entries = entrypoints.find_entry_points(file_contents)
+    cli_commands = commands.find_cli_commands(file_contents)
     complex_files = complexity.scan_complexity(file_contents)
     deps = dependencies.scan_dependencies(file_contents)
     sec = security.scan_security(file_contents)
@@ -222,6 +225,17 @@ def _content_analyses(
         "entry_points": [
             EntryPoint(path=e["path"], kind=e["kind"], command=e["command"], reason=e["reason"])
             for e in entries["entry_points"]
+        ],
+        "cli_commands": [
+            CliCommand(
+                name=c["name"],
+                framework=c["framework"],
+                help=c["help"],
+                options=c["options"],
+                path=c["path"],
+                line=c["line"],
+            )
+            for c in cli_commands["commands"]
         ],
         "complexity_files": [
             ComplexFile(

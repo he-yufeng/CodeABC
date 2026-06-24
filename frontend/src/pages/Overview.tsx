@@ -774,6 +774,43 @@ export default function Overview() {
           </section>
         )}
 
+        {/* CLI commands — the sub-commands you can actually type, once you're past the front door */}
+        {project && (project.cli_commands?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-cyan-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("能敲哪些命令（CLI 命令）", "What you can type (CLI commands)")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "入口点告诉你“用哪个命令启动”，这里告诉你“启动后能敲哪些子命令”——作者用 argparse / click / typer 声明的命令，以及每个的一句话说明。",
+                "Entry points tell you how to start it; this tells you the sub-commands you can run once you're in — declared via argparse / click / typer, each with a one-line description.",
+              )}
+            </p>
+            <ul className="space-y-2">
+              {project.cli_commands!.map((c) => (
+                <li key={`${c.path}:${c.line}:${c.name}`}>
+                  <button
+                    onClick={() => handleFileClick(c.path)}
+                    className="w-full text-left hover:text-blue-700"
+                  >
+                    <span className="font-mono text-sm text-cyan-700">{c.name}</span>
+                    <span className="ml-2 text-xs text-gray-400">{c.framework}</span>
+                    <span className="ml-2 text-xs text-gray-400">{c.path}</span>
+                    {c.help && (
+                      <span className="block text-sm text-gray-500 mt-0.5">{c.help}</span>
+                    )}
+                    {c.options.length > 0 && (
+                      <span className="block font-mono text-xs text-gray-400 mt-0.5">
+                        {c.options.join("  ")}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Logic complexity — which files carry the gnarliest branching */}
         {project && (project.complexity_files?.length ?? 0) > 0 && (
           <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-fuchsia-400">

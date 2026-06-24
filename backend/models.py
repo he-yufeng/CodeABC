@@ -209,6 +209,15 @@ class EntryPoint(BaseModel):
     reason: str = ""
 
 
+class CliCommand(BaseModel):
+    name: str
+    framework: str  # "click" | "typer" | "argparse"
+    help: str = ""  # one-line description, from help= or the function docstring
+    options: list[str] = []  # declared --flags / argument names
+    path: str
+    line: int
+
+
 class ComplexFile(BaseModel):
     path: str
     complexity: int  # approximate cyclomatic complexity (decision points + 1)
@@ -338,6 +347,7 @@ class ProjectMeta(BaseModel):
     tech_debt_files: list[TechDebtFile] = []
     env_vars: list[EnvVar] = []
     entry_points: list[EntryPoint] = []
+    cli_commands: list[CliCommand] = []
     complexity_files: list[ComplexFile] = []
     dependencies: list[Dependency] = []
     security: SecuritySummary | None = None
