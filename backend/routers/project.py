@@ -51,6 +51,7 @@ from backend.models import (
     ProjectHealth,
     ProjectMeta,
     ProjectSummary,
+    PublicApi,
     ReadingStep,
     Reference,
     ReferenceMatches,
@@ -708,6 +709,26 @@ async def get_file_outline(project_id: str, path: str):
 
     result = symbols.file_outline(proj.get("file_contents", {}), path)
     return FileOutline(**result)
+
+
+@router.get("/project/{project_id}/public-api", response_model=PublicApi)
+async def get_public_api(project_id: str):
+    """Return the project's public surface — the names other code is meant to call.
+
+    Deterministic (no LLM): filters the definition index down to the names a
+    project exposes on purpose — non-underscore in Python, ``export``-ed in
+    JS/TS — so a reader can see the interface before wading into the internals.
+    """
+    proj = await _resolve_project(project_id)
+    if not proj:
+        raise HTTPException(404, "Project not found")
+
+    result = symbols.public_api(proj.get("file_contents", {}))
+    return PublicApi(
+        total=result["total"],
+        definitions=[Definition(**d) for d in result["definitions"]],
+        notes=result["notes"],
+    )
 
 
 @router.get("/project/{project_id}/codemap.md")

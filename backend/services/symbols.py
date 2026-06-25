@@ -30,6 +30,11 @@ Limitations (kept honest on purpose):
 The companion lookup :func:`find_references` answers the other half — where a
 name is *used*, not just where it is born — by whole-word text search across the
 same source files, flagging the occurrence that is the declaration itself.
+
+Every entry also carries an ``exported`` flag — public by Python's underscore
+convention or a JS/TS ``export`` — and :func:`public_api` filters the index down
+to just that surface, so a reader can see a project's interface before its
+internals.
 """
 
 from __future__ import annotations
@@ -83,8 +88,8 @@ def _py_definitions(path: str, content: str) -> list[dict]:
     and is skipped (it is not part of the public reading surface).
     """
     out: list[dict] = []
-    # frames: list of (indent, kind, name) for currently open class/def blocks
-    frames: list[tuple[int, str, str]] = []
+    # frames: (indent, kind, name, exported) for currently open class/def blocks
+    frames: list[tuple[int, str, str, bool]] = []
 
     for lineno, raw in enumerate(content.splitlines(), start=1):
         stripped = raw.strip()
@@ -101,26 +106,31 @@ def _py_definitions(path: str, content: str) -> list[dict]:
         while frames and frames[-1][0] >= indent:
             frames.pop()
         enclosing = frames[-1] if frames else None
+        # A name is part of the public surface only when its container is and it
+        # follows the convention: no leading underscore.
+        parent_exported = _enclosing_exported(enclosing)
 
         if class_match is not None:
             name = class_match.group("name")
             parent = enclosing[2] if enclosing and enclosing[1] == "class" else None
-            out.append(_entry(path, "python", name, "class", parent, lineno))
-            frames.append((indent, "class", name))
+            exported = parent_exported and not name.startswith("_")
+            out.append(_entry(path, "python", name, "class", parent, lineno, exported))
+            frames.append((indent, "class", name, exported))
             continue
 
         assert def_match is not None  # narrowing: class_match is None here
         name = def_match.group("name")
+        exported = parent_exported and not name.startswith("_")
         if enclosing is None:
-            out.append(_entry(path, "python", name, "function", None, lineno))
-            frames.append((indent, "def", name))
+            out.append(_entry(path, "python", name, "function", None, lineno, exported))
+            frames.append((indent, "def", name, exported))
         elif enclosing[1] == "class":
-            out.append(_entry(path, "python", name, "method", enclosing[2], lineno))
-            frames.append((indent, "def", name))
+            out.append(_entry(path, "python", name, "method", enclosing[2], lineno, exported))
+            frames.append((indent, "def", name, exported))
         else:
             # nested inside another def: a local helper — track it so its own
             # nested blocks resolve correctly, but do not index it.
-            frames.append((indent, "def", name))
+            frames.append((indent, "def", name, False))
 
     return out
 
@@ -153,14 +163,33 @@ _JS_METHOD_RE = re.compile(
 _JS_NON_METHODS = frozenset(
     {"if", "for", "while", "switch", "catch", "do", "with", "return", "function", "else"}
 )
+# A top-level declaration is part of the public surface only when it is exported.
+_JS_EXPORT_RE = re.compile(r"^\s*export\b")
+
+
+def _js_line_exported(raw: str) -> bool:
+    """True when a declaration line begins with ``export`` (``export default`` too)."""
+    return bool(_JS_EXPORT_RE.match(raw))
+
+
+def _js_method_private(raw: str) -> bool:
+    """True when a method carries a ``private`` / ``protected`` TS modifier.
+
+    Modifiers sit before the name and parameter list, so the words ahead of the
+    first ``(`` are enough to decide; ``#``-prefixed private fields never reach
+    here because they are not matched as methods in the first place.
+    """
+    prefix = raw.strip().split("(", 1)[0]
+    tokens = prefix.split()
+    return "private" in tokens or "protected" in tokens
 
 
 def _js_definitions(path: str, content: str) -> list[dict]:
     out: list[dict] = []
-    # frames: list of (indent, kind, name) for currently open class/block scopes,
+    # frames: (indent, kind, name, exported) for currently open class/block scopes,
     # mirroring the Python pass so a method is only read inside a class body and a
     # method's own body is not re-scanned for nested "methods".
-    frames: list[tuple[int, str, str]] = []
+    frames: list[tuple[int, str, str, bool]] = []
 
     for lineno, raw in enumerate(content.splitlines(), start=1):
         stripped = raw.strip()
@@ -171,27 +200,33 @@ def _js_definitions(path: str, content: str) -> list[dict]:
         while frames and frames[-1][0] >= indent:
             frames.pop()
         enclosing = frames[-1] if frames else None
+        # In JS/TS the public surface is what the module exports, not a naming
+        # convention; a member is only reachable when its container is too.
+        parent_exported = _enclosing_exported(enclosing)
 
         class_match = _JS_CLASS_RE.match(raw)
         if class_match:
             name = class_match.group(1)
             parent = enclosing[2] if enclosing and enclosing[1] == "class" else None
-            out.append(_entry(path, "js", name, "class", parent, lineno))
-            frames.append((indent, "class", name))
+            exported = parent_exported and _js_line_exported(raw)
+            out.append(_entry(path, "js", name, "class", parent, lineno, exported))
+            frames.append((indent, "class", name, exported))
             continue
 
         func_match = _JS_FUNC_RE.match(raw)
         if func_match:
             name = func_match.group(1)
-            out.append(_entry(path, "js", name, "function", None, lineno))
-            frames.append((indent, "block", name))
+            exported = parent_exported and _js_line_exported(raw)
+            out.append(_entry(path, "js", name, "function", None, lineno, exported))
+            frames.append((indent, "block", name, exported))
             continue
 
         assign_match = _JS_ASSIGN_RE.match(raw)
         if assign_match:
             name = assign_match.group(1)
-            out.append(_entry(path, "js", name, "function", None, lineno))
-            frames.append((indent, "block", name))
+            exported = parent_exported and _js_line_exported(raw)
+            out.append(_entry(path, "js", name, "function", None, lineno, exported))
+            frames.append((indent, "block", name, exported))
             continue
 
         if enclosing is not None and enclosing[1] == "class":
@@ -199,8 +234,9 @@ def _js_definitions(path: str, content: str) -> list[dict]:
             if method_match:
                 name = method_match.group("name")
                 if name not in _JS_NON_METHODS:
-                    out.append(_entry(path, "js", name, "method", enclosing[2], lineno))
-                    frames.append((indent, "block", name))
+                    exported = parent_exported and not _js_method_private(raw)
+                    out.append(_entry(path, "js", name, "method", enclosing[2], lineno, exported))
+                    frames.append((indent, "block", name, exported))
 
     return out
 
@@ -210,7 +246,15 @@ def _js_definitions(path: str, content: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def _entry(path: str, lang: str, name: str, kind: str, parent: str | None, line: int) -> dict:
+def _entry(
+    path: str,
+    lang: str,
+    name: str,
+    kind: str,
+    parent: str | None,
+    line: int,
+    exported: bool,
+) -> dict:
     qualname = f"{parent}.{name}" if parent else name
     return {
         "name": name,
@@ -220,7 +264,22 @@ def _entry(path: str, lang: str, name: str, kind: str, parent: str | None, line:
         "lang": lang,
         "file": path,
         "line": line,
+        "exported": exported,
     }
+
+
+def _enclosing_exported(enclosing: tuple | None) -> bool:
+    """Whether a definition directly inside ``enclosing`` can be public.
+
+    Module level (no enclosing frame) and the body of a public class can hold
+    public names. The body of a function — or of a non-public class — cannot,
+    so a name born there is internal no matter what it is called.
+    """
+    if enclosing is None:
+        return True
+    if enclosing[1] == "class":
+        return bool(enclosing[3])
+    return False
 
 
 def _build_notes(definitions: list[dict], file_contents: dict[str, str]) -> list[str]:
@@ -301,6 +360,68 @@ def find_definition(file_contents: dict[str, str], name: str, *, limit: int = 50
 
     matches.sort(key=lambda d: (d["file"], d["line"]))
     return matches[:limit]
+
+
+# ---------------------------------------------------------------------------
+# Public surface — the names a project means to expose, not its internals
+# ---------------------------------------------------------------------------
+
+
+def public_api(file_contents: dict[str, str], *, limit: int = 2000) -> dict:
+    """Return the project's public surface — the names other code is meant to call.
+
+    Where :func:`build_definition_index` lists *every* definition, this keeps
+    only the ones a project exposes on purpose, so a reader sees the interface
+    before the internals. The rule follows each language's own convention:
+
+      Python   a name is public unless it starts with an underscore, and a
+               method is public only when its class is too — so ``_helper`` and
+               ``Scanner.__init__`` are internal.
+      JS / TS  a name is public when it is ``export``-ed, and a method is public
+               when its class is exported and it is not declared ``private`` /
+               ``protected``.
+
+    Returns ``{"total", "definitions", "notes"}`` with the same entry shape as
+    the definition index (each entry already carries an ``exported`` flag),
+    alphabetically sorted and truncated to ``limit``.
+    """
+    index = build_definition_index(file_contents, limit=100_000)
+    public = [d for d in index["definitions"] if d.get("exported")]
+    total = len(public)
+    notes = _public_api_notes(public, total, file_contents)
+    return {"total": total, "definitions": public[:limit], "notes": notes}
+
+
+def _public_api_notes(public: list[dict], total: int, file_contents: dict[str, str]) -> list[str]:
+    langs = {_lang(p) for p in file_contents}
+    has_py = "python" in langs
+    has_js = "js" in langs
+    if not (has_py or has_js):
+        return ["No Python or JS/TS files were found to index."]
+    if total == 0:
+        return [
+            "No public names were found: every definition is underscore-prefixed "
+            "(Python) or not exported (JS/TS)."
+        ]
+
+    by_kind: dict[str, int] = {}
+    for d in public:
+        by_kind[d["kind"]] = by_kind.get(d["kind"], 0) + 1
+    parts = [_count_phrase(by_kind[k], k) for k in sorted(by_kind)]
+    notes = [f"{total} public name(s) make up the surface: {', '.join(parts)}."]
+
+    rules: list[str] = []
+    if has_py:
+        rules.append("Python counts a name as public when it has no leading underscore")
+    if has_js:
+        rules.append("JS/TS counts a name as public when it is exported")
+    notes.append(f"{'; '.join(rules)}.")
+
+    notes.append(
+        "Convention-based: a name shown here may still be internal (exported only "
+        "for tests, say), and __all__ or re-export lists are not consulted."
+    )
+    return notes
 
 
 # ---------------------------------------------------------------------------

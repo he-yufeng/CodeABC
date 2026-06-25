@@ -460,6 +460,7 @@ class Definition(BaseModel):
     lang: str = ""  # python | js
     file: str
     line: int
+    exported: bool = False  # part of the public surface (non-underscore / exported)
 
 
 class DefinitionMatches(BaseModel):
@@ -467,6 +468,14 @@ class DefinitionMatches(BaseModel):
 
     name: str  # the queried name
     total: int = 0  # number of places that define it
+    definitions: list[Definition] = []
+    notes: list[str] = []
+
+
+class PublicApi(BaseModel):
+    """A project's public surface — the names it exposes for other code to call."""
+
+    total: int = 0  # number of public definitions
     definitions: list[Definition] = []
     notes: list[str] = []
 
@@ -497,6 +506,7 @@ class OutlineNode(BaseModel):
     lang: str = ""  # python | js
     file: str
     line: int
+    exported: bool = False  # part of the public surface (non-underscore / exported)
     children: list["OutlineNode"] = []  # a class's methods (and nested classes)
 
 

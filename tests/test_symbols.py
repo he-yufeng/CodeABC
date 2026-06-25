@@ -7,6 +7,7 @@ from backend.services.symbols import (
     file_outline,
     find_definition,
     find_references,
+    public_api,
 )
 
 # ---------------------------------------------------------------------------
@@ -407,3 +408,121 @@ class Outer:
         result = file_outline({"a.py": code}, "a.py", limit=3)
         assert result["total"] == 10
         assert len(result["outline"]) == 3
+
+
+# ---------------------------------------------------------------------------
+# Public surface — the exported flag and the public_api filter
+# ---------------------------------------------------------------------------
+
+
+class TestExportedFlag:
+    def test_python_public_function(self):
+        index = build_definition_index({"m.py": "def run():\n    pass\n"})
+        run = next(d for d in index["definitions"] if d["name"] == "run")
+        assert run["exported"] is True
+
+    def test_python_underscore_function_is_internal(self):
+        index = build_definition_index({"m.py": "def _helper():\n    pass\n"})
+        helper = next(d for d in index["definitions"] if d["name"] == "_helper")
+        assert helper["exported"] is False
+
+    def test_python_dunder_method_is_internal(self):
+        code = (
+            "class Scanner:\n"
+            "    def __init__(self):\n"
+            "        pass\n\n"
+            "    def scan(self):\n"
+            "        pass\n"
+        )
+        index = build_definition_index({"s.py": code})
+        init = next(d for d in index["definitions"] if d["name"] == "__init__")
+        scan = next(d for d in index["definitions"] if d["name"] == "scan")
+        assert init["exported"] is False
+        assert scan["exported"] is True
+
+    def test_python_method_of_private_class_is_internal(self):
+        code = "class _Internal:\n    def run(self):\n        pass\n"
+        index = build_definition_index({"m.py": code})
+        cls = next(d for d in index["definitions"] if d["name"] == "_Internal")
+        run = next(d for d in index["definitions"] if d["name"] == "run")
+        assert cls["exported"] is False
+        # a public method name does not make it public if its class is internal
+        assert run["exported"] is False
+
+    def test_js_exported_function_is_public(self):
+        index = build_definition_index({"a.ts": "export function load() {}\n"})
+        load = next(d for d in index["definitions"] if d["name"] == "load")
+        assert load["exported"] is True
+
+    def test_js_non_exported_function_is_internal(self):
+        index = build_definition_index({"a.ts": "function helper() {}\n"})
+        helper = next(d for d in index["definitions"] if d["name"] == "helper")
+        assert helper["exported"] is False
+
+    def test_js_exported_default_is_public(self):
+        index = build_definition_index({"a.ts": "export default function main() {}\n"})
+        main = next(d for d in index["definitions"] if d["name"] == "main")
+        assert main["exported"] is True
+
+    def test_js_exported_const_arrow_is_public(self):
+        index = build_definition_index({"a.ts": "export const run = () => {}\n"})
+        run = next(d for d in index["definitions"] if d["name"] == "run")
+        assert run["exported"] is True
+
+    def test_js_private_method_is_internal(self):
+        code = "export class Widget {\n  render() {}\n  private tick() {}\n}\n"
+        index = build_definition_index({"w.ts": code})
+        render = next(d for d in index["definitions"] if d["name"] == "render")
+        tick = next(d for d in index["definitions"] if d["name"] == "tick")
+        assert render["exported"] is True
+        assert tick["exported"] is False
+
+    def test_js_method_of_non_exported_class_is_internal(self):
+        code = "class Widget {\n  render() {}\n}\n"
+        index = build_definition_index({"w.ts": code})
+        render = next(d for d in index["definitions"] if d["name"] == "render")
+        assert render["exported"] is False
+
+
+class TestPublicApi:
+    def test_keeps_only_public_names(self):
+        code = "def run():\n    pass\n\n\ndef _helper():\n    pass\n"
+        result = public_api({"m.py": code})
+        names = [d["name"] for d in result["definitions"]]
+        assert names == ["run"]
+        assert result["total"] == 1
+
+    def test_mixed_languages(self):
+        py = "def parse():\n    pass\n\n\ndef _internal():\n    pass\n"
+        ts = "export function load() {}\nfunction helper() {}\n"
+        result = public_api({"a.py": py, "b.ts": ts})
+        names = sorted(d["name"] for d in result["definitions"])
+        assert names == ["load", "parse"]
+
+    def test_sorted_alphabetically(self):
+        code = "def zebra():\n    pass\n\n\ndef apple():\n    pass\n"
+        result = public_api({"m.py": code})
+        names = [d["name"] for d in result["definitions"]]
+        assert names == ["apple", "zebra"]
+
+    def test_notes_describe_the_convention(self):
+        result = public_api({"m.py": "def run():\n    pass\n"})
+        text = " ".join(result["notes"]).lower()
+        assert "public" in text
+        assert "underscore" in text
+
+    def test_no_public_names_is_reported(self):
+        result = public_api({"m.py": "def _a():\n    pass\n\n\ndef _b():\n    pass\n"})
+        assert result["total"] == 0
+        assert any("No public names" in n for n in result["notes"])
+
+    def test_no_source_files_is_reported(self):
+        result = public_api({"README.md": "# hi\n"})
+        assert result["total"] == 0
+        assert any("No Python or JS/TS" in n for n in result["notes"])
+
+    def test_limit_truncates_but_total_counts_all(self):
+        code = "".join(f"def f{i}():\n    pass\n\n\n" for i in range(10))
+        result = public_api({"m.py": code}, limit=3)
+        assert result["total"] == 10
+        assert len(result["definitions"]) == 3
