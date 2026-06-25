@@ -114,6 +114,57 @@ class TestJavaScript:
         entry = next(d for d in index["definitions"] if d["name"] == "Widget")
         assert entry["kind"] == "class"
 
+    def test_class_methods_are_broken_out(self):
+        code = (
+            "export class Store {\n"
+            "  constructor(state) {\n"
+            "    this.state = state;\n"
+            "  }\n"
+            "  async load(id) {\n"
+            "    return this.fetch(id);\n"
+            "  }\n"
+            "  get size() {\n"
+            "    return this.state.length;\n"
+            "  }\n"
+            "}\n"
+        )
+        index = build_definition_index({"store.ts": code})
+        by_name = {d["name"]: d for d in index["definitions"]}
+        for name in ("constructor", "load", "size"):
+            assert by_name[name]["kind"] == "method"
+            assert by_name[name]["parent"] == "Store"
+            assert by_name[name]["qualname"] == f"Store.{name}"
+
+    def test_typescript_return_type_method(self):
+        code = "class View {\n  render(): JSX.Element {\n    return null;\n  }\n}\n"
+        index = build_definition_index({"view.tsx": code})
+        render = next(d for d in index["definitions"] if d["name"] == "render")
+        assert render["kind"] == "method"
+        assert render["parent"] == "View"
+
+    def test_control_flow_in_method_body_is_not_a_method(self):
+        # `if (...) {` and a method call inside the body read like `name(...) {`
+        # / `name();` — neither should be mistaken for a class member.
+        code = (
+            "class Engine {\n"
+            "  run(items) {\n"
+            "    if (items.length) {\n"
+            "      this.start();\n"
+            "    }\n"
+            "  }\n"
+            "}\n"
+        )
+        index = build_definition_index({"engine.ts": code})
+        names = {d["name"] for d in index["definitions"]}
+        assert names == {"Engine", "run"}
+
+    def test_outline_nests_js_methods_under_class(self):
+        code = "class Box {\n  open() {}\n  close() {}\n}\n"
+        result = file_outline({"box.ts": code}, "box.ts")
+        box = next(n for n in result["outline"] if n["name"] == "Box")
+        child_names = {c["name"] for c in box["children"]}
+        assert child_names == {"open", "close"}
+
 
 # ---------------------------------------------------------------------------
 # Index assembly + lookup

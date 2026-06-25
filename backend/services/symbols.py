@@ -13,8 +13,8 @@ It covers the two languages CodeABC annotates today:
   Python   ``def`` / ``async def`` / ``class`` at module level, plus methods
            one indent inside a class (recorded with their enclosing class).
   JS / TS  ``function`` / ``async function`` / ``export function`` / ``class``,
-           and ``const name = (...) =>`` / ``const name = function`` style
-           assignments.
+           ``const name = (...) =>`` / ``const name = function`` assignments, and
+           methods one indent inside a class (recorded with their class).
 
 Each entry carries the name, its kind (function / class / method), the
 enclosing class for a method, the file, and a 1-based line number.
@@ -140,28 +140,67 @@ _JS_ASSIGN_RE = re.compile(
     r"^\s*(?:export\s+)?(?:default\s+)?(?:const|let|var)\s+(" + _IDENT + r")\s*=\s*"
     r"(?:async\s+)?(?:function\b|\*?\s*\([^)]*\)\s*=>|" + _IDENT + r"\s*=>)"
 )
+# A method *declaration* inside a class body: optional TS modifiers, an optional
+# get/set or generator marker, the name, a parameter list, an optional TS return
+# annotation, and the opening brace on the same line. The trailing ``{`` is what
+# separates a declaration (``render() {``) from a call (``render();``).
+_JS_METHOD_RE = re.compile(
+    r"^\s*(?:(?:public|private|protected|readonly|static|async|override|abstract)\s+)*"
+    r"(?:(?:get|set)\s+)?\*?\s*"
+    r"(?P<name>" + _IDENT + r")\s*\([^;]*\)\s*(?::[^={};]+)?\{"
+)
+# Control-flow heads also read as ``word (...) {``; never treat them as methods.
+_JS_NON_METHODS = frozenset(
+    {"if", "for", "while", "switch", "catch", "do", "with", "return", "function", "else"}
+)
 
 
 def _js_definitions(path: str, content: str) -> list[dict]:
     out: list[dict] = []
+    # frames: list of (indent, kind, name) for currently open class/block scopes,
+    # mirroring the Python pass so a method is only read inside a class body and a
+    # method's own body is not re-scanned for nested "methods".
+    frames: list[tuple[int, str, str]] = []
+
     for lineno, raw in enumerate(content.splitlines(), start=1):
         stripped = raw.strip()
         if not stripped or stripped.startswith("//"):
             continue
 
+        indent = _indent_width(raw)
+        while frames and frames[-1][0] >= indent:
+            frames.pop()
+        enclosing = frames[-1] if frames else None
+
         class_match = _JS_CLASS_RE.match(raw)
         if class_match:
-            out.append(_entry(path, "js", class_match.group(1), "class", None, lineno))
+            name = class_match.group(1)
+            parent = enclosing[2] if enclosing and enclosing[1] == "class" else None
+            out.append(_entry(path, "js", name, "class", parent, lineno))
+            frames.append((indent, "class", name))
             continue
 
         func_match = _JS_FUNC_RE.match(raw)
         if func_match:
-            out.append(_entry(path, "js", func_match.group(1), "function", None, lineno))
+            name = func_match.group(1)
+            out.append(_entry(path, "js", name, "function", None, lineno))
+            frames.append((indent, "block", name))
             continue
 
         assign_match = _JS_ASSIGN_RE.match(raw)
         if assign_match:
-            out.append(_entry(path, "js", assign_match.group(1), "function", None, lineno))
+            name = assign_match.group(1)
+            out.append(_entry(path, "js", name, "function", None, lineno))
+            frames.append((indent, "block", name))
+            continue
+
+        if enclosing is not None and enclosing[1] == "class":
+            method_match = _JS_METHOD_RE.match(raw)
+            if method_match:
+                name = method_match.group("name")
+                if name not in _JS_NON_METHODS:
+                    out.append(_entry(path, "js", name, "method", enclosing[2], lineno))
+                    frames.append((indent, "block", name))
 
     return out
 
@@ -437,8 +476,9 @@ def _outline_notes(path: str, lang: str, defs: list[dict], total: int) -> list[s
     notes = [f"{name} defines {', '.join(parts)}, listed in the order they appear."]
     if lang == "js":
         notes.append(
-            "For JS/TS, methods inside a class are not broken out yet; the class "
-            "is listed as a whole."
+            "For JS/TS, class methods are broken out when the class body is "
+            "conventionally indented; arrow-function fields and computed names "
+            "are still listed under the class as a whole."
         )
     notes.append("Regex-based outline: runtime-built or re-exported names may be missed.")
     return notes
