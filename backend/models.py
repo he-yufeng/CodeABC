@@ -218,6 +218,20 @@ class CliCommand(BaseModel):
     line: int
 
 
+class DataModelField(BaseModel):
+    name: str
+    type: str = ""  # the annotation as written, e.g. "int" or "list[str]"
+    has_default: bool = False
+
+
+class DataModel(BaseModel):
+    name: str
+    kind: str  # "dataclass" | "pydantic" | "typeddict" | "namedtuple"
+    fields: list[DataModelField] = []
+    path: str
+    line: int
+
+
 class ComplexFile(BaseModel):
     path: str
     complexity: int  # approximate cyclomatic complexity (decision points + 1)
@@ -348,6 +362,7 @@ class ProjectMeta(BaseModel):
     env_vars: list[EnvVar] = []
     entry_points: list[EntryPoint] = []
     cli_commands: list[CliCommand] = []
+    data_models: list[DataModel] = []
     complexity_files: list[ComplexFile] = []
     dependencies: list[Dependency] = []
     security: SecuritySummary | None = None

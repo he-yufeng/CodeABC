@@ -24,6 +24,8 @@ from backend.models import (
     CodeWalkStep,
     ComplexFile,
     CouplingHotspot,
+    DataModel,
+    DataModelField,
     Definition,
     DefinitionMatches,
     Dependency,
@@ -72,6 +74,7 @@ from backend.services import (
     commands,
     complexity,
     coverage,
+    datamodels,
     dependencies,
     docs,
     entrypoints,
@@ -198,6 +201,7 @@ def _content_analyses(
     env = envscan.scan_env_vars(file_contents)
     entries = entrypoints.find_entry_points(file_contents)
     cli_commands = commands.find_cli_commands(file_contents)
+    data_models = datamodels.find_data_models(file_contents)
     complex_files = complexity.scan_complexity(file_contents)
     deps = dependencies.scan_dependencies(file_contents)
     sec = security.scan_security(file_contents)
@@ -237,6 +241,19 @@ def _content_analyses(
                 line=c["line"],
             )
             for c in cli_commands["commands"]
+        ],
+        "data_models": [
+            DataModel(
+                name=m["name"],
+                kind=m["kind"],
+                fields=[
+                    DataModelField(name=f["name"], type=f["type"], has_default=f["has_default"])
+                    for f in m["fields"]
+                ],
+                path=m["path"],
+                line=m["line"],
+            )
+            for m in data_models["models"]
         ],
         "complexity_files": [
             ComplexFile(
