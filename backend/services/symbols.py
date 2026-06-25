@@ -194,7 +194,7 @@ def _build_notes(definitions: list[dict], file_contents: dict[str, str]) -> list
     by_kind: dict[str, int] = {}
     for d in definitions:
         by_kind[d["kind"]] = by_kind.get(d["kind"], 0) + 1
-    parts = [f"{by_kind[k]} {k}{'es' if k == 'class' else 's'}" for k in sorted(by_kind)]
+    parts = [_count_phrase(by_kind[k], k) for k in sorted(by_kind)]
     if parts:
         notes.append(f"Indexed {', '.join(parts)} across {scanned} source file(s).")
 

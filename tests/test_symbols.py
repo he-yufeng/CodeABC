@@ -142,6 +142,18 @@ class TestIndex:
         assert index["notes"]
         assert any("Definitions only" in n for n in index["notes"])
 
+    def test_index_summary_uses_singular_for_a_lone_definition(self):
+        # One class and one function: the summary should read
+        # "1 class, 1 function", not the always-pluralized "1 classes,
+        # 1 functions" — the same singular grammar file_outline guarantees.
+        code = "class Widget:\n    pass\n\n\ndef helper():\n    pass\n"
+        index = build_definition_index({"mod.py": code})
+        summary = next(n for n in index["notes"] if n.startswith("Indexed"))
+        assert "1 class," in summary
+        assert "1 function " in summary
+        assert "1 classes" not in summary
+        assert "1 functions" not in summary
+
     def test_empty_when_no_source(self):
         index = build_definition_index({"README.md": "# hello\n"})
         assert index["total"] == 0
