@@ -5,6 +5,24 @@ import { useProjectStore } from "../stores/project";
 import { useI18n, LanguageToggle } from "../lib/i18n";
 import { friendlyError } from "../lib/errors";
 
+// A plain-language [zh, en] label for a tunable setting's value kind, fed to t().
+function settingKindLabel(kind: string): [string, string] {
+  switch (kind) {
+    case "number":
+      return ["数字", "number"];
+    case "text":
+      return ["文本", "text"];
+    case "flag":
+      return ["开关", "flag"];
+    case "list":
+      return ["列表", "list"];
+    case "mapping":
+      return ["映射", "mapping"];
+    default:
+      return ["其它", "other"];
+  }
+}
+
 export default function Overview() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
@@ -804,6 +822,39 @@ export default function Overview() {
                         {c.options.join("  ")}
                       </span>
                     )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Tunable settings — hard-coded constants a reader might want to change */}
+        {project && (project.tunable_settings?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-emerald-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("能改哪些值（可调设置）", "What you can change (tunable settings)")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "环境变量是“在代码外面要设置什么”，这里是“代码里面写死、你可能想改的值”——重试次数、超时、默认模型、开关之类。改前看清它在哪、是什么类型。",
+                "Env vars are what you set outside the code; these are the values hard-coded inside that you might want to tweak — retry counts, timeouts, default model, feature flags. Check where each lives and its type before changing it.",
+              )}
+            </p>
+            <ul className="space-y-2">
+              {project.tunable_settings!.map((s) => (
+                <li key={`${s.path}:${s.line}:${s.name}`}>
+                  <button
+                    onClick={() => handleFileClick(s.path)}
+                    className="w-full text-left hover:text-blue-700"
+                  >
+                    <span className="font-mono text-sm text-emerald-700">{s.name}</span>
+                    <span className="mx-1 text-sm text-gray-400">=</span>
+                    <span className="font-mono text-sm text-gray-700">{s.value}</span>
+                    <span className="ml-2 text-xs text-gray-400">{s.path}</span>
+                    <span className="ml-2 text-xs rounded bg-emerald-50 text-emerald-600 px-1.5 py-0.5">
+                      {t(...settingKindLabel(s.kind))}
+                    </span>
                   </button>
                 </li>
               ))}

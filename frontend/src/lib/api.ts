@@ -197,6 +197,14 @@ export interface CliCommand {
   line: number;
 }
 
+export interface TunableSetting {
+  name: string;
+  kind: string; // "number" | "text" | "flag" | "list" | "mapping" | "other"
+  value: string;
+  path: string;
+  line: number;
+}
+
 export interface ComplexFile {
   path: string;
   complexity: number;
@@ -344,6 +352,7 @@ export interface ProjectMeta {
   env_vars?: EnvVar[];
   entry_points?: EntryPoint[];
   cli_commands?: CliCommand[];
+  tunable_settings?: TunableSetting[];
   complexity_files?: ComplexFile[];
   doc_coverage?: DocCoverage;
   error_handling?: ErrorHandling;

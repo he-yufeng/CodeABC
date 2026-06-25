@@ -60,6 +60,7 @@ from backend.models import (
     SilentFailure,
     TechDebtFile,
     TestCoverageSummary,
+    TunableSetting,
     UploadedFile,
 )
 from backend.services import (
@@ -90,6 +91,7 @@ from backend.services import (
     risk,
     scanner,
     security,
+    settings_map,
     symbols,
     techdebt,
 )
@@ -202,6 +204,7 @@ def _content_analyses(
     entries = entrypoints.find_entry_points(file_contents)
     cli_commands = commands.find_cli_commands(file_contents)
     data_models = datamodels.find_data_models(file_contents)
+    tunable = settings_map.find_tunable_settings(file_contents)
     complex_files = complexity.scan_complexity(file_contents)
     deps = dependencies.scan_dependencies(file_contents)
     sec = security.scan_security(file_contents)
@@ -254,6 +257,16 @@ def _content_analyses(
                 line=m["line"],
             )
             for m in data_models["models"]
+        ],
+        "tunable_settings": [
+            TunableSetting(
+                name=s["name"],
+                kind=s["kind"],
+                value=s["value"],
+                path=s["path"],
+                line=s["line"],
+            )
+            for s in tunable["settings"]
         ],
         "complexity_files": [
             ComplexFile(

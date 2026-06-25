@@ -232,6 +232,14 @@ class DataModel(BaseModel):
     line: int
 
 
+class TunableSetting(BaseModel):
+    name: str  # the constant's UPPER_SNAKE name
+    kind: str  # "number" | "text" | "flag" | "list" | "mapping" | "other"
+    value: str  # the literal value, rendered short (strings quoted, long ones truncated)
+    path: str
+    line: int
+
+
 class ComplexFile(BaseModel):
     path: str
     complexity: int  # approximate cyclomatic complexity (decision points + 1)
@@ -363,6 +371,7 @@ class ProjectMeta(BaseModel):
     entry_points: list[EntryPoint] = []
     cli_commands: list[CliCommand] = []
     data_models: list[DataModel] = []
+    tunable_settings: list[TunableSetting] = []
     complexity_files: list[ComplexFile] = []
     dependencies: list[Dependency] = []
     security: SecuritySummary | None = None

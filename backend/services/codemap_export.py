@@ -30,6 +30,7 @@ from backend.services import (
     ownership,
     risk,
     security,
+    settings_map,
     techdebt,
 )
 from backend.services import (
@@ -66,6 +67,7 @@ def _ordered_sections(proj: dict) -> list[str]:
         entrypoints.render_entrypoints_markdown(name, entrypoints.find_entry_points(contents)),
         commands.render_commands_markdown(name, commands.find_cli_commands(contents)),
         datamodels.render_data_models_markdown(name, datamodels.find_data_models(contents)),
+        settings_map.render_settings_markdown(name, settings_map.find_tunable_settings(contents)),
         complexity.render_complexity_markdown(name, complexity.scan_complexity(contents)),
         dependencies.render_dependencies_markdown(name, dependencies.scan_dependencies(contents)),
         security.render_security_markdown(name, security.scan_security(contents)),
