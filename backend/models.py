@@ -240,6 +240,17 @@ class TunableSetting(BaseModel):
     line: int
 
 
+class ScheduledTask(BaseModel):
+    name: str  # what runs (function / job name, or the workflow file stem)
+    # "github-actions" | "apscheduler" | "celery" | "schedule" | "repeat-every"
+    # | "node-cron" | "nestjs" | "interval"
+    mechanism: str
+    schedule: str = ""  # the raw schedule as written ("*/5 * * * *", "seconds=30")
+    schedule_human: str = ""  # plain-language gloss, "" when not derivable
+    path: str
+    line: int
+
+
 class ComplexFile(BaseModel):
     path: str
     complexity: int  # approximate cyclomatic complexity (decision points + 1)
@@ -372,6 +383,7 @@ class ProjectMeta(BaseModel):
     cli_commands: list[CliCommand] = []
     data_models: list[DataModel] = []
     tunable_settings: list[TunableSetting] = []
+    scheduled_tasks: list[ScheduledTask] = []
     complexity_files: list[ComplexFile] = []
     dependencies: list[Dependency] = []
     security: SecuritySummary | None = None

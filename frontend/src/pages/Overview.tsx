@@ -23,6 +23,30 @@ function settingKindLabel(kind: string): [string, string] {
   }
 }
 
+// A plain-language [zh, en] label for how a scheduled task is wired up, fed to t().
+function scheduleMechanismLabel(mechanism: string): [string, string] {
+  switch (mechanism) {
+    case "github-actions":
+      return ["GitHub Actions 定时", "GitHub Actions cron"];
+    case "apscheduler":
+      return ["APScheduler", "APScheduler"];
+    case "celery":
+      return ["Celery 定时", "Celery beat"];
+    case "schedule":
+      return ["schedule 库", "schedule lib"];
+    case "repeat-every":
+      return ["FastAPI 周期任务", "FastAPI repeat_every"];
+    case "node-cron":
+      return ["node-cron", "node-cron"];
+    case "nestjs":
+      return ["NestJS 定时", "NestJS schedule"];
+    case "interval":
+      return ["setInterval 定时器", "setInterval timer"];
+    default:
+      return [mechanism, mechanism];
+  }
+}
+
 export default function Overview() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
@@ -854,6 +878,43 @@ export default function Overview() {
                     <span className="ml-2 text-xs text-gray-400">{s.path}</span>
                     <span className="ml-2 text-xs rounded bg-emerald-50 text-emerald-600 px-1.5 py-0.5">
                       {t(...settingKindLabel(s.kind))}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Scheduled & automated tasks — what the project runs on its own */}
+        {project && (project.scheduled_tasks?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-amber-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("会自己定时跑的任务（自动化）", "What runs on its own (scheduled tasks)")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "入口是“我怎么手动启动”，这里是“项目会不会自己定时做点什么”——比如每天发一封报告、每 30 秒重试一次队列、每晚跑一次 CI。这类任务不用你按按钮就会发生，看清它跑什么、多久跑一次。",
+                "Entry points are how you start things by hand; these run on their own — a daily report, a queue retried every 30 seconds, a nightly CI job. They fire without you pressing anything, so it helps to see what runs and how often.",
+              )}
+            </p>
+            <ul className="space-y-2">
+              {project.scheduled_tasks!.map((s) => (
+                <li key={`${s.path}:${s.line}:${s.name}:${s.mechanism}`}>
+                  <button
+                    onClick={() => handleFileClick(s.path)}
+                    className="w-full text-left hover:text-blue-700"
+                  >
+                    <span className="font-mono text-sm text-amber-700">{s.name}</span>
+                    {s.schedule_human && (
+                      <span className="ml-2 text-sm text-gray-700">{s.schedule_human}</span>
+                    )}
+                    {s.schedule && (
+                      <span className="ml-2 font-mono text-xs text-gray-500">{s.schedule}</span>
+                    )}
+                    <span className="ml-2 text-xs text-gray-400">{s.path}</span>
+                    <span className="ml-2 text-xs rounded bg-amber-50 text-amber-600 px-1.5 py-0.5">
+                      {t(...scheduleMechanismLabel(s.mechanism))}
                     </span>
                   </button>
                 </li>

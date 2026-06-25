@@ -55,6 +55,7 @@ from backend.models import (
     Reference,
     ReferenceMatches,
     RiskHotspot,
+    ScheduledTask,
     SecurityFinding,
     SecuritySummary,
     SilentFailure,
@@ -90,6 +91,7 @@ from backend.services import (
     report_export,
     risk,
     scanner,
+    schedules,
     security,
     settings_map,
     symbols,
@@ -205,6 +207,7 @@ def _content_analyses(
     cli_commands = commands.find_cli_commands(file_contents)
     data_models = datamodels.find_data_models(file_contents)
     tunable = settings_map.find_tunable_settings(file_contents)
+    scheduled = schedules.find_scheduled_tasks(file_contents)
     complex_files = complexity.scan_complexity(file_contents)
     deps = dependencies.scan_dependencies(file_contents)
     sec = security.scan_security(file_contents)
@@ -267,6 +270,17 @@ def _content_analyses(
                 line=s["line"],
             )
             for s in tunable["settings"]
+        ],
+        "scheduled_tasks": [
+            ScheduledTask(
+                name=t["name"],
+                mechanism=t["mechanism"],
+                schedule=t["schedule"],
+                schedule_human=t["schedule_human"],
+                path=t["path"],
+                line=t["line"],
+            )
+            for t in scheduled["tasks"]
         ],
         "complexity_files": [
             ComplexFile(

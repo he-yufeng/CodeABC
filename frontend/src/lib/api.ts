@@ -205,6 +205,17 @@ export interface TunableSetting {
   line: number;
 }
 
+export interface ScheduledTask {
+  name: string;
+  // "github-actions" | "apscheduler" | "celery" | "schedule" | "repeat-every"
+  // | "node-cron" | "nestjs" | "interval"
+  mechanism: string;
+  schedule: string;
+  schedule_human: string;
+  path: string;
+  line: number;
+}
+
 export interface ComplexFile {
   path: string;
   complexity: number;
@@ -353,6 +364,7 @@ export interface ProjectMeta {
   entry_points?: EntryPoint[];
   cli_commands?: CliCommand[];
   tunable_settings?: TunableSetting[];
+  scheduled_tasks?: ScheduledTask[];
   complexity_files?: ComplexFile[];
   doc_coverage?: DocCoverage;
   error_handling?: ErrorHandling;
