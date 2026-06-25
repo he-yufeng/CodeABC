@@ -57,6 +57,15 @@ def _indent_width(line: str) -> int:
     return len(expanded) - len(expanded.lstrip())
 
 
+def _count_phrase(n: int, kind: str) -> str:
+    """'1 class', '2 classes', '1 function' — grammatical for a plain-language note."""
+    if kind == "class":
+        word = "class" if n == 1 else "classes"
+    else:
+        word = kind if n == 1 else f"{kind}s"
+    return f"{n} {word}"
+
+
 # ---------------------------------------------------------------------------
 # Python
 # ---------------------------------------------------------------------------
@@ -341,4 +350,95 @@ def _reference_notes(
         "Whole-word text search: a use hidden inside a string or comment may be "
         "missed, and a same-named field on an unrelated object may be counted."
     )
+    return notes
+
+
+# ---------------------------------------------------------------------------
+# File outline — one file's structure, in the order it is written
+# ---------------------------------------------------------------------------
+
+
+def file_outline(file_contents: dict[str, str], path: str, *, limit: int = 1000) -> dict:
+    """Return one file's table of contents, in source order.
+
+    Where :func:`build_definition_index` flattens the whole project
+    alphabetically, this answers the question a reader has the moment they open
+    an unfamiliar file: "what is in here, top to bottom?". Top-level functions
+    and classes are listed in the order they appear, and a class carries its
+    methods nested underneath (also in source order), so the shape of the file
+    is visible before any of its detail.
+
+    Returns ``{"file", "lang", "total", "outline", "notes"}``. ``outline`` is a
+    list of entries (see :func:`_entry`) in line order; an entry that can hold
+    nested definitions — a class — gains a ``children`` list with its methods
+    (and any nested classes). ``total`` counts every definition, nested ones
+    included, before the ``limit`` truncation.
+    """
+    content = file_contents.get(path)
+    if content is None:
+        return {
+            "file": path,
+            "lang": _lang(path),
+            "total": 0,
+            "outline": [],
+            "notes": [f"'{path}' is not among the analyzed files."],
+        }
+
+    lang = _lang(path)
+    if lang == "python":
+        defs = _py_definitions(path, content)
+    elif lang == "js":
+        defs = _js_definitions(path, content)
+    else:
+        return {
+            "file": path,
+            "lang": lang,
+            "total": 0,
+            "outline": [],
+            "notes": ["The outline covers Python and JS/TS files; this file is neither."],
+        }
+
+    total = len(defs)
+    classes_by_name: dict[str, dict] = {}
+    outline: list[dict] = []
+    # Walk in source order so a class is always seen before its own members.
+    for d in sorted(defs, key=lambda e: e["line"]):
+        node = dict(d)
+        parent_node = classes_by_name.get(d["parent"]) if d["parent"] else None
+        if parent_node is not None:
+            parent_node["children"].append(node)
+        else:
+            # A method whose class is not itself indexed (an orphan) still gets
+            # surfaced at the top level rather than silently dropped.
+            outline.append(node)
+        if d["kind"] == "class":
+            node["children"] = []
+            classes_by_name[d["name"]] = node
+
+    notes = _outline_notes(path, lang, defs, total)
+    return {
+        "file": path,
+        "lang": lang,
+        "total": total,
+        "outline": outline[:limit],
+        "notes": notes,
+    }
+
+
+def _outline_notes(path: str, lang: str, defs: list[dict], total: int) -> list[str]:
+    name = path.rsplit("/", 1)[-1]
+    if total == 0:
+        return [f"No top-level functions or classes were found in {name}."]
+
+    by_kind: dict[str, int] = {}
+    for d in defs:
+        by_kind[d["kind"]] = by_kind.get(d["kind"], 0) + 1
+    parts = [_count_phrase(by_kind[k], k) for k in sorted(by_kind)]
+    notes = [f"{name} defines {', '.join(parts)}, listed in the order they appear."]
+    if lang == "js":
+        notes.append(
+            "For JS/TS, methods inside a class are not broken out yet; the class "
+            "is listed as a whole."
+        )
+    notes.append("Regex-based outline: runtime-built or re-exported names may be missed.")
     return notes

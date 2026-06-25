@@ -453,6 +453,27 @@ class ReferenceMatches(BaseModel):
     notes: list[str] = []
 
 
+class OutlineNode(BaseModel):
+    name: str
+    qualname: str = ""  # "Class.method" for methods, plain name otherwise
+    kind: str  # function | class | method
+    parent: str | None = None  # enclosing class for a method
+    lang: str = ""  # python | js
+    file: str
+    line: int
+    children: list["OutlineNode"] = []  # a class's methods (and nested classes)
+
+
+class FileOutline(BaseModel):
+    """One file's structure, in source order — the file's table of contents."""
+
+    file: str
+    lang: str = ""  # python | js
+    total: int = 0  # number of definitions, nested ones included
+    outline: list[OutlineNode] = []
+    notes: list[str] = []
+
+
 class GitHubRequest(BaseModel):
     url: str = Field(..., pattern=r"^https?://github\.com/.+/.+")
 

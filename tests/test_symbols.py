@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from backend.services.symbols import (
     build_definition_index,
+    file_outline,
     find_definition,
     find_references,
 )
@@ -250,3 +251,96 @@ class TestFindReferences:
         result = find_references({"a.py": "x = 1\n"}, "  ")
         assert result["total"] == 0
         assert result["references"] == []
+
+
+# ---------------------------------------------------------------------------
+# File outline — one file's structure, in source order
+# ---------------------------------------------------------------------------
+
+
+class TestFileOutline:
+    def test_methods_nest_under_their_class(self):
+        code = """\
+class Scanner:
+    def __init__(self, root):
+        self.root = root
+
+    def scan(self):
+        return []
+
+
+def helper(x):
+    return x
+"""
+        result = file_outline({"scanner.py": code}, "scanner.py")
+        assert result["lang"] == "python"
+        assert result["total"] == 4  # class + 2 methods + 1 function
+
+        top = result["outline"]
+        assert [n["name"] for n in top] == ["Scanner", "helper"]
+
+        scanner = top[0]
+        assert scanner["kind"] == "class"
+        assert [c["name"] for c in scanner["children"]] == ["__init__", "scan"]
+        assert all(c["kind"] == "method" for c in scanner["children"])
+        assert top[1]["kind"] == "function"
+        assert top[1].get("children", []) == []  # only classes carry children
+
+    def test_source_order_is_preserved(self):
+        code = "def a():\n    pass\n\n\nclass B:\n    pass\n\n\ndef c():\n    pass\n"
+        result = file_outline({"m.py": code}, "m.py")
+        assert [n["name"] for n in result["outline"]] == ["a", "B", "c"]
+        assert [n["line"] for n in result["outline"]] == [1, 5, 9]
+
+    def test_nested_class_nests_under_its_parent(self):
+        code = """\
+class Outer:
+    def m(self):
+        pass
+
+    class Inner:
+        def n(self):
+            pass
+"""
+        result = file_outline({"m.py": code}, "m.py")
+        outer = result["outline"][0]
+        names = [c["name"] for c in outer["children"]]
+        assert names == ["m", "Inner"]
+        inner = next(c for c in outer["children"] if c["name"] == "Inner")
+        assert [c["name"] for c in inner["children"]] == ["n"]
+
+    def test_javascript_top_level_in_order(self):
+        code = "export function load(){}\nconst save = () => {};\nclass Store {}\n"
+        result = file_outline({"app.ts": code}, "app.ts")
+        assert result["lang"] == "js"
+        assert [n["name"] for n in result["outline"]] == ["load", "save", "Store"]
+
+    def test_singular_counts_read_naturally(self):
+        code = "class A:\n    def m(self):\n        pass\n"
+        result = file_outline({"a.py": code}, "a.py")
+        assert "1 class" in result["notes"][0]
+        assert "1 method" in result["notes"][0]
+        assert "1 classes" not in result["notes"][0]
+
+    def test_missing_path_is_reported(self):
+        result = file_outline({"a.py": "x = 1\n"}, "b.py")
+        assert result["total"] == 0
+        assert result["outline"] == []
+        assert any("not among the analyzed files" in n for n in result["notes"])
+
+    def test_unsupported_language_is_reported(self):
+        result = file_outline({"notes.md": "# title\n"}, "notes.md")
+        assert result["total"] == 0
+        assert any("Python and JS/TS" in n for n in result["notes"])
+
+    def test_empty_file_has_no_definitions(self):
+        result = file_outline({"a.py": "x = 1\ny = 2\n"}, "a.py")
+        assert result["total"] == 0
+        assert result["outline"] == []
+        assert any("No top-level functions or classes" in n for n in result["notes"])
+
+    def test_limit_truncates_top_level_but_total_counts_all(self):
+        code = "".join(f"def f{i}():\n    pass\n" for i in range(10))
+        result = file_outline({"a.py": code}, "a.py", limit=3)
+        assert result["total"] == 10
+        assert len(result["outline"]) == 3

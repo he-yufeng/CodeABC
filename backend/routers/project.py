@@ -36,6 +36,7 @@ from backend.models import (
     FileDependencies,
     FileGlossary,
     FileInfo,
+    FileOutline,
     GitHubRequest,
     GlossaryTerm,
     HealthScore,
@@ -646,6 +647,23 @@ async def get_references(project_id: str, name: str):
         references=[Reference(**r) for r in result["references"]],
         notes=result["notes"],
     )
+
+
+@router.get("/project/{project_id}/outline", response_model=FileOutline)
+async def get_file_outline(project_id: str, path: str):
+    """Return one file's structure, top to bottom — its table of contents.
+
+    Deterministic (no LLM): where the definition index spans the whole project
+    alphabetically, this lists just the chosen file's functions and classes in
+    the order they are written, with each class's methods nested underneath, so
+    a reader can see the shape of an unfamiliar file before its detail.
+    """
+    proj = await _resolve_project(project_id)
+    if not proj:
+        raise HTTPException(404, "Project not found")
+
+    result = symbols.file_outline(proj.get("file_contents", {}), path)
+    return FileOutline(**result)
 
 
 @router.get("/project/{project_id}/codemap.md")
