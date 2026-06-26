@@ -230,6 +230,28 @@ export interface CiCheck {
   line: number;
 }
 
+export interface LicenseFinding {
+  spdx: string;
+  name: string; // English license name
+  name_zh: string; // plain-Chinese license name
+  // "permissive" | "weak-copyleft" | "strong-copyleft" | "network-copyleft"
+  // | "public-domain" | "source-available" | "unknown"
+  category: string;
+  source_path: string;
+  // "license-file" | "manifest" | "classifier" | "spdx-tag"
+  source_kind: string;
+  line: number;
+}
+
+export interface LicenseSummary {
+  total: number;
+  primary: string; // SPDX id of the project's own license, "unknown", or ""
+  primary_category: string;
+  found: LicenseFinding[];
+  categories: string[];
+  notes: string[];
+}
+
 export interface ComplexFile {
   path: string;
   complexity: number;
@@ -380,6 +402,7 @@ export interface ProjectMeta {
   tunable_settings?: TunableSetting[];
   scheduled_tasks?: ScheduledTask[];
   ci_checks?: CiCheck[];
+  licenses?: LicenseSummary;
   complexity_files?: ComplexFile[];
   doc_coverage?: DocCoverage;
   error_handling?: ErrorHandling;

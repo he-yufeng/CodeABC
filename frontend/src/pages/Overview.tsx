@@ -71,6 +71,86 @@ function ciCategoryLabel(category: string): [string, string] {
   }
 }
 
+// Plain-language family label for a license category. The backend sends the
+// category key; the frontend owns the bilingual presentation (same split as
+// ciCategoryLabel).
+function licenseCategoryLabel(category: string): [string, string] {
+  switch (category) {
+    case "permissive":
+      return ["宽松型", "permissive"];
+    case "weak-copyleft":
+      return ["弱著佐权", "weak copyleft"];
+    case "strong-copyleft":
+      return ["强著佐权", "strong copyleft"];
+    case "network-copyleft":
+      return ["网络著佐权", "network copyleft"];
+    case "public-domain":
+      return ["公有领域 / 近似放弃版权", "public domain"];
+    case "source-available":
+      return ["源码可见但非自由", "source-available"];
+    default:
+      return ["未识别", "unrecognised"];
+  }
+}
+
+// One-line "what does this family let me do" gloss, the high-value summary for
+// the panel. The full four-question table lives in the codemap.md export.
+function licenseCategoryOneLiner(category: string): [string, string] {
+  switch (category) {
+    case "permissive":
+      return [
+        "几乎想怎么用都行：商用、改造、闭源都可以，只要保留原作者的版权和许可声明。",
+        "Use it almost any way you like — commercial, modified, closed-source — as long as you keep the original copyright and license notice.",
+      ];
+    case "weak-copyleft":
+      return [
+        "可以商用，但你改动它原有文件的部分要按同样许可公开；你自己新写的文件可以闭源。",
+        "Commercial use is fine, but changes to its own files must be shared under the same license; files you write yourself can stay closed.",
+      ];
+    case "strong-copyleft":
+      return [
+        "可以商用、可以改，但只要把成品分发出去，整个衍生项目都得按同样的许可一起开源。",
+        "You may use and modify it, but once you distribute the result the whole derivative project must be open-sourced under the same license.",
+      ];
+    case "network-copyleft":
+      return [
+        "和强著佐权一样，而且更进一步：哪怕只是放在服务器上联网提供服务，也要把源码给用户。",
+        "Like strong copyleft, and then some: even offering it as a network service obliges you to give users the source.",
+      ];
+    case "public-domain":
+      return [
+        "作者基本放弃了权利，你几乎可以无条件使用，通常连署名都不强制。",
+        "The author has essentially waived their rights — you can use it almost unconditionally, usually without even crediting them.",
+      ];
+    case "source-available":
+      return [
+        "源码能看，但不等于能随便用。这类许可常限制商用，或禁止拿去做与原产品竞争的服务，务必先读清楚条款。",
+        "The source is visible but that does not mean you may use it freely — these licenses often restrict commercial use or forbid competing services. Read the terms first.",
+      ];
+    default:
+      return [
+        "找到了许可证但没认出是哪一种，请人工读一下原文，或联系作者确认。",
+        "A license was found but not recognised — read the text yourself or ask the author to confirm.",
+      ];
+  }
+}
+
+// Where a license finding came from.
+function licenseSourceKindLabel(kind: string): [string, string] {
+  switch (kind) {
+    case "license-file":
+      return ["许可证文件", "LICENSE file"];
+    case "manifest":
+      return ["项目清单的 license 字段", "manifest license field"];
+    case "classifier":
+      return ["项目清单的分类标签", "trove classifier"];
+    case "spdx-tag":
+      return ["源码里的 SPDX 标记", "SPDX tag in source"];
+    default:
+      return [kind, kind];
+  }
+}
+
 export default function Overview() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
@@ -980,6 +1060,86 @@ export default function Overview() {
             </ul>
           </section>
         )}
+
+        {/* Open-source license — what you're actually allowed to do with the code */}
+        {project?.licenses &&
+          (project.licenses.found.length > 0 ||
+            project.licenses.notes.some((n) => n.includes("没找到许可证"))) && (
+            <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-emerald-400">
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                {t(
+                  "开源许可证（你能不能用、能不能商用）",
+                  "License (what you're allowed to do)",
+                )}
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">
+                {t(
+                  "许可证决定了你能拿这份代码做什么——能不能商用、能不能闭源用、改了要不要公开。没有许可证不等于免费随便用，默认是“保留所有权利”。",
+                  "The license decides what you may do with this code — commercial use, closed-source use, whether changes must be published. No license does not mean free-for-all; the default is all rights reserved.",
+                )}
+              </p>
+
+              {project.licenses.primary && project.licenses.primary !== "unknown" ? (
+                <div className="mb-4">
+                  <div>
+                    <span className="text-xs rounded bg-emerald-50 text-emerald-700 px-1.5 py-0.5">
+                      {t(...licenseCategoryLabel(project.licenses.primary_category))}
+                    </span>
+                    <span className="ml-2 font-semibold text-gray-900">
+                      {project.licenses.found.find(
+                        (f) => f.spdx === project.licenses!.primary,
+                      )?.name_zh || project.licenses.primary}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700 mt-2">
+                    {t(...licenseCategoryOneLiner(project.licenses.primary_category))}
+                  </p>
+                </div>
+              ) : project.licenses.primary === "unknown" ? (
+                <p className="text-sm text-gray-700 mb-4">
+                  {t(
+                    "找到了许可证文件但没认出是哪一种，请人工读一下原文，或联系作者确认。",
+                    "A license file was found but not recognised — read the text yourself or ask the author to confirm.",
+                  )}
+                </p>
+              ) : (
+                <p className="text-sm text-amber-700 bg-amber-50 rounded px-3 py-2 mb-4">
+                  {t(
+                    "⚠ 没找到许可证。没有许可证不等于可以随便用——默认是“保留所有权利”，别人原则上不能合法使用或分发这份代码。如果这是你的项目，建议补一个 LICENSE。",
+                    "⚠ No license found. That does not make it free to use — the default is all rights reserved, so others may not legally use or distribute this code. If this is your project, consider adding a LICENSE.",
+                  )}
+                </p>
+              )}
+
+              {project.licenses.found.length > 0 && (
+                <ul className="space-y-2">
+                  {project.licenses.found.map((f) => (
+                    <li key={`${f.source_path}:${f.line}:${f.spdx}`}>
+                      <button
+                        onClick={() => handleFileClick(f.source_path)}
+                        className="w-full text-left hover:text-blue-700"
+                      >
+                        <span className="text-sm text-emerald-700">
+                          {f.name_zh || f.name || t("未识别的许可证", "unrecognised license")}
+                        </span>
+                        <span className="ml-2 text-xs text-gray-500">
+                          {t(...licenseSourceKindLabel(f.source_kind))}
+                        </span>
+                        <span className="ml-2 text-xs text-gray-400">{f.source_path}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <p className="text-xs text-gray-400 mt-3">
+                {t(
+                  "以上是大白话概括，不是法律意见；正式用途请读许可证原文或咨询法务。",
+                  "This is a plain-language summary, not legal advice; for anything that matters, read the license text or consult a lawyer.",
+                )}
+              </p>
+            </section>
+          )}
 
         {/* Logic complexity — which files carry the gnarliest branching */}
         {project && (project.complexity_files?.length ?? 0) > 0 && (
