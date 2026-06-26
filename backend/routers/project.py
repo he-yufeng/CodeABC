@@ -19,6 +19,7 @@ from backend.models import (
     ArchitectureLayer,
     BlastRadiusHotspot,
     ChurnHotspot,
+    CiCheck,
     CliCommand,
     CoChangeCoupling,
     CodeWalkStep,
@@ -73,6 +74,7 @@ from backend.services import (
     apimap,
     cache,
     churn,
+    ci_checks,
     codemap_export,
     commands,
     complexity,
@@ -209,6 +211,7 @@ def _content_analyses(
     data_models = datamodels.find_data_models(file_contents)
     tunable = settings_map.find_tunable_settings(file_contents)
     scheduled = schedules.find_scheduled_tasks(file_contents)
+    ci_gates = ci_checks.find_ci_checks(file_contents)
     complex_files = complexity.scan_complexity(file_contents)
     deps = dependencies.scan_dependencies(file_contents)
     sec = security.scan_security(file_contents)
@@ -282,6 +285,17 @@ def _content_analyses(
                 line=t["line"],
             )
             for t in scheduled["tasks"]
+        ],
+        "ci_checks": [
+            CiCheck(
+                tool=c["tool"],
+                category=c["category"],
+                system=c["system"],
+                trigger=c["trigger"],
+                path=c["path"],
+                line=c["line"],
+            )
+            for c in ci_gates["checks"]
         ],
         "complexity_files": [
             ComplexFile(

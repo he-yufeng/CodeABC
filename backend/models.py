@@ -251,6 +251,19 @@ class ScheduledTask(BaseModel):
     line: int
 
 
+class CiCheck(BaseModel):
+    tool: str  # the tool that runs the gate ("ruff", "pytest", "tsc", ...)
+    # "lint" | "format" | "typecheck" | "test" | "coverage" | "security"
+    # | "build" | "deploy"
+    category: str
+    # "github-actions" | "pre-commit" | "gitlab-ci" | "circleci"
+    # | "azure-pipelines" | "travis" | "jenkins"
+    system: str
+    trigger: str = ""  # plain-language trigger gloss (GitHub Actions only)
+    path: str
+    line: int
+
+
 class ComplexFile(BaseModel):
     path: str
     complexity: int  # approximate cyclomatic complexity (decision points + 1)
@@ -384,6 +397,7 @@ class ProjectMeta(BaseModel):
     data_models: list[DataModel] = []
     tunable_settings: list[TunableSetting] = []
     scheduled_tasks: list[ScheduledTask] = []
+    ci_checks: list[CiCheck] = []
     complexity_files: list[ComplexFile] = []
     dependencies: list[Dependency] = []
     security: SecuritySummary | None = None

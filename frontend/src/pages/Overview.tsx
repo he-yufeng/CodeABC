@@ -47,6 +47,30 @@ function scheduleMechanismLabel(mechanism: string): [string, string] {
   }
 }
 
+// A plain-language [zh, en] label for a CI quality-gate category, fed to t().
+function ciCategoryLabel(category: string): [string, string] {
+  switch (category) {
+    case "lint":
+      return ["代码规范检查", "lint"];
+    case "format":
+      return ["代码格式检查", "formatting"];
+    case "typecheck":
+      return ["类型检查", "type check"];
+    case "test":
+      return ["自动化测试", "tests"];
+    case "coverage":
+      return ["测试覆盖率", "coverage"];
+    case "security":
+      return ["安全扫描", "security scan"];
+    case "build":
+      return ["构建打包", "build"];
+    case "deploy":
+      return ["部署 / 发布", "deploy / release"];
+    default:
+      return [category, category];
+  }
+}
+
 export default function Overview() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
@@ -916,6 +940,40 @@ export default function Overview() {
                     <span className="ml-2 text-xs rounded bg-amber-50 text-amber-600 px-1.5 py-0.5">
                       {t(...scheduleMechanismLabel(s.mechanism))}
                     </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* CI quality gates — the checks a change must pass on push / PR */}
+        {project && (project.ci_checks?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-sky-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("提交后会自动跑的检查（CI 质量门禁）", "Checks that run on push / PR (CI gates)")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "你把改动交上去（push 或开 PR）之后，这些检查会自动跑一遍——可以当成“机器人审稿”，任何一项亮红叉，改动通常就进不去。提前知道有哪几道关卡，红叉就不再吓人。",
+                "After you hand a change in (push or open a PR), these run automatically — think of them as a robot reviewer; one red cross usually blocks the merge. Knowing the gates up front makes the red crosses far less scary.",
+              )}
+            </p>
+            <ul className="space-y-2">
+              {project.ci_checks!.map((c) => (
+                <li key={`${c.path}:${c.line}:${c.category}:${c.tool}`}>
+                  <button
+                    onClick={() => handleFileClick(c.path)}
+                    className="w-full text-left hover:text-blue-700"
+                  >
+                    <span className="text-xs rounded bg-sky-50 text-sky-700 px-1.5 py-0.5">
+                      {t(...ciCategoryLabel(c.category))}
+                    </span>
+                    <span className="ml-2 font-mono text-sm text-sky-700">{c.tool}</span>
+                    {c.trigger && (
+                      <span className="ml-2 text-sm text-gray-700">{c.trigger}</span>
+                    )}
+                    <span className="ml-2 text-xs text-gray-400">{c.path}</span>
                   </button>
                 </li>
               ))}

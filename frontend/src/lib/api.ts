@@ -216,6 +216,20 @@ export interface ScheduledTask {
   line: number;
 }
 
+export interface CiCheck {
+  // the tool that runs the gate ("ruff", "pytest", "tsc", ...)
+  tool: string;
+  // "lint" | "format" | "typecheck" | "test" | "coverage" | "security"
+  // | "build" | "deploy"
+  category: string;
+  // "github-actions" | "pre-commit" | "gitlab-ci" | "circleci"
+  // | "azure-pipelines" | "travis" | "jenkins"
+  system: string;
+  trigger: string; // plain-language trigger gloss (GitHub Actions only)
+  path: string;
+  line: number;
+}
+
 export interface ComplexFile {
   path: string;
   complexity: number;
@@ -365,6 +379,7 @@ export interface ProjectMeta {
   cli_commands?: CliCommand[];
   tunable_settings?: TunableSetting[];
   scheduled_tasks?: ScheduledTask[];
+  ci_checks?: CiCheck[];
   complexity_files?: ComplexFile[];
   doc_coverage?: DocCoverage;
   error_handling?: ErrorHandling;
