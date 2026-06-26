@@ -264,6 +264,28 @@ class CiCheck(BaseModel):
     line: int
 
 
+class LicenseFinding(BaseModel):
+    spdx: str  # canonical SPDX id ("MIT", "GPL-3.0", ...) or "unknown"
+    name: str  # English display name
+    name_zh: str  # plain-Chinese name
+    # "permissive" | "weak-copyleft" | "strong-copyleft" | "network-copyleft"
+    # | "public-domain" | "source-available" | "unknown"
+    category: str
+    source_path: str  # the file the license was found in
+    # "license-file" | "manifest" | "classifier" | "spdx-tag"
+    source_kind: str
+    line: int
+
+
+class LicenseSummary(BaseModel):
+    total: int = 0  # distinct recognised licenses
+    primary: str = ""  # best-guess project license SPDX id, "" if none found
+    primary_category: str = ""
+    found: list[LicenseFinding] = []
+    categories: list[str] = []
+    notes: list[str] = []
+
+
 class ComplexFile(BaseModel):
     path: str
     complexity: int  # approximate cyclomatic complexity (decision points + 1)
@@ -398,6 +420,7 @@ class ProjectMeta(BaseModel):
     tunable_settings: list[TunableSetting] = []
     scheduled_tasks: list[ScheduledTask] = []
     ci_checks: list[CiCheck] = []
+    licenses: LicenseSummary | None = None
     complexity_files: list[ComplexFile] = []
     dependencies: list[Dependency] = []
     security: SecuritySummary | None = None

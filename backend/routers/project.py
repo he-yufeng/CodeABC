@@ -47,6 +47,8 @@ from backend.models import (
     ImportCycle,
     Integrations,
     KnowledgeSilo,
+    LicenseFinding,
+    LicenseSummary,
     OrphanModule,
     PackageDependency,
     ProjectHealth,
@@ -90,6 +92,7 @@ from backend.services import (
     glossary,
     importgraph,
     integrations,
+    licenses,
     ownership,
     report_export,
     risk,
@@ -212,6 +215,7 @@ def _content_analyses(
     tunable = settings_map.find_tunable_settings(file_contents)
     scheduled = schedules.find_scheduled_tasks(file_contents)
     ci_gates = ci_checks.find_ci_checks(file_contents)
+    license_map = licenses.find_licenses(file_contents)
     complex_files = complexity.scan_complexity(file_contents)
     deps = dependencies.scan_dependencies(file_contents)
     sec = security.scan_security(file_contents)
@@ -297,6 +301,14 @@ def _content_analyses(
             )
             for c in ci_gates["checks"]
         ],
+        "licenses": LicenseSummary(
+            total=license_map["total"],
+            primary=license_map["primary"],
+            primary_category=license_map["primary_category"],
+            found=[LicenseFinding(**f) for f in license_map["found"]],
+            categories=license_map["categories"],
+            notes=license_map["notes"],
+        ),
         "complexity_files": [
             ComplexFile(
                 path=f["path"],
