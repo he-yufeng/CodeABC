@@ -181,28 +181,37 @@ CodeABC supports two modes:
 CodeABC/
 ├── backend/                 # Python FastAPI server
 │   ├── app.py               # Entry point, CORS, lifespan
+│   ├── desktop_server.py    # Sidecar launcher for the Tauri desktop build
 │   ├── models.py            # Pydantic data models
 │   ├── routers/
 │   │   ├── project.py       # Upload / GitHub clone / file endpoints
 │   │   └── analyze.py       # Overview + annotation generation
 │   ├── services/
-│   │   ├── scanner.py       # Project file scanner with smart filtering
-│   │   ├── importgraph.py   # Import-graph fan-in ranking (core-module detection)
-│   │   ├── github_clone.py  # Shallow clone with size limits
-│   │   ├── llm.py           # litellm wrapper (stream + non-stream)
-│   │   └── cache.py         # SQLite cache layer
+│   │   ├── scanner.py        # Project file scanner with smart filtering
+│   │   ├── importgraph.py    # Import-graph fan-in ranking (core-module detection)
+│   │   ├── github_clone.py   # Shallow clone with size limits
+│   │   ├── llm.py            # litellm wrapper (stream + non-stream)
+│   │   ├── cache.py          # SQLite cache + on-disk project library
+│   │   ├── codemap_export.py # Stitch every map into one offline codemap.md
+│   │   ├── report_export.py  # Self-contained offline HTML report
+│   │   └── …                 # + 27 deterministic, no-API-key analyzers (one per map)
 │   └── prompts/
 │       ├── overview.py      # Project overview prompt
-│       └── annotate.py      # Line-by-line annotation prompt
+│       ├── annotate.py      # Line-by-line annotation prompt
+│       ├── qa.py            # Snippet / file Q&A prompt
+│       └── edit.py          # Natural-language editing prompt
 ├── frontend/                # React + Vite + TailwindCSS
 │   └── src/
 │       ├── pages/           # Home, Overview, FileView
 │       ├── components/      # UploadZone, CodeViewer, AnnotationTooltip, ApiKeyModal
 │       ├── stores/          # Zustand state management
 │       └── lib/             # API client
+├── scripts/                 # Desktop sidecar build (PyInstaller)
 ├── pyproject.toml
 └── README.md
 ```
+
+The `services/` analyzers are one module per deterministic map: `coverage`, `symbols`, `datamodels`, `settings_map`, `schedules`, `ci_checks`, `entrypoints`, `commands`, `envscan`, `dependencies`, `integrations`, `error_handling`, `techdebt`, `docs`, `complexity`, `churn`, `activity`, `ownership`, `licenses`, `security`, `risk`, `health_score`, `apimap`, `glossary`, `filenames`, `package_purposes`, and `action_plan`.
 
 ## Roadmap
 
