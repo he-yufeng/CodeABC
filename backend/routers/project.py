@@ -58,6 +58,8 @@ from backend.models import (
     ReadingStep,
     Reference,
     ReferenceMatches,
+    ReleaseAutomation,
+    ReleaseSummary,
     RiskHotspot,
     ScheduledTask,
     SecurityFinding,
@@ -94,6 +96,7 @@ from backend.services import (
     integrations,
     licenses,
     ownership,
+    release_map,
     report_export,
     risk,
     scanner,
@@ -223,6 +226,7 @@ def _content_analyses(
     doc = docs.assess_doc_coverage(file_contents)
     silent = error_handling.find_swallowed_errors(file_contents)
     integ = integrations.detect_external_services(file_contents)
+    rel = release_map.find_release_info(file_contents)
     return {
         "knowledge_silos": [
             KnowledgeSilo(
@@ -359,6 +363,20 @@ def _content_analyses(
             services=[ExternalService(**s) for s in integ["services"]],
             categories=integ["categories"],
             notes=integ["notes"],
+        ),
+        "release": ReleaseSummary(
+            version=rel["version"],
+            version_source=rel["version_source"],
+            version_source_kind=rel["version_source_kind"],
+            dynamic_from_vcs=rel["dynamic_from_vcs"],
+            scheme=rel["scheme"],
+            scheme_zh=rel["scheme_zh"],
+            changelog_path=rel["changelog_path"],
+            changelog_style=rel["changelog_style"],
+            changelog_style_zh=rel["changelog_style_zh"],
+            automation=[ReleaseAutomation(**a) for a in rel["automation"]],
+            publish_targets=rel["publish_targets"],
+            notes=rel["notes"],
         ),
     }
 

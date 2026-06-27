@@ -286,6 +286,33 @@ class LicenseSummary(BaseModel):
     notes: list[str] = []
 
 
+class ReleaseAutomation(BaseModel):
+    trigger: str = ""  # "tag-push" | "release" | "manual" | ""
+    trigger_zh: str = ""  # plain-language gloss of what kicks the release off
+    # "PyPI" | "npm" | "GitHub Release" | "crates.io" | "RubyGems" | "Docker 镜像"
+    target: str
+    path: str
+    line: int
+
+
+class ReleaseSummary(BaseModel):
+    version: str = ""  # current version string, "" if none found
+    version_source: str = ""  # path the version was read from
+    # "pyproject" | "package-json" | "cargo" | "setup-py" | "setup-cfg"
+    # | "version-file" | "dunder" | "pom" | "gradle"
+    version_source_kind: str = ""
+    dynamic_from_vcs: bool = False  # version derived from git tags at build time
+    # "semver" | "zerover" | "calver" | "prerelease" | "twopart" | "single" | "other"
+    scheme: str = ""
+    scheme_zh: str = ""
+    changelog_path: str = ""
+    changelog_style: str = "none"  # "keepachangelog" | "versioned" | "freeform" | "none"
+    changelog_style_zh: str = ""
+    automation: list[ReleaseAutomation] = []
+    publish_targets: list[str] = []
+    notes: list[str] = []
+
+
 class ComplexFile(BaseModel):
     path: str
     complexity: int  # approximate cyclomatic complexity (decision points + 1)
@@ -431,6 +458,7 @@ class ProjectMeta(BaseModel):
     doc_coverage: DocCoverage | None = None
     error_handling: ErrorHandling | None = None
     integrations: Integrations | None = None
+    release: ReleaseSummary | None = None
 
 
 class FileRole(BaseModel):
