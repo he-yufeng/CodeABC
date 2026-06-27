@@ -1061,6 +1061,110 @@ export default function Overview() {
           </section>
         )}
 
+        {/* Release & versioning — how the project ships new versions, and what changed */}
+        {project?.release &&
+          (project.release.version ||
+            project.release.dynamic_from_vcs ||
+            project.release.changelog_path ||
+            project.release.automation.length > 0) && (
+            <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-violet-400">
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                {t("版本与发布（现在第几版、怎么发新版）", "Release & versioning")}
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">
+                {t(
+                  "想知道这个项目现在是第几版、出新版本时去哪看改了什么、新版又是怎么发出去的，看这里。",
+                  "What version this is, where to see what changed between versions, and how a new release goes out.",
+                )}
+              </p>
+
+              <div className="mb-3">
+                <span className="text-xs rounded bg-violet-50 text-violet-700 px-1.5 py-0.5">
+                  {t("当前版本", "Version")}
+                </span>
+                {project.release.version ? (
+                  <>
+                    <span className="ml-2 font-mono text-sm font-semibold text-gray-900">
+                      {project.release.version}
+                    </span>
+                    {project.release.scheme_zh && (
+                      <span className="ml-2 text-sm text-gray-600">
+                        {project.release.scheme_zh}
+                      </span>
+                    )}
+                    {project.release.version_source && (
+                      <span className="ml-2 text-xs text-gray-400">
+                        {project.release.version_source}
+                      </span>
+                    )}
+                  </>
+                ) : project.release.dynamic_from_vcs ? (
+                  <span className="ml-2 text-sm text-gray-700">
+                    {t("由 git tag 在打包时自动推导", "derived from git tags at build time")}
+                  </span>
+                ) : (
+                  <span className="ml-2 text-sm text-gray-700">
+                    {t("没找到写明的版本号", "no declared version found")}
+                  </span>
+                )}
+              </div>
+
+              <div className="mb-3">
+                <span className="text-xs rounded bg-violet-50 text-violet-700 px-1.5 py-0.5">
+                  {t("更新日志", "Changelog")}
+                </span>
+                {project.release.changelog_path ? (
+                  <button
+                    onClick={() => handleFileClick(project.release!.changelog_path)}
+                    className="ml-2 text-left hover:text-blue-700"
+                  >
+                    <span className="font-mono text-sm text-violet-700">
+                      {project.release.changelog_path}
+                    </span>
+                    {project.release.changelog_style_zh && (
+                      <span className="ml-2 text-sm text-gray-600">
+                        {project.release.changelog_style_zh}
+                      </span>
+                    )}
+                  </button>
+                ) : (
+                  <span className="ml-2 text-sm text-gray-700">
+                    {t(
+                      "没有更新日志文件，只能翻提交记录或 Release 页面",
+                      "no changelog file; check the commits or the Releases page",
+                    )}
+                  </span>
+                )}
+              </div>
+
+              {project.release.automation.length > 0 && (
+                <div>
+                  <span className="text-xs rounded bg-violet-50 text-violet-700 px-1.5 py-0.5">
+                    {t("自动发布", "Release pipeline")}
+                  </span>
+                  <ul className="mt-2 space-y-2">
+                    {project.release.automation.map((a) => (
+                      <li key={`${a.path}:${a.line}:${a.target}`}>
+                        <button
+                          onClick={() => handleFileClick(a.path)}
+                          className="w-full text-left hover:text-blue-700"
+                        >
+                          <span className="text-sm font-semibold text-gray-900">{a.target}</span>
+                          {a.trigger_zh && (
+                            <span className="ml-2 text-sm text-gray-700">{a.trigger_zh}</span>
+                          )}
+                          <span className="ml-2 text-xs text-gray-400">
+                            {a.path}:{a.line}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
+          )}
+
         {/* Open-source license — what you're actually allowed to do with the code */}
         {project?.licenses &&
           (project.licenses.found.length > 0 ||

@@ -252,6 +252,32 @@ export interface LicenseSummary {
   notes: string[];
 }
 
+export interface ReleaseAutomation {
+  trigger: string; // "tag-push" | "release" | "manual" | ""
+  trigger_zh: string; // plain-Chinese gloss of what kicks the release off
+  target: string; // "PyPI" | "npm" | "GitHub Release" | "crates.io" | "RubyGems" | "Docker 镜像"
+  path: string;
+  line: number;
+}
+
+export interface ReleaseSummary {
+  version: string; // current version string, "" if none found
+  version_source: string; // path the version was read from
+  // "pyproject" | "package-json" | "cargo" | "setup-py" | "setup-cfg"
+  // | "version-file" | "dunder" | "pom" | "gradle"
+  version_source_kind: string;
+  dynamic_from_vcs: boolean; // version derived from git tags at build time
+  // "semver" | "zerover" | "calver" | "prerelease" | "twopart" | "single" | "other"
+  scheme: string;
+  scheme_zh: string;
+  changelog_path: string;
+  changelog_style: string; // "keepachangelog" | "versioned" | "freeform" | "none"
+  changelog_style_zh: string;
+  automation: ReleaseAutomation[];
+  publish_targets: string[];
+  notes: string[];
+}
+
 export interface ComplexFile {
   path: string;
   complexity: number;
@@ -407,6 +433,7 @@ export interface ProjectMeta {
   doc_coverage?: DocCoverage;
   error_handling?: ErrorHandling;
   integrations?: Integrations;
+  release?: ReleaseSummary;
   action_plan?: ActionPlan;
   dependencies?: Dependency[];
   api_map?: ApiMap;
