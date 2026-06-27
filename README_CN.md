@@ -208,11 +208,13 @@ npm run tauri:dev
 
 ## 相关项目
 
-我做的其他「读代码 / 懂代码」工具：
+CodeABC 是我做的几个跟代码打交道的工具之一，下面几个也许你会喜欢：
 
-- [RepoWiki](https://github.com/he-yufeng/RepoWiki) —— 给任意代码库生成 wiki 文档
-- [GitSense](https://github.com/he-yufeng/GitSense) —— 找可以上手的开源 issue、评估一个仓库的贡献难度
-- [RuleForge](https://github.com/he-yufeng/RuleForge) —— 从代码库自动生成 AI 助手规则（CLAUDE.md、.cursorrules）
+- **[CoreCoder](https://github.com/he-yufeng/CoreCoder)** — 想搞懂一个 coding agent 到底怎么运作？把整套约 1000 行引擎从头读到尾，而不是当黑箱。
+- **[RepoWiki](https://github.com/he-yufeng/RepoWiki)** — 被丢进一个陌生代码库？它给你一份带「从哪读起」路径的 wiki，一个可自托管的 DeepWiki 替代。
+- **[FindJobs-Agent](https://github.com/he-yufeng/FindJobs-Agent)** — 别再手动刷招聘网站：它按你的简历给岗位排序，还能跑模拟面试。
+- **[ContractGuard](https://github.com/he-yufeng/ContractGuard)** — 签字前先把有风险的条款挑出来：它读合同、标出危险点。
+- **[GitSense](https://github.com/he-yufeng/GitSense)** — 想给开源做贡献？它帮你找到值得做的 issue，还能估你的 PR 多大概率被合。
 
 ## 许可证
 

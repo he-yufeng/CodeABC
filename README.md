@@ -224,13 +224,15 @@ Have an idea or a codebase that confuses CodeABC? Open an issue — the roadmap 
 
 Issues and PRs welcome. This project is in early development.
 
-## Related projects
+## Related Projects
 
-Other tools I build for reading and understanding code:
+CodeABC is one of several tools I've built for working with code. A few others you might like:
 
-- [RepoWiki](https://github.com/he-yufeng/RepoWiki) — generate wiki documentation for any codebase
-- [GitSense](https://github.com/he-yufeng/GitSense) — find open-source issues to work on and gauge how hard a repo is to contribute to
-- [RuleForge](https://github.com/he-yufeng/RuleForge) — auto-generate AI assistant rules (CLAUDE.md, .cursorrules) from a codebase
+- **[CoreCoder](https://github.com/he-yufeng/CoreCoder)** — want to understand how a coding agent really works? Read the whole ~1k-line engine end to end, not a black box.
+- **[RepoWiki](https://github.com/he-yufeng/RepoWiki)** — dropped into an unfamiliar codebase? It gives you a guided wiki and a where-to-start reading path, a self-hostable DeepWiki alternative.
+- **[FindJobs-Agent](https://github.com/he-yufeng/FindJobs-Agent)** — stop sifting job boards by hand: it ranks postings against your resume and runs mock interviews.
+- **[ContractGuard](https://github.com/he-yufeng/ContractGuard)** — catch the risky clauses before you sign: it reads contracts and flags the dangerous bits.
+- **[GitSense](https://github.com/he-yufeng/GitSense)** — want to contribute to open source? It finds issues worth your time and gauges whether your PR will get merged.
 
 ## License
 
