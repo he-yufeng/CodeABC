@@ -278,6 +278,22 @@ export interface ReleaseSummary {
   notes: string[];
 }
 
+export interface ContributionRequirement {
+  // "guide" | "pr-template" | "issue-template" | "commit-convention" | "dco"
+  // | "cla" | "codeowners" | "code-of-conduct" | "security"
+  kind: string;
+  label_zh: string; // plain-Chinese label ("DCO 签署", "提交信息规范", ...)
+  detail_zh: string; // one-line gloss a newcomer can act on
+  path: string; // the community-health file this requirement was read from
+  line: number; // line of the matched text, 0 for a plain presence signal
+}
+
+export interface ContributionGuide {
+  has_guide: boolean; // a CONTRIBUTING file exists
+  requirements: ContributionRequirement[];
+  notes: string[];
+}
+
 export interface ComplexFile {
   path: string;
   complexity: number;
@@ -434,6 +450,7 @@ export interface ProjectMeta {
   error_handling?: ErrorHandling;
   integrations?: Integrations;
   release?: ReleaseSummary;
+  contribution?: ContributionGuide;
   action_plan?: ActionPlan;
   dependencies?: Dependency[];
   api_map?: ApiMap;

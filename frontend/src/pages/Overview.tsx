@@ -1165,6 +1165,53 @@ export default function Overview() {
             </section>
           )}
 
+        {/* Contribution map — what the project asks of you before it takes a change */}
+        {project?.contribution && project.contribution.requirements.length > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-sky-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("怎么给这个项目贡献代码", "How to get a change accepted")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "想把自己的改动提给这个项目，又怕一上来就踩流程的坑被打回？这些是它对贡献者的要求，全部来自项目里现成的“社区规范”文件，提 PR 前照着对一遍。",
+                "What this project expects from a contributor — which file to read first, what to sign, how your commits and pull request must look. All read from its community-health files.",
+              )}
+            </p>
+
+            <ul className="space-y-3">
+              {project.contribution.requirements.map((r) => (
+                <li key={`${r.kind}:${r.path}:${r.line}`}>
+                  <div>
+                    <span className="text-xs rounded bg-sky-50 text-sky-700 px-1.5 py-0.5">
+                      {r.label_zh}
+                    </span>
+                    <button
+                      onClick={() => handleFileClick(r.path)}
+                      className="ml-2 text-left hover:text-blue-700"
+                    >
+                      <span className="font-mono text-xs text-gray-400">
+                        {r.path}
+                        {r.line > 0 ? `:${r.line}` : ""}
+                      </span>
+                    </button>
+                  </div>
+                  <p className="mt-1 text-sm text-gray-700">{r.detail_zh}</p>
+                </li>
+              ))}
+            </ul>
+
+            {project.contribution.notes.length > 0 && (
+              <ul className="mt-4 border-t border-gray-100 pt-3 space-y-1">
+                {project.contribution.notes.map((note, i) => (
+                  <li key={i} className="text-sm text-gray-600">
+                    {note}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
         {/* Open-source license — what you're actually allowed to do with the code */}
         {project?.licenses &&
           (project.licenses.found.length > 0 ||
