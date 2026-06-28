@@ -19,6 +19,7 @@ from backend.services import (
     ci_checks,
     commands,
     complexity,
+    contributing,
     coverage,
     datamodels,
     dependencies,
@@ -75,6 +76,9 @@ def _ordered_sections(proj: dict) -> list[str]:
         schedules.render_schedules_markdown(name, schedules.find_scheduled_tasks(contents)),
         ci_checks.render_ci_checks_markdown(name, ci_checks.find_ci_checks(contents)),
         release_map.render_release_markdown(name, release_map.find_release_info(contents)),
+        contributing.render_contributing_markdown(
+            name, contributing.find_contribution_guide(contents)
+        ),
         licenses.render_licenses_markdown(name, licenses.find_licenses(contents)),
         complexity.render_complexity_markdown(name, complexity.scan_complexity(contents)),
         dependencies.render_dependencies_markdown(name, dependencies.scan_dependencies(contents)),

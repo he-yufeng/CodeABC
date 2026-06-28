@@ -24,6 +24,8 @@ from backend.models import (
     CoChangeCoupling,
     CodeWalkStep,
     ComplexFile,
+    ContributionGuide,
+    ContributionRequirement,
     CouplingHotspot,
     DataModel,
     DataModelField,
@@ -82,6 +84,7 @@ from backend.services import (
     codemap_export,
     commands,
     complexity,
+    contributing,
     coverage,
     datamodels,
     dependencies,
@@ -227,6 +230,7 @@ def _content_analyses(
     silent = error_handling.find_swallowed_errors(file_contents)
     integ = integrations.detect_external_services(file_contents)
     rel = release_map.find_release_info(file_contents)
+    contrib = contributing.find_contribution_guide(file_contents)
     return {
         "knowledge_silos": [
             KnowledgeSilo(
@@ -377,6 +381,11 @@ def _content_analyses(
             automation=[ReleaseAutomation(**a) for a in rel["automation"]],
             publish_targets=rel["publish_targets"],
             notes=rel["notes"],
+        ),
+        "contribution": ContributionGuide(
+            has_guide=contrib["has_guide"],
+            requirements=[ContributionRequirement(**r) for r in contrib["requirements"]],
+            notes=contrib["notes"],
         ),
     }
 

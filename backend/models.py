@@ -313,6 +313,22 @@ class ReleaseSummary(BaseModel):
     notes: list[str] = []
 
 
+class ContributionRequirement(BaseModel):
+    # "guide" | "pr-template" | "issue-template" | "commit-convention" | "dco"
+    # | "cla" | "codeowners" | "code-of-conduct" | "security"
+    kind: str
+    label_zh: str  # plain-Chinese label ("DCO 签署", "提交信息规范", ...)
+    detail_zh: str  # one-line gloss a newcomer can act on
+    path: str  # the community-health file this requirement was read from
+    line: int = 0  # line of the matched text, 0 for a plain presence signal
+
+
+class ContributionGuide(BaseModel):
+    has_guide: bool = False  # a CONTRIBUTING file exists
+    requirements: list[ContributionRequirement] = []
+    notes: list[str] = []
+
+
 class ComplexFile(BaseModel):
     path: str
     complexity: int  # approximate cyclomatic complexity (decision points + 1)
@@ -459,6 +475,7 @@ class ProjectMeta(BaseModel):
     error_handling: ErrorHandling | None = None
     integrations: Integrations | None = None
     release: ReleaseSummary | None = None
+    contribution: ContributionGuide | None = None
 
 
 class FileRole(BaseModel):
