@@ -102,3 +102,74 @@ def test_limit_caps_untested_core():
     result = coverage.assess_test_coverage(files, limit=5)
     assert len(result["untested_core"]) == 5
     assert result["untested_files"] == 20
+
+
+def test_detects_pytest_from_import():
+    files = [
+        _f("scanner.py"),
+        _f("tests/test_scanner.py", "import pytest\nfrom scanner import scan"),
+    ]
+    result = coverage.assess_test_coverage(files)
+    assert result["test_frameworks"] == ["pytest"]
+    assert result["run_command"] == "pytest"
+    assert any("pytest" in n and "运行" in n for n in result["notes"])
+
+
+def test_detects_pytest_from_conftest():
+    files = [
+        _f("core.py"),
+        _f("conftest.py"),
+        _f("tests/test_core.py", "from core import x"),
+    ]
+    result = coverage.assess_test_coverage(files)
+    assert "pytest" in result["test_frameworks"]
+    assert result["run_command"] == "pytest"
+
+
+def test_detects_unittest():
+    files = [
+        _f("mod.py"),
+        _f("tests/test_mod.py", "import unittest\nfrom mod import f"),
+    ]
+    result = coverage.assess_test_coverage(files)
+    assert result["test_frameworks"] == ["unittest"]
+    assert result["run_command"] == "python -m unittest"
+
+
+def test_detects_vitest_prefers_npm_test():
+    files = [
+        _f("src/parser.ts", language="typescript"),
+        _f(
+            "src/parser.test.ts",
+            "import { parse } from './parser'\nimport { describe } from 'vitest'",
+            "typescript",
+        ),
+        _f("package.json", '{"scripts": {"test": "vitest run"}}', "json"),
+    ]
+    result = coverage.assess_test_coverage(files)
+    assert "vitest" in result["test_frameworks"]
+    assert result["run_command"] == "npm test"
+
+
+def test_detects_jest_without_npm_script_falls_back_to_npx():
+    files = [
+        _f("src/a.ts", language="typescript"),
+        _f("src/a.test.ts", "import { it } from '@jest/globals'", "typescript"),
+    ]
+    result = coverage.assess_test_coverage(files)
+    assert "jest" in result["test_frameworks"]
+    assert result["run_command"] == "npx jest"
+
+
+def test_no_run_command_when_framework_unknown():
+    # a test file with no framework import and no config -> stay honest, don't guess.
+    files = [_f("a.py"), _f("tests/test_a.py", "from a import x")]
+    result = coverage.assess_test_coverage(files)
+    assert result["test_frameworks"] == []
+    assert result["run_command"] is None
+
+
+def test_markdown_shows_framework_and_command():
+    files = [_f("core.py"), _f("tests/test_core.py", "import pytest\nfrom core import x")]
+    md = coverage.render_coverage_markdown("demo", coverage.assess_test_coverage(files))
+    assert "测试框架" in md and "`pytest`" in md

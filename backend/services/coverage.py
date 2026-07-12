@@ -22,6 +22,8 @@ no repo or git history needed.
 
 from __future__ import annotations
 
+import re
+
 from .importgraph import _JS_LANGS, _PY_LANGS, _build_import_graph, _posix
 
 # a file under one of these directories is a test regardless of its name
@@ -77,7 +79,87 @@ def _untested_reason(fan_in: int) -> str:
     return "没有测试：相对孤立的文件，改动靠人工确认即可，风险较低。"
 
 
-def _coverage_notes(total: int, pct: int, test_file_count: int, core_count: int) -> list[str]:
+# config files that pin a Python test runner
+_PYTEST_CONFIG_NAMES = {"pytest.ini", "conftest.py", "tox.ini"}
+# JS/TS config-file stems -> the framework they configure
+_JS_TEST_CONFIG_PREFIXES = {"jest.config": "jest", "vitest.config": "vitest", ".mocharc": "mocha"}
+
+
+def _preview_of(files: list[dict], name_lower: str) -> str | None:
+    """The preview of the first file whose basename matches ``name_lower``."""
+    for f in files:
+        if _segments(f["path"])[-1].lower() == name_lower:
+            return f.get("preview") or ""
+    return None
+
+
+def detect_test_tooling(files: list[dict], test_files: set[str], lang_of: dict[str, str]) -> dict:
+    """Detect the test framework(s) in use and the command to run the tests.
+
+    The coverage map says *which* files are tested; a non-programmer's very next
+    question is "so how do I actually run these tests?". This answers it from
+    config files and the imports inside the test files themselves — deterministic,
+    no LLM, and honest about what it can't see.
+
+    Returns ``{"frameworks": sorted[str], "run_command": str | None}``. When both
+    a Python and a JS/TS runner are present (a monorepo), ``run_command`` is the
+    one whose ecosystem has more test files.
+    """
+    frameworks: set[str] = set()
+    all_names = {_segments(f["path"])[-1].lower() for f in files}
+
+    if _PYTEST_CONFIG_NAMES & all_names:
+        frameworks.add("pytest")
+    for name in all_names:
+        for prefix, fw in _JS_TEST_CONFIG_PREFIXES.items():
+            if name.startswith(prefix):
+                frameworks.add(fw)
+    for cfg in ("pyproject.toml", "setup.cfg"):
+        pv = _preview_of(files, cfg) or ""
+        if "[tool.pytest" in pv or "[pytest]" in pv:
+            frameworks.add("pytest")
+
+    # signals from the test files' own imports (previews carry the head, where imports sit)
+    preview_by_path = {_posix(f["path"]): (f.get("preview") or "") for f in files}
+    py_test = js_test = 0
+    for t in test_files:
+        pv = preview_by_path.get(t, "")
+        lang = lang_of.get(t, "")
+        if lang in _PY_LANGS:
+            py_test += 1
+            if "import pytest" in pv or "from pytest" in pv:
+                frameworks.add("pytest")
+            elif "import unittest" in pv or "from unittest" in pv or "unittest.TestCase" in pv:
+                frameworks.add("unittest")
+        elif lang in _JS_LANGS:
+            js_test += 1
+            if "vitest" in pv:
+                frameworks.add("vitest")
+            if "@jest/globals" in pv or re.search(r"\bjest\.", pv):
+                frameworks.add("jest")
+
+    pkg = _preview_of(files, "package.json") or ""
+    has_npm_test = re.search(r'"test"\s*:', pkg) is not None
+
+    py_cmd = (
+        "pytest"
+        if "pytest" in frameworks
+        else ("python -m unittest" if "unittest" in frameworks else None)
+    )
+    js_fw = next((fw for fw in ("vitest", "jest", "mocha") if fw in frameworks), None)
+    js_cmd = ("npm test" if has_npm_test else f"npx {js_fw}") if js_fw else None
+
+    if py_test >= js_test:
+        run_command = py_cmd or js_cmd
+    else:
+        run_command = js_cmd or py_cmd
+
+    return {"frameworks": sorted(frameworks), "run_command": run_command}
+
+
+def _coverage_notes(
+    total: int, pct: int, test_file_count: int, core_count: int, tooling: dict
+) -> list[str]:
     if total == 0:
         return ["没有发现源代码文件。"]
     if test_file_count == 0:
@@ -93,6 +175,10 @@ def _coverage_notes(total: int, pct: int, test_file_count: int, core_count: int)
         notes.append(
             f"其中 {core_count} 个被其它文件依赖的核心文件没有测试，改它们风险最高，建议优先补。"
         )
+    run_command = tooling.get("run_command")
+    if run_command:
+        fw = "、".join(tooling.get("frameworks") or []) or "自动化测试"
+        notes.append(f"用的是 {fw}：在项目根目录运行 `{run_command}` 就能跑测试。")
     return notes
 
 
@@ -157,6 +243,7 @@ def assess_test_coverage(files: list[dict], *, limit: int = 12) -> dict:
         for p in untested[:limit]
     ]
     core_count = sum(1 for u in untested_core if u["fan_in"] >= 1)
+    tooling = detect_test_tooling(files, test_files, lang_of)
 
     return {
         "total_source_files": total,
@@ -164,8 +251,10 @@ def assess_test_coverage(files: list[dict], *, limit: int = 12) -> dict:
         "untested_files": total - tested,
         "test_files": len(test_files),
         "coverage_percent": pct,
+        "test_frameworks": tooling["frameworks"],
+        "run_command": tooling["run_command"],
         "untested_core": untested_core,
-        "notes": _coverage_notes(total, pct, len(test_files), core_count),
+        "notes": _coverage_notes(total, pct, len(test_files), core_count, tooling),
     }
 
 
@@ -181,6 +270,11 @@ def render_coverage_markdown(name: str, coverage: dict | None) -> str:
         f"个代码文件有测试（{pct}%），共发现 {coverage.get('test_files', 0)} 个测试文件。",
         "",
     ]
+    run_command = coverage.get("run_command")
+    if run_command:
+        fw = "、".join(coverage.get("test_frameworks") or []) or "自动化测试"
+        lines.append(f"> 测试框架：{fw}。运行：`{run_command}`")
+        lines.append("")
     lines.extend(f"- {note}" for note in coverage.get("notes", []))
     untested = coverage.get("untested_core", [])
     if untested:

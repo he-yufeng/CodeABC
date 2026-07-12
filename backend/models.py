@@ -131,6 +131,8 @@ class TestCoverageSummary(BaseModel):
     untested_files: int = 0
     test_files: int = 0
     coverage_percent: int = 0  # 0-100, tested source files / total source files
+    test_frameworks: list[str] = []  # detected runners, e.g. ["pytest"] / ["vitest"]
+    run_command: str | None = None  # how to run the tests, e.g. "pytest" / "npm test"
     untested_core: list[TestCoverageFile] = []  # untested, ranked by fan-in
     notes: list[str] = []
 

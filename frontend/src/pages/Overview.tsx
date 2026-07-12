@@ -592,6 +592,22 @@ export default function Overview() {
                   />
                 </div>
               </div>
+              {project.test_coverage.run_command && (
+                <div className="mb-4 text-sm text-gray-600">
+                  {project.test_coverage.test_frameworks.length > 0 && (
+                    <span>
+                      {t("测试框架", "Test runner")}：
+                      {project.test_coverage.test_frameworks.join("、")}
+                    </span>
+                  )}
+                  <span className="ml-2">
+                    {t("运行", "Run")}:{" "}
+                    <code className="px-1.5 py-0.5 bg-gray-100 rounded font-mono text-gray-800">
+                      {project.test_coverage.run_command}
+                    </code>
+                  </span>
+                </div>
+              )}
               {project.test_coverage.notes.length > 0 && (
                 <ul className="text-sm text-gray-600 space-y-1 mb-4 list-disc list-inside">
                   {project.test_coverage.notes.map((n) => (

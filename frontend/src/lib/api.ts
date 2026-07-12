@@ -157,6 +157,8 @@ export interface TestCoverageSummary {
   untested_files: number;
   test_files: number;
   coverage_percent: number;
+  test_frameworks: string[];
+  run_command: string | null;
   untested_core: TestCoverageFile[];
   notes: string[];
 }
