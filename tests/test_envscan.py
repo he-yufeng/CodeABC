@@ -46,6 +46,51 @@ def test_js_process_env_is_optional():
     assert all(v["required"] is False for v in result["vars"])
 
 
+def test_decouple_config_required_and_optional():
+    # python-decouple: a bare config("X") raises when unset (required); a default
+    # arg (trailing comma) makes it optional.
+    files = {"a.py": 'k = config("SECRET_KEY")\np = config("PORT", default=8000)\n'}
+    result = envscan.scan_env_vars(files)
+    assert _var(result, "SECRET_KEY")["required"] is True
+    assert _var(result, "PORT")["required"] is False
+    assert result["required"] == ["SECRET_KEY"]
+
+
+def test_environs_env_readers_required_and_optional():
+    # environs / django-environ: a bare env("X") / env.int("X") is required; a
+    # default arg makes it optional.
+    files = {
+        "settings.py": (
+            'db = env("DATABASE_URL")\n'
+            'port = env.int("PORT", 8000)\n'
+            'debug = env.bool("DEBUG", default=False)\n'
+        ),
+    }
+    result = envscan.scan_env_vars(files)
+    assert _var(result, "DATABASE_URL")["required"] is True
+    assert _var(result, "PORT")["required"] is False
+    assert _var(result, "DEBUG")["required"] is False
+    assert result["required"] == ["DATABASE_URL"]
+
+
+def test_env_loader_patterns_do_not_match_stdlib_or_attribute_calls():
+    # os.getenv / os.environ.get must not also match the environs env(...) rule
+    # (their "env" is preceded by a word char / dot), and attribute calls like
+    # app.config(...) / self.env(...) must not match the decouple/environs rules.
+    files = {
+        "a.py": (
+            'a = os.getenv("TOKEN")\n'
+            'b = os.environ.get("HOST", "x")\n'
+            'c = app.config("DEBUG")\n'
+            'd = self.env("NOISE")\n'
+        ),
+    }
+    result = envscan.scan_env_vars(files)
+    names = {v["name"] for v in result["vars"]}
+    assert names == {"TOKEN", "HOST"}
+    assert _var(result, "TOKEN")["count"] == 1  # not double-counted by the env rule
+
+
 def test_required_wins_when_read_both_ways():
     # Read once as os.environ["X"] (raises if unset) and once gracefully:
     # the env var is still required because the strict read will crash.

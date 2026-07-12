@@ -7,12 +7,19 @@ are read, whether they are required (the code crashes if they are missing) or
 optional (a default is supplied) — so a reader gets a setup checklist without
 hunting through the codebase.
 
-:func:`scan_env_vars` is pure: it matches the common read patterns
-(``os.environ["X"]``, ``os.getenv("X"[, default])``, ``os.environ.get(...)`` and
-JS ``process.env.X``) over the file contents, so it is unit-testable with plain
-strings and needs no repository. A name read at least once via ``os.environ["X"]``
-(which raises when the variable is unset) is *required*; a name only ever read
-with a graceful fallback (``getenv`` / ``.get`` / ``process.env``) is *optional*.
+:func:`scan_env_vars` is pure: it matches the common read patterns over the file
+contents, so it is unit-testable with plain strings and needs no repository:
+
+- stdlib ``os.environ["X"]`` (required — raises when unset), ``os.getenv("X")`` /
+  ``os.environ.get("X")`` (optional — a default may follow),
+- JS ``process.env.X`` (optional),
+- the env-loader libraries many Django/Flask projects use instead of the
+  stdlib: ``python-decouple`` (``config("X")``) and ``environs`` /
+  ``django-environ`` (``env("X")`` / ``env.str("X")`` / ``env.int(...)`` …).
+
+A name is *required* if it is ever read without a default (``os.environ["X"]``, or
+a bare ``config("X")`` / ``env("X")`` — both raise when the variable is unset) and
+*optional* if every read supplies a fallback.
 """
 
 from __future__ import annotations
@@ -25,6 +32,19 @@ _REQUIRED_RE = re.compile(r"""os\.environ\[\s*['"](\w+)['"]\s*\]""")
 _OPTIONAL_RE = re.compile(r"""os\.(?:getenv|environ\.get)\(\s*['"](\w+)['"]\s*(,)?""")
 # JS: process.env.X / process.env["X"] — always optional (undefined if unset).
 _JS_RE = re.compile(r"""process\.env(?:\.(\w+)|\[\s*['"](\w+)['"]\s*\])""")
+# python-decouple: config("X") / config("X", default=...). A bare read raises
+# UndefinedValueError when the var is unset, so config("X") with no default is
+# required; a default arg (trailing comma) makes it optional. The lookbehind
+# avoids matching attribute calls like ``app.config(...)``.
+_DECOUPLE_RE = re.compile(r"""(?<![\w.])config\(\s*['"](\w+)['"]\s*(,)?""")
+# environs / django-environ: env("X"), env.str("X"), env.int(...), env.bool(...),
+# etc. Same rule as decouple — a bare read raises when the var is unset, a
+# default arg makes it optional. ``os.getenv`` / ``os.environ`` never match here
+# because the char before this ``env`` is a word char / dot.
+_ENVIRONS_RE = re.compile(
+    r"""(?<![\w.])env(?:\.(?:str|int|bool|float|list|json|url|path|dict|log_level))?"""
+    r"""\(\s*['"](\w+)['"]\s*(,)?"""
+)
 
 
 def scan_env_vars(file_contents: dict[str, str], *, limit: int = 40) -> dict:
@@ -61,6 +81,11 @@ def scan_env_vars(file_contents: dict[str, str], *, limit: int = 40) -> dict:
                 _record(m.group(1), False, path, line_no)
             for m in _JS_RE.finditer(line):
                 _record(m.group(1) or m.group(2), False, path, line_no)
+            # decouple/environs: required unless a default arg (trailing comma) follows.
+            for m in _DECOUPLE_RE.finditer(line):
+                _record(m.group(1), m.group(2) is None, path, line_no)
+            for m in _ENVIRONS_RE.finditer(line):
+                _record(m.group(1), m.group(2) is None, path, line_no)
 
     vars_list = [
         {
