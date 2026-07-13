@@ -32,7 +32,10 @@ import re
 # Required reads: os.environ["X"] / os.environ['X'] — a missing key raises.
 _REQUIRED_RE = re.compile(r"""os\.environ\[\s*['"](\w+)['"]\s*\]""")
 # Optional reads: os.getenv("X"...) / os.environ.get("X"...) — a default may follow.
-_OPTIONAL_RE = re.compile(r"""os\.(?:getenv|environ\.get)\(\s*['"](\w+)['"]\s*(,)?""")
+# os.environ.setdefault("X", ...) always supplies a fallback, so it is optional too.
+_OPTIONAL_RE = re.compile(
+    r"""os\.(?:getenv|environ\.get|environ\.setdefault)\(\s*['"](\w+)['"]\s*(,)?"""
+)
 # JS: process.env.X / process.env["X"] — always optional (undefined if unset).
 _JS_RE = re.compile(r"""process\.env(?:\.(\w+)|\[\s*['"](\w+)['"]\s*\])""")
 # python-decouple: config("X") / config("X", default=...). A bare read raises

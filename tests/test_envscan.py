@@ -38,6 +38,12 @@ def test_getenv_without_default_is_optional():
     assert _var(result, "TOKEN")["required"] is False
 
 
+def test_environ_setdefault_is_optional():
+    # os.environ.setdefault("X", ...) always supplies a fallback, so X is optional.
+    result = envscan.scan_env_vars({"a.py": 'os.environ.setdefault("FEATURE_FLAG", "off")\n'})
+    assert _var(result, "FEATURE_FLAG")["required"] is False
+
+
 def test_js_process_env_is_optional():
     files = {"a.js": "const a = process.env.NODE_ENV;\nconst b = process.env['PORT'];\n"}
     result = envscan.scan_env_vars(files)
