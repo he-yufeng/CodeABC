@@ -242,6 +242,14 @@ class TunableSetting(BaseModel):
     line: int
 
 
+class ConfigFile(BaseModel):
+    path: str
+    kind: str  # "yaml" | "toml" | "ini" | "json" | "properties"
+    sections: list[str] = []  # [section] headers (TOML/INI)
+    keys: list[str] = []  # top-level settings the reader can change
+    setting_count: int = 0
+
+
 class ScheduledTask(BaseModel):
     name: str  # what runs (function / job name, or the workflow file stem)
     # "github-actions" | "apscheduler" | "celery" | "schedule" | "repeat-every"
@@ -463,6 +471,7 @@ class ProjectMeta(BaseModel):
     cli_commands: list[CliCommand] = []
     data_models: list[DataModel] = []
     tunable_settings: list[TunableSetting] = []
+    config_files: list[ConfigFile] = []
     scheduled_tasks: list[ScheduledTask] = []
     ci_checks: list[CiCheck] = []
     licenses: LicenseSummary | None = None

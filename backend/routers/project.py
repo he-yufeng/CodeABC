@@ -24,6 +24,7 @@ from backend.models import (
     CoChangeCoupling,
     CodeWalkStep,
     ComplexFile,
+    ConfigFile,
     ContributionGuide,
     ContributionRequirement,
     CouplingHotspot,
@@ -84,6 +85,7 @@ from backend.services import (
     codemap_export,
     commands,
     complexity,
+    config_files,
     contributing,
     coverage,
     datamodels,
@@ -219,6 +221,7 @@ def _content_analyses(
     cli_commands = commands.find_cli_commands(file_contents)
     data_models = datamodels.find_data_models(file_contents)
     tunable = settings_map.find_tunable_settings(file_contents)
+    cfg_files = config_files.find_config_files(file_contents)
     scheduled = schedules.find_scheduled_tasks(file_contents)
     ci_gates = ci_checks.find_ci_checks(file_contents)
     license_map = licenses.find_licenses(file_contents)
@@ -286,6 +289,16 @@ def _content_analyses(
                 line=s["line"],
             )
             for s in tunable["settings"]
+        ],
+        "config_files": [
+            ConfigFile(
+                path=f["path"],
+                kind=f["kind"],
+                sections=f["sections"],
+                keys=f["keys"],
+                setting_count=f["setting_count"],
+            )
+            for f in cfg_files["files"]
         ],
         "scheduled_tasks": [
             ScheduledTask(
