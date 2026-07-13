@@ -37,6 +37,20 @@ def test_toml_sections_and_leading_keys():
     assert f["keys"] == ["name", "version"]
 
 
+def test_toml_section_first_has_no_top_level_keys():
+    # A file that opens straight into a section (pyproject.toml's usual shape)
+    # has no top-level settings; the first section's own keys must not leak up.
+    toml = (
+        '[build-system]\nrequires = ["setuptools"]\n'
+        'build-backend = "setuptools.build_meta"\n'
+        '\n[project]\nname = "demo"\n'
+    )
+    result = find_config_files({"pyproject.toml": toml})
+    f = _by_path(result)["pyproject.toml"]
+    assert f["sections"] == ["build-system", "project"]
+    assert f["keys"] == []
+
+
 def test_ini_sections():
     ini = "[flake8]\nmax-line-length = 120\n\n[isort]\nprofile = black\n"
     result = find_config_files({"tox.ini": ini})

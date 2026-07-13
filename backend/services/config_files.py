@@ -110,7 +110,11 @@ def _extract(kind: str, content: str, *, per_file_limit: int) -> tuple[list[str]
     elif kind in ("toml", "ini"):
         sections = _dedupe(_SECTION_RE.findall(content), per_file_limit)
         # Keys above the first section header are the file's top-level settings.
-        head = content.split("\n[", 1)[0]
+        # A file that opens straight into a ``[section]`` (e.g. pyproject.toml,
+        # tox.ini) has none, so take only the text before the first header —
+        # otherwise the first section's own keys are mis-read as top-level.
+        first_section = _SECTION_RE.search(content)
+        head = content[: first_section.start()] if first_section else content
         keys = _dedupe(_TOML_KEY_RE.findall(head), per_file_limit)
     elif kind == "json":
         keys = _dedupe(_JSON_TOP_KEY_RE.findall(content), per_file_limit)
