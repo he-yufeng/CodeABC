@@ -73,6 +73,34 @@ def test_environs_env_readers_required_and_optional():
     assert result["required"] == ["DATABASE_URL"]
 
 
+def test_go_getenv_and_lookupenv_are_optional():
+    files = {
+        "main.go": 'port := os.Getenv("PORT")\n_, ok := os.LookupEnv("HOME_DIR")\n',
+    }
+    result = envscan.scan_env_vars(files)
+    names = {v["name"]: v["required"] for v in result["vars"]}
+    assert names == {"PORT": False, "HOME_DIR": False}
+
+
+def test_rust_env_var_required_on_unwrap_optional_otherwise():
+    files = {
+        "main.rs": (
+            'let url = env::var("DATABASE_URL").unwrap();\n'
+            'let key = std::env::var("API_KEY").expect("missing key");\n'
+            'let lvl = env::var("LOG_LEVEL").unwrap_or("info".into());\n'
+            'let raw = env::var("RAW_HANDLED");\n'
+        ),
+    }
+    result = envscan.scan_env_vars(files)
+    names = {v["name"]: v["required"] for v in result["vars"]}
+    assert names == {
+        "DATABASE_URL": True,
+        "API_KEY": True,
+        "LOG_LEVEL": False,
+        "RAW_HANDLED": False,
+    }
+
+
 def test_env_loader_patterns_do_not_match_stdlib_or_attribute_calls():
     # os.getenv / os.environ.get must not also match the environs env(...) rule
     # (their "env" is preceded by a word char / dot), and attribute calls like

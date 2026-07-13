@@ -13,6 +13,9 @@ contents, so it is unit-testable with plain strings and needs no repository:
 - stdlib ``os.environ["X"]`` (required — raises when unset), ``os.getenv("X")`` /
   ``os.environ.get("X")`` (optional — a default may follow),
 - JS ``process.env.X`` (optional),
+- Go ``os.Getenv("X")`` / ``os.LookupEnv("X")`` (optional — return "" / a found
+  flag rather than panicking) and Rust ``env::var("X")`` (required when
+  ``.unwrap()`` / ``.expect(...)`` panics on an unset value, optional otherwise),
 - the env-loader libraries many Django/Flask projects use instead of the
   stdlib: ``python-decouple`` (``config("X")``) and ``environs`` /
   ``django-environ`` (``env("X")`` / ``env.str("X")`` / ``env.int(...)`` …).
@@ -44,6 +47,16 @@ _DECOUPLE_RE = re.compile(r"""(?<![\w.])config\(\s*['"](\w+)['"]\s*(,)?""")
 _ENVIRONS_RE = re.compile(
     r"""(?<![\w.])env(?:\.(?:str|int|bool|float|list|json|url|path|dict|log_level))?"""
     r"""\(\s*['"](\w+)['"]\s*(,)?"""
+)
+# Go: os.Getenv("X") returns "" when the variable is unset and os.LookupEnv("X")
+# returns (value, ok); both are graceful, so the variable is optional.
+_GO_RE = re.compile(r"""os\.(?:Getenv|LookupEnv)\(\s*['"](\w+)['"]""")
+# Rust: env::var("X") / std::env::var("X") (and the *_os variants) return a
+# ``Result``. A trailing ``.unwrap()`` / ``.expect(...)`` panics when the variable
+# is unset (required); ``.unwrap_or(...)`` or any other handling is graceful
+# (optional).
+_RUST_RE = re.compile(
+    r"""(?:std::)?env::var(?:_os)?\(\s*['"](\w+)['"]\s*\)\s*(\.(?:unwrap|expect)\s*\()?"""
 )
 
 
@@ -86,6 +99,11 @@ def scan_env_vars(file_contents: dict[str, str], *, limit: int = 40) -> dict:
                 _record(m.group(1), m.group(2) is None, path, line_no)
             for m in _ENVIRONS_RE.finditer(line):
                 _record(m.group(1), m.group(2) is None, path, line_no)
+            for m in _GO_RE.finditer(line):
+                _record(m.group(1), False, path, line_no)
+            # Rust: required when the read is unwrap()/expect()-ed (panics if unset).
+            for m in _RUST_RE.finditer(line):
+                _record(m.group(1), m.group(2) is not None, path, line_no)
 
     vars_list = [
         {
