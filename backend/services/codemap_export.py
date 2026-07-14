@@ -24,6 +24,7 @@ from backend.services import (
     datamodels,
     dependencies,
     docs,
+    docstrings,
     entrypoints,
     envscan,
     error_handling,
@@ -85,6 +86,9 @@ def _ordered_sections(proj: dict) -> list[str]:
         security.render_security_markdown(name, security.scan_security(contents)),
         apimap.render_apimap_markdown(name, apimap.scan_api_routes(contents)),
         docs.render_doc_coverage_markdown(name, docs.assess_doc_coverage(contents)),
+        docstrings.render_docstring_coverage_markdown(
+            name, docstrings.scan_docstring_coverage(contents)
+        ),
         error_handling.render_error_handling_markdown(
             name, error_handling.find_swallowed_errors(contents)
         ),
