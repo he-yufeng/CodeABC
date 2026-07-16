@@ -38,6 +38,7 @@ from backend.services import (
     security,
     settings_map,
     techdebt,
+    typing_coverage,
 )
 from backend.services import (
     health_score as health_score_svc,
@@ -88,6 +89,9 @@ def _ordered_sections(proj: dict) -> list[str]:
         docs.render_doc_coverage_markdown(name, docs.assess_doc_coverage(contents)),
         docstrings.render_docstring_coverage_markdown(
             name, docstrings.scan_docstring_coverage(contents)
+        ),
+        typing_coverage.render_typing_coverage_markdown(
+            name, typing_coverage.scan_typing_coverage(contents)
         ),
         error_handling.render_error_handling_markdown(
             name, error_handling.find_swallowed_errors(contents)
