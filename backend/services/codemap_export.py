@@ -15,6 +15,7 @@ from backend.services import (
 from backend.services import (
     activity,
     apimap,
+    async_surface,
     churn,
     ci_checks,
     commands,
@@ -92,6 +93,9 @@ def _ordered_sections(proj: dict) -> list[str]:
         ),
         typing_coverage.render_typing_coverage_markdown(
             name, typing_coverage.scan_typing_coverage(contents)
+        ),
+        async_surface.render_async_surface_markdown(
+            name, async_surface.scan_async_surface(contents)
         ),
         error_handling.render_error_handling_markdown(
             name, error_handling.find_swallowed_errors(contents)
