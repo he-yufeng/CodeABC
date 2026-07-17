@@ -33,6 +33,7 @@ from backend.services import (
     importgraph,
     integrations,
     licenses,
+    long_functions,
     ownership,
     release_map,
     risk,
@@ -86,6 +87,9 @@ def _ordered_sections(proj: dict) -> list[str]:
         licenses.render_licenses_markdown(name, licenses.find_licenses(contents)),
         complexity.render_complexity_markdown(name, complexity.scan_complexity(contents)),
         deep_nesting.render_deep_nesting_markdown(name, deep_nesting.scan_deep_nesting(contents)),
+        long_functions.render_long_functions_markdown(
+            name, long_functions.scan_long_functions(contents)
+        ),
         dependencies.render_dependencies_markdown(name, dependencies.scan_dependencies(contents)),
         security.render_security_markdown(name, security.scan_security(contents)),
         apimap.render_apimap_markdown(name, apimap.scan_api_routes(contents)),
