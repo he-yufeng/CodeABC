@@ -91,25 +91,37 @@ def _activity_score(activity: dict | None) -> int:
     return _ACTIVITY_LABEL_SCORE.get(label, 50)
 
 
-def _complexity_score(complexity_files: list[dict] | None, total_files: int) -> int:
+def _complexity_score(
+    complexity_files: list[dict] | None,
+    total_files: int,
+    deep_nesting_files: list[dict] | None = None,
+) -> int:
     """Higher complexity → lower score.
 
-    Complexity files are already the most complex ones in the project.
-    We penalise for having highly complex files relative to project size.
+    Complexity files are already the most complex ones in the project. We
+    penalise for having highly complex files relative to project size, using two
+    distinct signals: cyclomatic complexity (how many branches) and nesting depth
+    (how deeply those branches are stacked) — a function can be hard to follow on
+    either axis independently.
     """
-    if not complexity_files or total_files == 0:
+    if (not complexity_files and not deep_nesting_files) or total_files == 0:
         return 100
     # Complexity threshold: cyclomatic complexity > 20 is considered "high"
     HIGH_THRESHOLD = 20
     VERY_HIGH_THRESHOLD = 50
-    high_count = sum(1 for f in complexity_files if f.get("complexity", 0) > HIGH_THRESHOLD)
+    high_count = sum(1 for f in (complexity_files or []) if f.get("complexity", 0) > HIGH_THRESHOLD)
     very_high_count = sum(
-        1 for f in complexity_files if f.get("complexity", 0) > VERY_HIGH_THRESHOLD
+        1 for f in (complexity_files or []) if f.get("complexity", 0) > VERY_HIGH_THRESHOLD
     )
     # Fraction of project that is "high complexity"
     high_frac = high_count / max(total_files, 1)
     very_high_frac = very_high_count / max(total_files, 1)
     s = 100 - int(high_frac * 60) - int(very_high_frac * 20)
+    # Deep nesting is a separate readability cost from branch count: penalise
+    # functions nested very deep (>= 6 levels) relative to project size.
+    if deep_nesting_files:
+        deep_count = sum(1 for f in deep_nesting_files if f.get("depth", 0) >= 6)
+        s -= int((deep_count / max(total_files, 1)) * 30)
     return max(0, s)
 
 
@@ -236,6 +248,7 @@ def compute_health_score(
     tech_debt_files: list[dict] | None = None,
     import_cycles: list[dict] | None = None,
     orphan_modules: list[dict] | None = None,
+    deep_nesting_files: list[dict] | None = None,
     total_files: int = 0,
 ) -> dict:
     """Compute an aggregate health score from existing analysis results.
@@ -266,7 +279,7 @@ def compute_health_score(
         "security": _security_score(security),
         "test_coverage": _coverage_score(test_coverage),
         "activity": _activity_score(activity),
-        "complexity": _complexity_score(complexity_files, total_files),
+        "complexity": _complexity_score(complexity_files, total_files, deep_nesting_files),
         "tech_debt": _tech_debt_score(tech_debt_files, total_files),
         "architecture": _architecture_score(import_cycles, orphan_modules, total_files),
     }

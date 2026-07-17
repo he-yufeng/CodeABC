@@ -339,3 +339,27 @@ class TestRenderMarkdown:
         r = compute_health_score()
         md = render_health_score_markdown("Repo", r)
         assert md.endswith("\n")
+
+
+class TestDeepNestingPenalty:
+    def test_deep_nesting_lowers_complexity_score(self):
+        # Same cyclomatic complexity; the project with deeply-nested functions
+        # (>= 6 levels) should score lower on the complexity dimension.
+        base = compute_health_score(complexity_files=_complexity([10, 10]), total_files=4)
+        deep = [
+            {"path": "a.py", "function": "f", "depth": 7},
+            {"path": "b.py", "function": "g", "depth": 6},
+        ]
+        with_deep = compute_health_score(
+            complexity_files=_complexity([10, 10]), deep_nesting_files=deep, total_files=4
+        )
+        assert with_deep["category_scores"]["complexity"] < base["category_scores"]["complexity"]
+
+    def test_shallow_nesting_no_penalty(self):
+        # Nesting below the depth-6 threshold must not change the score.
+        shallow = [{"path": "a.py", "function": "f", "depth": 4}]
+        base = compute_health_score(complexity_files=_complexity([5]), total_files=4)
+        r = compute_health_score(
+            complexity_files=_complexity([5]), deep_nesting_files=shallow, total_files=4
+        )
+        assert r["category_scores"]["complexity"] == base["category_scores"]["complexity"]

@@ -172,8 +172,17 @@ def _health_score_summary(data: dict | None) -> "HealthScore":
     )
 
 
-def _compute_health_score(meta: "ProjectMeta") -> dict:
-    """Derive health score from an already-built ProjectMeta using .model_dump()."""
+def _compute_health_score(
+    meta: "ProjectMeta", file_contents: dict[str, str] | None = None
+) -> dict:
+    """Derive health score from an already-built ProjectMeta using .model_dump().
+
+    ``file_contents`` (when available) lets the complexity dimension also account
+    for deep nesting, a readability signal derived directly from the source text.
+    """
+    deep_nesting_files = None
+    if file_contents:
+        deep_nesting_files = deep_nesting.scan_deep_nesting(file_contents).get("files")
     return health_score_svc.compute_health_score(
         security=meta.security.model_dump() if meta.security else None,
         test_coverage=meta.test_coverage.model_dump() if meta.test_coverage else None,
@@ -182,6 +191,7 @@ def _compute_health_score(meta: "ProjectMeta") -> dict:
         tech_debt_files=[f.model_dump() for f in meta.tech_debt_files],
         import_cycles=[c.model_dump() for c in meta.import_cycles],
         orphan_modules=[o.model_dump() for o in meta.orphan_modules],
+        deep_nesting_files=deep_nesting_files,
         total_files=meta.total_files,
     )
 
@@ -466,7 +476,7 @@ async def upload_project(req: AnalyzeRequest):
             for f in scanned
         ],
     )
-    hs_result = _compute_health_score(meta)
+    hs_result = _compute_health_score(meta, proj_data["file_contents"])
     ap_result = _compute_action_plan(meta, proj_data["file_contents"])
     proj_data["health_score"] = hs_result
     proj_data["action_plan"] = ap_result
@@ -559,7 +569,7 @@ async def clone_github_project(req: GitHubRequest):
             for f in scanned
         ],
     )
-    hs_result = _compute_health_score(meta)
+    hs_result = _compute_health_score(meta, proj_data["file_contents"])
     ap_result = _compute_action_plan(meta, proj_data["file_contents"])
     proj_data["health_score"] = hs_result
     proj_data["action_plan"] = ap_result
