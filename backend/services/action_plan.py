@@ -99,6 +99,60 @@ def _complexity_actions(complexity_files: list[dict] | None) -> list[dict]:
     return actions
 
 
+def _deep_nesting_actions(deep_nesting_files: list[dict] | None) -> list[dict]:
+    if not deep_nesting_files:
+        return []
+    actions: list[dict] = []
+    # Deepest first; the analyzer already filtered to the flagged threshold.
+    deepest = sorted(deep_nesting_files, key=lambda f: f.get("depth", 0), reverse=True)
+    for f in deepest[:_MAX_PER_CATEGORY]:
+        depth = f.get("depth", 0)
+        func = f.get("function", "?")
+        actions.append(
+            {
+                "priority": "medium" if depth >= 6 else "low",
+                "category": "deep_nesting",
+                "title": f"拍平深层嵌套：{f.get('path', '?')} 的 {func}",
+                "target": f.get("path", ""),
+                "detail": (
+                    f"函数 {func} 的控制流嵌套了 {depth} 层，读的时候要同时记住每一层的条件，"
+                    "很容易看晕。建议用提前 return / 卫语句 / 把里层抽成一个小函数来拍平。"
+                ),
+                "effort": "medium",
+            }
+        )
+    return actions
+
+
+def _typing_actions(typing_files: list[dict] | None) -> list[dict]:
+    if not typing_files:
+        return []
+    actions: list[dict] = []
+    # Files with the most unannotated public symbols and low coverage first;
+    # only surface genuinely under-annotated files (not a stray missing hint).
+    weak = sorted(
+        (f for f in typing_files if f.get("missing", 0) >= 3 and f.get("coverage", 1) < 0.6),
+        key=lambda f: (-f.get("missing", 0), f.get("coverage", 1)),
+    )
+    for f in weak[:_MAX_PER_CATEGORY]:
+        missing = f.get("missing", 0)
+        pct = round(f.get("coverage", 0) * 100)
+        actions.append(
+            {
+                "priority": "low",
+                "category": "typing",
+                "title": f"补类型注解：{f.get('path', '?')}",
+                "target": f.get("path", ""),
+                "detail": (
+                    f"这个文件里有 {missing} 个对外函数没写类型注解（类型覆盖率约 {pct}%），"
+                    "补上参数和返回值的类型能让编辑器提示更准、也更容易发现用错类型的调用。"
+                ),
+                "effort": "small",
+            }
+        )
+    return actions
+
+
 def _architecture_actions(import_cycles: list[dict] | None) -> list[dict]:
     if not import_cycles:
         return []
@@ -151,6 +205,8 @@ def build_action_plan(
     complexity_files: list[dict] | None = None,
     tech_debt_files: list[dict] | None = None,
     import_cycles: list[dict] | None = None,
+    deep_nesting_files: list[dict] | None = None,
+    typing_files: list[dict] | None = None,
 ) -> dict:
     """Build a ranked, plain-language remediation list from existing analyses.
 
@@ -177,7 +233,9 @@ def build_action_plan(
     items += _security_actions(security)
     items += _coverage_actions(test_coverage)
     items += _complexity_actions(complexity_files)
+    items += _deep_nesting_actions(deep_nesting_files)
     items += _architecture_actions(import_cycles)
+    items += _typing_actions(typing_files)
     items += _tech_debt_actions(tech_debt_files)
 
     # Stable sort by priority so within a priority the source order (security,

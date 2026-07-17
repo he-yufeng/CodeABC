@@ -229,3 +229,54 @@ class TestRender:
         r = build_action_plan(test_coverage=_coverage([_untested("core.py", 8)]))
         md = render_action_plan_markdown("Repo", r)
         assert md.endswith("\n")
+
+
+class TestDeepNestingActions:
+    def test_deeply_nested_function_surfaces_flatten_action(self):
+        r = build_action_plan(
+            deep_nesting_files=[{"path": "srv.py", "function": "handler", "depth": 6}]
+        )
+        items = [i for i in r["items"] if i["category"] == "deep_nesting"]
+        assert len(items) == 1
+        assert items[0]["priority"] == "medium"  # depth >= 6
+        assert "handler" in items[0]["title"]
+        assert items[0]["target"] == "srv.py"
+
+    def test_moderately_nested_is_low_priority(self):
+        r = build_action_plan(deep_nesting_files=[{"path": "a.py", "function": "f", "depth": 4}])
+        items = [i for i in r["items"] if i["category"] == "deep_nesting"]
+        assert items and items[0]["priority"] == "low"
+
+    def test_no_deep_nesting_no_action(self):
+        r = build_action_plan(deep_nesting_files=[])
+        assert not [i for i in r["items"] if i["category"] == "deep_nesting"]
+
+
+class TestTypingActions:
+    def test_under_annotated_file_surfaces_typing_action(self):
+        r = build_action_plan(
+            typing_files=[
+                {"path": "m.py", "symbols": 10, "typed": 3, "coverage": 0.3, "missing": 7}
+            ]
+        )
+        items = [i for i in r["items"] if i["category"] == "typing"]
+        assert len(items) == 1
+        assert items[0]["priority"] == "low"
+        assert items[0]["target"] == "m.py"
+        assert "7" in items[0]["detail"]
+
+    def test_well_typed_file_not_flagged(self):
+        # coverage >= 0.6 → not surfaced even with a missing hint or two.
+        r = build_action_plan(
+            typing_files=[
+                {"path": "m.py", "symbols": 10, "typed": 9, "coverage": 0.9, "missing": 1}
+            ]
+        )
+        assert not [i for i in r["items"] if i["category"] == "typing"]
+
+    def test_only_a_couple_missing_not_flagged(self):
+        # missing < 3 → below the noise floor, not surfaced.
+        r = build_action_plan(
+            typing_files=[{"path": "m.py", "symbols": 4, "typed": 2, "coverage": 0.5, "missing": 2}]
+        )
+        assert not [i for i in r["items"] if i["category"] == "typing"]

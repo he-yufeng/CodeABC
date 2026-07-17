@@ -89,6 +89,7 @@ from backend.services import (
     contributing,
     coverage,
     datamodels,
+    deep_nesting,
     dependencies,
     docs,
     entrypoints,
@@ -110,6 +111,7 @@ from backend.services import (
     settings_map,
     symbols,
     techdebt,
+    typing_coverage,
 )
 from backend.services import (
     health_score as health_score_svc,
@@ -195,14 +197,28 @@ def _action_plan_summary(data: dict | None) -> "ActionPlan":
     )
 
 
-def _compute_action_plan(meta: "ProjectMeta") -> dict:
-    """Derive the priority action plan from an already-built ProjectMeta."""
+def _compute_action_plan(
+    meta: "ProjectMeta", file_contents: dict[str, str] | None = None
+) -> dict:
+    """Derive the priority action plan from an already-built ProjectMeta.
+
+    ``file_contents`` (when available) lets the plan also surface deep-nesting and
+    low-type-coverage actions, which are derived directly from the source text
+    rather than stored on ``ProjectMeta``.
+    """
+    deep_nesting_files = None
+    typing_files = None
+    if file_contents:
+        deep_nesting_files = deep_nesting.scan_deep_nesting(file_contents).get("files")
+        typing_files = typing_coverage.scan_typing_coverage(file_contents).get("files")
     return action_plan_svc.build_action_plan(
         security=meta.security.model_dump() if meta.security else None,
         test_coverage=meta.test_coverage.model_dump() if meta.test_coverage else None,
         complexity_files=[f.model_dump() for f in meta.complexity_files],
         tech_debt_files=[f.model_dump() for f in meta.tech_debt_files],
         import_cycles=[c.model_dump() for c in meta.import_cycles],
+        deep_nesting_files=deep_nesting_files,
+        typing_files=typing_files,
     )
 
 
@@ -451,7 +467,7 @@ async def upload_project(req: AnalyzeRequest):
         ],
     )
     hs_result = _compute_health_score(meta)
-    ap_result = _compute_action_plan(meta)
+    ap_result = _compute_action_plan(meta, proj_data["file_contents"])
     proj_data["health_score"] = hs_result
     proj_data["action_plan"] = ap_result
     _projects[project_id] = proj_data
@@ -544,7 +560,7 @@ async def clone_github_project(req: GitHubRequest):
         ],
     )
     hs_result = _compute_health_score(meta)
-    ap_result = _compute_action_plan(meta)
+    ap_result = _compute_action_plan(meta, proj_data["file_contents"])
     proj_data["health_score"] = hs_result
     proj_data["action_plan"] = ap_result
     _projects[project_id] = proj_data
