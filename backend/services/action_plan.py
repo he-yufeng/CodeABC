@@ -124,6 +124,56 @@ def _deep_nesting_actions(deep_nesting_files: list[dict] | None) -> list[dict]:
     return actions
 
 
+def _long_functions_actions(long_functions_files: list[dict] | None) -> list[dict]:
+    if not long_functions_files:
+        return []
+    actions: list[dict] = []
+    # Longest first; the analyzer already filtered to the flagged threshold.
+    longest = sorted(long_functions_files, key=lambda f: f.get("length", 0), reverse=True)
+    for f in longest[:_MAX_PER_CATEGORY]:
+        length = f.get("length", 0)
+        func = f.get("function", "?")
+        actions.append(
+            {
+                "priority": "medium" if length >= 120 else "low",
+                "category": "long_function",
+                "title": f"拆分过长的函数：{f.get('path', '?')} 的 {func}",
+                "target": f.get("path", ""),
+                "detail": (
+                    f"函数 {func} 有 {length} 行，一口气读完很吃力、中间没有自然的停顿点。"
+                    "建议按职责拆成几个各做一件事、名字取好的小函数。"
+                ),
+                "effort": "medium",
+            }
+        )
+    return actions
+
+
+def _too_many_params_actions(too_many_params_files: list[dict] | None) -> list[dict]:
+    if not too_many_params_files:
+        return []
+    actions: list[dict] = []
+    # Widest first; the analyzer already filtered to the flagged threshold.
+    widest = sorted(too_many_params_files, key=lambda f: f.get("params", 0), reverse=True)
+    for f in widest[:_MAX_PER_CATEGORY]:
+        params = f.get("params", 0)
+        func = f.get("function", "?")
+        actions.append(
+            {
+                "priority": "medium" if params >= 8 else "low",
+                "category": "too_many_params",
+                "title": f"减少参数个数：{f.get('path', '?')} 的 {func}",
+                "target": f.get("path", ""),
+                "detail": (
+                    f"函数 {func} 有 {params} 个参数，调用时要记住每个位置传什么、很容易传错。"
+                    "建议把关系紧密的参数打包成一个对象（或 dataclass），或拆成更小的函数。"
+                ),
+                "effort": "medium",
+            }
+        )
+    return actions
+
+
 def _typing_actions(typing_files: list[dict] | None) -> list[dict]:
     if not typing_files:
         return []
@@ -206,6 +256,8 @@ def build_action_plan(
     tech_debt_files: list[dict] | None = None,
     import_cycles: list[dict] | None = None,
     deep_nesting_files: list[dict] | None = None,
+    long_functions_files: list[dict] | None = None,
+    too_many_params_files: list[dict] | None = None,
     typing_files: list[dict] | None = None,
 ) -> dict:
     """Build a ranked, plain-language remediation list from existing analyses.
@@ -234,6 +286,8 @@ def build_action_plan(
     items += _coverage_actions(test_coverage)
     items += _complexity_actions(complexity_files)
     items += _deep_nesting_actions(deep_nesting_files)
+    items += _long_functions_actions(long_functions_files)
+    items += _too_many_params_actions(too_many_params_files)
     items += _architecture_actions(import_cycles)
     items += _typing_actions(typing_files)
     items += _tech_debt_actions(tech_debt_files)

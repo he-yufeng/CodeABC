@@ -280,3 +280,42 @@ class TestTypingActions:
             typing_files=[{"path": "m.py", "symbols": 4, "typed": 2, "coverage": 0.5, "missing": 2}]
         )
         assert not [i for i in r["items"] if i["category"] == "typing"]
+
+
+# ---------------------------------------------------------------------------
+# Readability (long functions / too many parameters)
+# ---------------------------------------------------------------------------
+class TestReadabilityActions:
+    def test_long_function_is_medium_when_very_long(self):
+        r = build_action_plan(
+            long_functions_files=[{"path": "a.py", "function": "big", "length": 150}]
+        )
+        item = next(i for i in r["items"] if i["category"] == "long_function")
+        assert item["priority"] == "medium"  # >= 120 lines
+        assert "big" in item["title"]
+
+    def test_long_function_is_low_when_moderately_long(self):
+        r = build_action_plan(
+            long_functions_files=[{"path": "a.py", "function": "f", "length": 70}]
+        )
+        item = next(i for i in r["items"] if i["category"] == "long_function")
+        assert item["priority"] == "low"  # < 120 lines
+
+    def test_too_many_params_is_medium_when_very_wide(self):
+        r = build_action_plan(
+            too_many_params_files=[{"path": "a.py", "function": "wide", "params": 9}]
+        )
+        item = next(i for i in r["items"] if i["category"] == "too_many_params")
+        assert item["priority"] == "medium"  # >= 8 params
+        assert "wide" in item["title"]
+
+    def test_too_many_params_is_low_at_threshold(self):
+        r = build_action_plan(
+            too_many_params_files=[{"path": "a.py", "function": "f", "params": 6}]
+        )
+        item = next(i for i in r["items"] if i["category"] == "too_many_params")
+        assert item["priority"] == "low"  # < 8 params
+
+    def test_empty_readability_inputs_add_no_items(self):
+        r = build_action_plan(long_functions_files=[], too_many_params_files=[])
+        assert not [i for i in r["items"] if i["category"] in ("long_function", "too_many_params")]

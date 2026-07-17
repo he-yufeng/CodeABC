@@ -101,6 +101,7 @@ from backend.services import (
     importgraph,
     integrations,
     licenses,
+    long_functions,
     ownership,
     release_map,
     report_export,
@@ -111,6 +112,7 @@ from backend.services import (
     settings_map,
     symbols,
     techdebt,
+    too_many_params,
     typing_coverage,
 )
 from backend.services import (
@@ -172,9 +174,7 @@ def _health_score_summary(data: dict | None) -> "HealthScore":
     )
 
 
-def _compute_health_score(
-    meta: "ProjectMeta", file_contents: dict[str, str] | None = None
-) -> dict:
+def _compute_health_score(meta: "ProjectMeta", file_contents: dict[str, str] | None = None) -> dict:
     """Derive health score from an already-built ProjectMeta using .model_dump().
 
     ``file_contents`` (when available) lets the complexity dimension also account
@@ -207,9 +207,7 @@ def _action_plan_summary(data: dict | None) -> "ActionPlan":
     )
 
 
-def _compute_action_plan(
-    meta: "ProjectMeta", file_contents: dict[str, str] | None = None
-) -> dict:
+def _compute_action_plan(meta: "ProjectMeta", file_contents: dict[str, str] | None = None) -> dict:
     """Derive the priority action plan from an already-built ProjectMeta.
 
     ``file_contents`` (when available) lets the plan also surface deep-nesting and
@@ -218,9 +216,13 @@ def _compute_action_plan(
     """
     deep_nesting_files = None
     typing_files = None
+    long_functions_files = None
+    too_many_params_files = None
     if file_contents:
         deep_nesting_files = deep_nesting.scan_deep_nesting(file_contents).get("files")
         typing_files = typing_coverage.scan_typing_coverage(file_contents).get("files")
+        long_functions_files = long_functions.scan_long_functions(file_contents).get("files")
+        too_many_params_files = too_many_params.scan_too_many_params(file_contents).get("files")
     return action_plan_svc.build_action_plan(
         security=meta.security.model_dump() if meta.security else None,
         test_coverage=meta.test_coverage.model_dump() if meta.test_coverage else None,
@@ -228,6 +230,8 @@ def _compute_action_plan(
         tech_debt_files=[f.model_dump() for f in meta.tech_debt_files],
         import_cycles=[c.model_dump() for c in meta.import_cycles],
         deep_nesting_files=deep_nesting_files,
+        long_functions_files=long_functions_files,
+        too_many_params_files=too_many_params_files,
         typing_files=typing_files,
     )
 
