@@ -149,6 +149,30 @@ def _long_functions_actions(long_functions_files: list[dict] | None) -> list[dic
     return actions
 
 
+def _duplicate_code_actions(duplicate_code_clusters: list[list[dict]] | None) -> list[dict]:
+    if not duplicate_code_clusters:
+        return []
+    actions: list[dict] = []
+    # Largest clusters first; the analyzer already filtered to real duplicates.
+    biggest = sorted(duplicate_code_clusters, key=len, reverse=True)
+    for cluster in biggest[:_MAX_PER_CATEGORY]:
+        spots = "、".join(f"{o.get('path', '?')}:{o.get('line', '?')}" for o in cluster)
+        actions.append(
+            {
+                "priority": "medium" if len(cluster) >= 3 else "low",
+                "category": "duplicate_code",
+                "title": f"抽取重复代码：{cluster[0].get('path', '?')} 等 {len(cluster)} 处",
+                "target": cluster[0].get("path", ""),
+                "detail": (
+                    f"同一段代码出现在 {len(cluster)} 个地方（{spots}）。"
+                    "改一处时其余几处不会跟着变，建议抽成公共函数，以后只改一处。"
+                ),
+                "effort": "medium",
+            }
+        )
+    return actions
+
+
 def _too_many_params_actions(too_many_params_files: list[dict] | None) -> list[dict]:
     if not too_many_params_files:
         return []
@@ -258,6 +282,7 @@ def build_action_plan(
     deep_nesting_files: list[dict] | None = None,
     long_functions_files: list[dict] | None = None,
     too_many_params_files: list[dict] | None = None,
+    duplicate_code_clusters: list[list[dict]] | None = None,
     typing_files: list[dict] | None = None,
 ) -> dict:
     """Build a ranked, plain-language remediation list from existing analyses.
@@ -288,6 +313,7 @@ def build_action_plan(
     items += _deep_nesting_actions(deep_nesting_files)
     items += _long_functions_actions(long_functions_files)
     items += _too_many_params_actions(too_many_params_files)
+    items += _duplicate_code_actions(duplicate_code_clusters)
     items += _architecture_actions(import_cycles)
     items += _typing_actions(typing_files)
     items += _tech_debt_actions(tech_debt_files)

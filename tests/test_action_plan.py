@@ -319,3 +319,24 @@ class TestReadabilityActions:
     def test_empty_readability_inputs_add_no_items(self):
         r = build_action_plan(long_functions_files=[], too_many_params_files=[])
         assert not [i for i in r["items"] if i["category"] in ("long_function", "too_many_params")]
+
+    def test_duplicate_code_is_medium_with_three_copies(self):
+        cluster = [
+            {"path": "a.py", "line": 10},
+            {"path": "b.py", "line": 20},
+            {"path": "a.py", "line": 40},
+        ]
+        r = build_action_plan(duplicate_code_clusters=[cluster])
+        item = next(i for i in r["items"] if i["category"] == "duplicate_code")
+        assert item["priority"] == "medium"  # >= 3 occurrences
+        assert "3 处" in item["title"]
+
+    def test_duplicate_code_is_low_with_two_copies(self):
+        cluster = [{"path": "a.py", "line": 10}, {"path": "b.py", "line": 20}]
+        r = build_action_plan(duplicate_code_clusters=[cluster])
+        item = next(i for i in r["items"] if i["category"] == "duplicate_code")
+        assert item["priority"] == "low"  # < 3 occurrences
+
+    def test_empty_duplicate_clusters_add_no_items(self):
+        r = build_action_plan(duplicate_code_clusters=[])
+        assert not [i for i in r["items"] if i["category"] == "duplicate_code"]

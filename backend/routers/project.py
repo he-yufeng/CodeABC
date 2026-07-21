@@ -92,6 +92,7 @@ from backend.services import (
     deep_nesting,
     dependencies,
     docs,
+    duplicate_code,
     entrypoints,
     envscan,
     error_handling,
@@ -218,11 +219,13 @@ def _compute_action_plan(meta: "ProjectMeta", file_contents: dict[str, str] | No
     typing_files = None
     long_functions_files = None
     too_many_params_files = None
+    duplicate_code_clusters = None
     if file_contents:
         deep_nesting_files = deep_nesting.scan_deep_nesting(file_contents).get("files")
         typing_files = typing_coverage.scan_typing_coverage(file_contents).get("files")
         long_functions_files = long_functions.scan_long_functions(file_contents).get("files")
         too_many_params_files = too_many_params.scan_too_many_params(file_contents).get("files")
+        duplicate_code_clusters = duplicate_code.scan_duplicate_code(file_contents).get("clusters")
     return action_plan_svc.build_action_plan(
         security=meta.security.model_dump() if meta.security else None,
         test_coverage=meta.test_coverage.model_dump() if meta.test_coverage else None,
@@ -232,6 +235,7 @@ def _compute_action_plan(meta: "ProjectMeta", file_contents: dict[str, str] | No
         deep_nesting_files=deep_nesting_files,
         long_functions_files=long_functions_files,
         too_many_params_files=too_many_params_files,
+        duplicate_code_clusters=duplicate_code_clusters,
         typing_files=typing_files,
     )
 

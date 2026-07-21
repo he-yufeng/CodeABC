@@ -27,6 +27,7 @@ from backend.services import (
     dependencies,
     docs,
     docstrings,
+    duplicate_code,
     entrypoints,
     envscan,
     error_handling,
@@ -93,6 +94,9 @@ def _ordered_sections(proj: dict) -> list[str]:
         ),
         too_many_params.render_too_many_params_markdown(
             name, too_many_params.scan_too_many_params(contents)
+        ),
+        duplicate_code.render_duplicate_code_markdown(
+            name, duplicate_code.scan_duplicate_code(contents)
         ),
         dependencies.render_dependencies_markdown(name, dependencies.scan_dependencies(contents)),
         security.render_security_markdown(name, security.scan_security(contents)),
