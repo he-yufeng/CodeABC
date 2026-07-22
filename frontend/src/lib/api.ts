@@ -207,6 +207,14 @@ export interface TunableSetting {
   line: number;
 }
 
+export interface ConfigFile {
+  path: string;
+  kind: string; // "yaml" | "toml" | "ini" | "json" | "properties"
+  sections: string[];
+  keys: string[];
+  setting_count: number;
+}
+
 export interface ScheduledTask {
   name: string;
   // "github-actions" | "apscheduler" | "celery" | "schedule" | "repeat-every"
@@ -444,6 +452,7 @@ export interface ProjectMeta {
   entry_points?: EntryPoint[];
   cli_commands?: CliCommand[];
   tunable_settings?: TunableSetting[];
+  config_files?: ConfigFile[];
   scheduled_tasks?: ScheduledTask[];
   ci_checks?: CiCheck[];
   licenses?: LicenseSummary;

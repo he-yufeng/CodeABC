@@ -1006,6 +1006,59 @@ export default function Overview() {
           </section>
         )}
 
+        {/* Config files — the yaml/toml/ini the project ships, and their top-level knobs */}
+        {project && (project.config_files?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-lime-500">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("项目自带的配置文件", "Config files the project ships")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "新人改配置不读代码，先开这些文件：config.yaml、settings.toml、*.ini 之类。这里列出每个文件和它的顶层键（TOML/INI 显示为节名），按内容丰富程度排序。",
+                "Newcomers configure a project here before reading any code: config.yaml, settings.toml, *.ini and friends. Each file is listed with its top-level keys (sections for TOML/INI), richest first.",
+              )}
+            </p>
+            <ul className="space-y-3">
+              {project.config_files!.map((f) => (
+                <li key={f.path}>
+                  <button
+                    onClick={() => handleFileClick(f.path)}
+                    className="w-full text-left hover:text-blue-700"
+                  >
+                    <span className="font-mono text-sm text-lime-700">{f.path}</span>
+                    <span className="ml-2 text-xs rounded bg-lime-50 text-lime-700 px-1.5 py-0.5">
+                      {f.kind}
+                    </span>
+                    <span className="ml-2 text-xs text-gray-400">
+                      {t(`${f.setting_count} 个设置`, `${f.setting_count} settings`)}
+                    </span>
+                    {(f.sections.length > 0 || f.keys.length > 0) && (
+                      <span className="mt-1 flex flex-wrap gap-1.5">
+                        {f.sections.map((s) => (
+                          <span
+                            key={s}
+                            className="font-mono text-xs rounded bg-lime-50 text-lime-800 px-1.5 py-0.5"
+                          >
+                            [{s}]
+                          </span>
+                        ))}
+                        {f.keys.map((k) => (
+                          <span
+                            key={k}
+                            className="font-mono text-xs rounded bg-gray-100 text-gray-600 px-1.5 py-0.5"
+                          >
+                            {k}
+                          </span>
+                        ))}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Scheduled & automated tasks — what the project runs on its own */}
         {project && (project.scheduled_tasks?.length ?? 0) > 0 && (
           <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-amber-400">
