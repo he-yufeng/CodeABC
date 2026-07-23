@@ -104,6 +104,7 @@ from backend.services import (
     licenses,
     long_functions,
     ownership,
+    pr_reading,
     release_map,
     report_export,
     risk,
@@ -792,6 +793,21 @@ async def get_references(project_id: str, name: str):
         references=[Reference(**r) for r in result["references"]],
         notes=result["notes"],
     )
+
+
+@router.get("/pr-reading")
+async def get_pr_reading(url: str):
+    """Turn a PR link into a plain-language diff walkthrough.
+
+    Deterministic (no LLM): fetches the PR's unified diff, breaks it into
+    per-file changes with add/del counts, classifies each file as code, test,
+    docs, or config, and proposes a review reading order (biggest production
+    diffs first). An LLM explanation layer can sit on this payload later.
+    """
+    try:
+        return pr_reading.analyze_pr(url)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 @router.get("/project/{project_id}/outline", response_model=FileOutline)
