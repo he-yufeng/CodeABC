@@ -712,3 +712,40 @@ export async function getFileDependencies(
   if (!res.ok) throw new Error("Failed to get dependencies");
   return res.json();
 }
+
+export interface PrReadingFile {
+  path: string;
+  added: number;
+  deleted: number;
+  change_type: string;
+  hunks: string[];
+}
+
+export interface PrReadingSummary {
+  file_count: number;
+  by_kind: Record<string, number>;
+  total_added: number;
+  total_deleted: number;
+  biggest_file: string | null;
+}
+
+export interface PrReadingAnalysis {
+  url: string;
+  owner: string;
+  repo: string;
+  number: number;
+  summary: PrReadingSummary;
+  files: PrReadingFile[];
+}
+
+/** Paste a PR link, get a plain-language diff walkthrough (deterministic, no LLM). */
+export async function getPrReading(url: string): Promise<PrReadingAnalysis> {
+  const res = await apiFetch(`${BASE}/pr-reading?url=${encodeURIComponent(url)}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "" }));
+    throw new Error(err.detail || "Failed to read the pull request");
+  }
+  return res.json();
+}

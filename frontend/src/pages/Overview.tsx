@@ -4,6 +4,7 @@ import { streamOverview, getProject } from "../lib/api";
 import { useProjectStore } from "../stores/project";
 import { useI18n, LanguageToggle } from "../lib/i18n";
 import { friendlyError } from "../lib/errors";
+import PrReadingCard from "../components/PrReadingCard";
 
 // A plain-language [zh, en] label for a tunable setting's value kind, fed to t().
 function settingKindLabel(kind: string): [string, string] {
@@ -1058,6 +1059,8 @@ export default function Overview() {
             </ul>
           </section>
         )}
+
+        <PrReadingCard />
 
         {/* Scheduled & automated tasks — what the project runs on its own */}
         {project && (project.scheduled_tasks?.length ?? 0) > 0 && (
