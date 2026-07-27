@@ -42,5 +42,16 @@ def main() -> None:
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
 
 
+def cli_main() -> None:
+    """Console-script entry: serve without the parent-death watch.
+
+    The Tauri sidecar needs to die when the desktop app closes its stdin pipe,
+    but a `codeabc` invoked from a terminal, a launcher, or nohup has its
+    stdin closed from the start and would exit instantly.
+    """
+    port = int(os.getenv("CODEABC_PORT", "8000"))
+    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+
+
 if __name__ == "__main__":
     main()

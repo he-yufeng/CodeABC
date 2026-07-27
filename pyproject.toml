@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "codeabc"
-version = "0.1.1"
+version = "0.1.2"
 description = "AI-powered code reader for non-programmers"
 readme = "README.md"
 license = "MIT"
@@ -36,7 +36,7 @@ dependencies = [
 ]
 
 [project.scripts]
-codeabc = "backend.desktop_server:main"
+codeabc = "backend.desktop_server:cli_main"
 
 [project.optional-dependencies]
 dev = ["pytest", "pytest-asyncio", "httpx", "ruff"]
