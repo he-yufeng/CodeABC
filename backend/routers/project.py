@@ -38,8 +38,6 @@ from backend.models import (
     EntryPoint,
     EnvVar,
     ErrorHandling,
-    UnusedExport,
-    UnusedExports,
     ExternalService,
     FileDependencies,
     FileGlossary,
@@ -73,6 +71,8 @@ from backend.models import (
     TechDebtFile,
     TestCoverageSummary,
     TunableSetting,
+    UnusedExport,
+    UnusedExports,
     UploadedFile,
 )
 from backend.services import (

@@ -39,7 +39,10 @@ def test_local_only_use_is_flagged_as_effectively_private():
 
 
 def test_decorated_defs_are_skipped():
-    src = "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.get('/x')\ndef read_x():\n    return {}\n"
+    src = (
+        "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n"
+        "@app.get('/x')\ndef read_x():\n    return {}\n"
+    )
     assert find_unused_exports({"a.py": src})["total"] == 0
 
 
