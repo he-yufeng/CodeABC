@@ -90,6 +90,10 @@ Before trusting a script you didn't write, you usually want to know what it reac
 
 The most dangerous line in a codebase is often the one that quietly hides a problem: a bare `except:` that catches everything, an empty `catch {}` that throws the error away, a failure that gets logged and then ignored. To a non-coder these are invisible; to a maintainer they are where bugs go to hide. CodeABC flags these silent-failure spots and explains, in everyday terms, why "the program kept going as if nothing happened" can be worse than crashing loudly.
 
+### Which Functions Does Nobody Call?
+
+Orphan modules tell you which files nobody imports; this goes one level finer and asks which functions and classes inside otherwise used files nobody calls. A public helper written for a caller that no longer exists is dead weight every reader still has to load into their head, and it is usually the code that breaks first in a refactor because nothing exercises it. CodeABC flags top-level functions, classes, and exported symbols whose name never appears outside their own file, with the reasoning spelled out. Decorated definitions (routes, fixtures, commands) are skipped on purpose, and the report calls itself a candidate list for human review rather than a verdict, because string references and dynamic imports are invisible to any text scan.
+
 ### Which Files Are Begging for Docs?
 
 Not every file needs a comment, but the ones that other files lean on heavily and that still have almost no explanation are the ones that cost a newcomer the most. CodeABC scores each file on how under-documented it is relative to how central it is, and surfaces the handful that would help the most if someone wrote a few sentences at the top. It is a reading aid as much as a writing one: these are usually the files worth understanding first.

@@ -38,6 +38,8 @@ from backend.models import (
     EntryPoint,
     EnvVar,
     ErrorHandling,
+    UnusedExport,
+    UnusedExports,
     ExternalService,
     FileDependencies,
     FileGlossary,
@@ -116,6 +118,7 @@ from backend.services import (
     techdebt,
     too_many_params,
     typing_coverage,
+    unused_exports,
 )
 from backend.services import (
     health_score as health_score_svc,
@@ -266,6 +269,7 @@ def _content_analyses(
     api = apimap.scan_api_routes(file_contents)
     doc = docs.assess_doc_coverage(file_contents)
     silent = error_handling.find_swallowed_errors(file_contents)
+    dead = unused_exports.find_unused_exports(file_contents)
     integ = integrations.detect_external_services(file_contents)
     rel = release_map.find_release_info(file_contents)
     contrib = contributing.find_contribution_guide(file_contents)
@@ -409,6 +413,12 @@ def _content_analyses(
             files_affected=silent["files_affected"],
             findings=[SilentFailure(**f) for f in silent["findings"]],
             notes=silent["notes"],
+        ),
+        "unused_exports": UnusedExports(
+            total=dead["total"],
+            files_affected=dead["files_affected"],
+            findings=[UnusedExport(**f) for f in dead["findings"]],
+            notes=dead["notes"],
         ),
         "integrations": Integrations(
             total=integ["total"],

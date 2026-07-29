@@ -183,6 +183,21 @@ class ErrorHandling(BaseModel):
     notes: list[str] = []
 
 
+class UnusedExport(BaseModel):
+    path: str
+    name: str
+    kind: str  # "function" | "class"
+    line: int
+    reason: str  # plain-language explanation for a non-programmer
+
+
+class UnusedExports(BaseModel):
+    total: int = 0
+    files_affected: int = 0
+    findings: list[UnusedExport] = []
+    notes: list[str] = []
+
+
 class ExternalService(BaseModel):
     name: str
     category: str  # AI / 大模型 | 云服务 | 数据库 | 支付 | 通讯 | ...
@@ -484,6 +499,7 @@ class ProjectMeta(BaseModel):
     action_plan: ActionPlan | None = None
     doc_coverage: DocCoverage | None = None
     error_handling: ErrorHandling | None = None
+    unused_exports: UnusedExports | None = None
     integrations: Integrations | None = None
     release: ReleaseSummary | None = None
     contribution: ContributionGuide | None = None
