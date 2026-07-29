@@ -849,6 +849,36 @@ export default function Overview() {
           </section>
         )}
 
+        {/* Unused exports — public symbols nothing else calls */}
+        {project && (project.unused_exports?.findings?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-amber-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("没有被调用的公开函数和类", "Public symbols nothing calls")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "这些函数和类的名字在项目其他地方一次都没出现过，是待人工复核的死代码候选，重构时最容易先坏。",
+                "These names never appear anywhere else in the project — candidate dead code for human review, usually the first to break in a refactor.",
+              )}
+            </p>
+            <ul className="space-y-2">
+              {project.unused_exports!.findings.map((f) => (
+                <li key={`${f.path}:${f.line}:${f.name}`}>
+                  <button
+                    onClick={() => handleFileClick(f.path)}
+                    className="w-full text-left hover:text-blue-700"
+                  >
+                    <span className="font-mono text-sm text-blue-600">
+                      {f.path}:{f.line} {f.name}
+                    </span>
+                    <p className="text-xs text-gray-600 mt-0.5">{f.reason}</p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Documentation coverage — code that's there but unexplained */}
         {project && (project.doc_coverage?.under_documented?.length ?? 0) > 0 && (
           <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-sky-400">

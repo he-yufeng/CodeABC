@@ -343,6 +343,21 @@ export interface ErrorHandling {
   notes: string[];
 }
 
+export interface UnusedExport {
+  path: string;
+  name: string;
+  kind: string;
+  line: number;
+  reason: string;
+}
+
+export interface UnusedExports {
+  total: number;
+  files_affected: number;
+  findings: UnusedExport[];
+  notes: string[];
+}
+
 export interface ExternalService {
   name: string;
   category: string;
@@ -459,6 +474,7 @@ export interface ProjectMeta {
   complexity_files?: ComplexFile[];
   doc_coverage?: DocCoverage;
   error_handling?: ErrorHandling;
+  unused_exports?: UnusedExports;
   integrations?: Integrations;
   release?: ReleaseSummary;
   contribution?: ContributionGuide;
