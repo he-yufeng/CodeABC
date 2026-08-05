@@ -931,6 +931,11 @@ export default function Overview() {
                     {v.required && (
                       <span className="ml-1 font-sans">{t("必填", "required")}</span>
                     )}
+                    {v.documented === false && (
+                      <span className="ml-1 font-sans rounded bg-amber-100 text-amber-800 px-1">
+                        {t("未见文档", "undocumented")}
+                      </span>
+                    )}
                   </span>
                 </li>
               ))}

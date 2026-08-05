@@ -165,3 +165,47 @@ def render_env_markdown(project_name: str, env_data: dict | None) -> str:
         lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
+
+
+_DOC_BASENAMES = (
+    ".env.example",
+    ".env.sample",
+    ".env.template",
+    ".env.defaults",
+)
+
+
+def _is_doc_candidate(path: str) -> bool:
+    """Whether a file is a place a newcomer would look for env configuration."""
+    lower = path.lower()
+    base = lower.rsplit("/", 1)[-1]
+    if base in _DOC_BASENAMES or base.startswith("readme"):
+        return True
+    if base.endswith(".md") and (
+        "/" not in lower or lower.startswith(("docs/", "doc/", ".github/"))
+    ):
+        return True
+    return False
+
+
+def find_undocumented_env_vars(scan: dict, file_contents: dict[str, str]) -> list[str]:
+    """Names of env vars that no documentation file mentions.
+
+    ``.env.example`` and the README are where a newcomer learns what to
+    configure; a variable the code reads but nobody writes down is a setup
+    landmine, doubly so when it is required. Matching is a whole-word search
+    over every documentation candidate, so ``HOST`` does not count as
+    documented just because ``DB_HOST`` appears. Pure over the scan result and
+    the file texts, so it is unit-testable with plain dicts.
+    """
+    doc_text = "\n".join(
+        content for path, content in file_contents.items() if _is_doc_candidate(path)
+    )
+    undocumented = []
+    for var in scan.get("vars", []):
+        name = var.get("name")
+        if not name:
+            continue
+        if not re.search(rf"(?<![A-Za-z0-9_]){re.escape(name)}(?![A-Za-z0-9_])", doc_text):
+            undocumented.append(name)
+    return undocumented

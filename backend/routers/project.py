@@ -255,6 +255,7 @@ def _content_analyses(
     """
     tech_debt = techdebt.scan_tech_debt(file_contents)
     env = envscan.scan_env_vars(file_contents)
+    undocumented_env = set(envscan.find_undocumented_env_vars(env, file_contents))
     entries = entrypoints.find_entry_points(file_contents)
     cli_commands = commands.find_cli_commands(file_contents)
     data_models = datamodels.find_data_models(file_contents)
@@ -289,7 +290,13 @@ def _content_analyses(
             TechDebtFile(path=f["path"], count=f["count"]) for f in tech_debt["files"]
         ],
         "env_vars": [
-            EnvVar(name=v["name"], required=v["required"], count=v["count"]) for v in env["vars"]
+            EnvVar(
+                name=v["name"],
+                required=v["required"],
+                count=v["count"],
+                documented=v["name"] not in undocumented_env,
+            )
+            for v in env["vars"]
         ],
         "entry_points": [
             EntryPoint(path=e["path"], kind=e["kind"], command=e["command"], reason=e["reason"])

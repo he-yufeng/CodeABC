@@ -162,3 +162,39 @@ def test_render_markdown_splits_required_and_optional():
 def test_render_markdown_empty_without_vars():
     assert envscan.render_env_markdown("demo", None) == ""
     assert envscan.render_env_markdown("demo", {"total": 0, "vars": []}) == ""
+
+
+def test_undocumented_env_vars_flags_only_missing_names():
+    files = {
+        "app.py": 'a = os.environ["SECRET_TOKEN"]\nb = os.getenv("FEATURE_FLAG", "on")\n',
+        "README.md": "Set `SECRET_TOKEN` before running.",
+    }
+    scan = envscan.scan_env_vars(files)
+    assert envscan.find_undocumented_env_vars(scan, files) == ["FEATURE_FLAG"]
+
+
+def test_undocumented_env_vars_counts_env_example_as_docs():
+    files = {
+        "app.py": 'a = os.environ["DB_HOST"]\nb = os.environ["DB_PORT"]\n',
+        ".env.example": "DB_HOST=localhost\n",
+    }
+    scan = envscan.scan_env_vars(files)
+    assert envscan.find_undocumented_env_vars(scan, files) == ["DB_PORT"]
+
+
+def test_undocumented_env_vars_whole_word_matching():
+    files = {
+        "app.py": 'a = os.environ["HOST"]\n',
+        "README.md": "DB_HOST=something",
+    }
+    scan = envscan.scan_env_vars(files)
+    assert envscan.find_undocumented_env_vars(scan, files) == ["HOST"]
+
+
+def test_undocumented_env_vars_ignores_source_only_mentions():
+    files = {
+        "app.py": 'a = os.environ["INTERNAL_KEY"]\n',
+        "other.py": "# INTERNAL_KEY is loaded here\n",
+    }
+    scan = envscan.scan_env_vars(files)
+    assert envscan.find_undocumented_env_vars(scan, files) == ["INTERNAL_KEY"]

@@ -217,6 +217,7 @@ class EnvVar(BaseModel):
     name: str
     required: bool  # read via os.environ["X"] somewhere, so it must be set
     count: int = 1  # how many places read it
+    documented: bool = True  # mentioned in .env.example / README / docs anywhere
 
 
 class EntryPoint(BaseModel):

@@ -181,6 +181,7 @@ export interface EnvVar {
   name: string;
   required: boolean;
   count: number;
+  documented?: boolean;
 }
 
 export interface EntryPoint {
