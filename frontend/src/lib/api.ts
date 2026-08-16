@@ -352,6 +352,35 @@ export interface UnusedExport {
   reason: string;
 }
 
+export interface SecurityFinding {
+  file: string;
+  line: number;
+  category: string;
+  snippet: string;
+  reason: string;
+}
+
+export interface SecuritySummary {
+  total: number;
+  critical: number;
+  findings: SecurityFinding[];
+  notes: string[];
+}
+
+export interface DataModelField {
+  name: string;
+  type: string;
+  has_default: boolean;
+}
+
+export interface DataModelShape {
+  name: string;
+  kind: string;
+  fields: DataModelField[];
+  path: string;
+  line: number;
+}
+
 export interface UnusedExports {
   total: number;
   files_affected: number;
@@ -476,6 +505,8 @@ export interface ProjectMeta {
   doc_coverage?: DocCoverage;
   error_handling?: ErrorHandling;
   unused_exports?: UnusedExports;
+  security?: SecuritySummary;
+  data_models?: DataModelShape[];
   integrations?: Integrations;
   release?: ReleaseSummary;
   contribution?: ContributionGuide;

@@ -849,6 +849,76 @@ export default function Overview() {
           </section>
         )}
 
+        {/* Security findings — secrets and dangerous calls worth a human look */}
+        {project && (project.security?.findings?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-red-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("安全检查发现", "Security findings")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                `扫出 ${project.security!.total} 处，其中 ${project.security!.critical} 处是硬编码密钥或危险调用这类优先项。每一条都附了它引用的原句和一句大白话解释，点进去就能看上下文。`,
+                `${project.security!.total} findings, ${project.security!.critical} of them the priority kind (hardcoded secrets, dangerous calls). Each carries the line it matched and a plain-language reason; click through for the context.`,
+              )}
+            </p>
+            <ul className="space-y-2">
+              {project.security!.findings.map((f) => (
+                <li key={`${f.file}:${f.line}:${f.category}`}>
+                  <button
+                    onClick={() => handleFileClick(f.file)}
+                    className="w-full text-left hover:text-blue-700"
+                  >
+                    <span className="font-mono text-sm text-blue-600">
+                      {f.file}:{f.line}
+                    </span>
+                    <span className="ml-2 inline-block rounded bg-red-50 px-1.5 py-0.5 text-xs text-red-700">
+                      {f.category}
+                    </span>
+                    <p className="text-xs text-gray-600 mt-0.5">{f.reason}</p>
+                    <p className="text-xs text-gray-400 font-mono mt-0.5 truncate">{f.snippet}</p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Data models — the shapes a project declares */}
+        {project && (project.data_models?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-indigo-400">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("项目里声明的数据模型", "Data models declared in the project")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "这些 dataclass / Pydantic 模型 / TypedDict 是项目数据结构的主干，读代码时先把它们看懂，后面处处都是它们的影子。",
+                "These dataclasses, Pydantic models, and TypedDicts are the project's data backbone — learn their shapes first and the rest of the code keeps referencing them.",
+              )}
+            </p>
+            <ul className="space-y-2">
+              {project.data_models!.map((m) => (
+                <li key={`${m.path}:${m.line}:${m.name}`}>
+                  <button
+                    onClick={() => handleFileClick(m.path)}
+                    className="w-full text-left hover:text-blue-700"
+                  >
+                    <span className="font-mono text-sm text-blue-600">{m.name}</span>
+                    <span className="ml-2 inline-block rounded bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-700">
+                      {m.kind}
+                    </span>
+                    <span className="ml-2 text-xs text-gray-500">
+                      {m.fields.length} {t("个字段", "fields")}
+                    </span>
+                    <p className="text-xs text-gray-400 font-mono mt-0.5">
+                      {m.path}:{m.line}
+                    </p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Unused exports — public symbols nothing else calls */}
         {project && (project.unused_exports?.findings?.length ?? 0) > 0 && (
           <section className="bg-white rounded-xl p-6 shadow-sm mb-6 border-l-4 border-amber-400">
