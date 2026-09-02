@@ -198,6 +198,13 @@ def _too_many_params_actions(too_many_params_files: list[dict] | None) -> list[d
     return actions
 
 
+def _missing_count(f: dict) -> int:
+    # typing_coverage emits the sample of unannotated symbol names (a list);
+    # older cached payloads may carry a bare count. Either way compare counts.
+    m = f.get("missing", 0)
+    return len(m) if isinstance(m, list) else m
+
+
 def _typing_actions(typing_files: list[dict] | None) -> list[dict]:
     if not typing_files:
         return []
@@ -205,11 +212,11 @@ def _typing_actions(typing_files: list[dict] | None) -> list[dict]:
     # Files with the most unannotated public symbols and low coverage first;
     # only surface genuinely under-annotated files (not a stray missing hint).
     weak = sorted(
-        (f for f in typing_files if f.get("missing", 0) >= 3 and f.get("coverage", 1) < 0.6),
-        key=lambda f: (-f.get("missing", 0), f.get("coverage", 1)),
+        (f for f in typing_files if _missing_count(f) >= 3 and f.get("coverage", 1) < 0.6),
+        key=lambda f: (-_missing_count(f), f.get("coverage", 1)),
     )
     for f in weak[:_MAX_PER_CATEGORY]:
-        missing = f.get("missing", 0)
+        missing = _missing_count(f)
         pct = round(f.get("coverage", 0) * 100)
         actions.append(
             {

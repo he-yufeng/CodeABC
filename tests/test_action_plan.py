@@ -281,6 +281,32 @@ class TestTypingActions:
         )
         assert not [i for i in r["items"] if i["category"] == "typing"]
 
+    def test_list_shaped_missing_counts_names(self):
+        # typing_coverage emits the sampled symbol names as a list; comparing
+        # the list against the noise floor crashed with TypeError (#1).
+        r = build_action_plan(
+            typing_files=[
+                {
+                    "path": "m.py",
+                    "symbols": 10,
+                    "typed": 3,
+                    "coverage": 0.3,
+                    "missing": ["get_user", "parse_config", "format_result"],
+                }
+            ]
+        )
+        items = [i for i in r["items"] if i["category"] == "typing"]
+        assert len(items) == 1
+        assert "3" in items[0]["detail"]
+
+    def test_list_shaped_missing_below_floor_still_quiet(self):
+        r = build_action_plan(
+            typing_files=[
+                {"path": "m.py", "symbols": 4, "typed": 2, "coverage": 0.5, "missing": ["a", "b"]}
+            ]
+        )
+        assert not [i for i in r["items"] if i["category"] == "typing"]
+
 
 # ---------------------------------------------------------------------------
 # Readability (long functions / too many parameters)

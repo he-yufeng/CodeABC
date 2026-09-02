@@ -67,3 +67,29 @@ def test_clone_repo_reports_missing_git(monkeypatch, tmp_path):
 
     with pytest.raises(ValueError, match="Git isn't installed"):
         asyncio.run(github_clone.clone_repo("https://github.com/he-yufeng/CodeABC"))
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "github.com/he-yufeng/CodeABC",  # no protocol, what people paste
+        "he-yufeng/CodeABC",  # bare shorthand
+        "https://github.com/he-yufeng/CodeABC/tree/main",  # inner page link
+    ],
+)
+def test_github_request_accepts_common_shapes(url):
+    # The request model used to regex-gate on https://github.com/... and 422
+    # these before the tolerant parser ever saw them (#1).
+    from backend.models import GitHubRequest
+
+    req = GitHubRequest(url=url)
+    assert _parse_github_url(req.url) == ("he-yufeng", "CodeABC")
+
+
+def test_github_request_rejects_empty():
+    from pydantic import ValidationError
+
+    from backend.models import GitHubRequest
+
+    with pytest.raises(ValidationError):
+        GitHubRequest(url="")

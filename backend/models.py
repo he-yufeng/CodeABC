@@ -631,7 +631,10 @@ class FileOutline(BaseModel):
 
 
 class GitHubRequest(BaseModel):
-    url: str = Field(..., pattern=r"^https?://github\.com/.+/.+")
+    # Shape validation lives in github_clone._parse_github_url, which already
+    # accepts bare github.com/... links, inner-page URLs, git@ SSH and the
+    # owner/repo shorthand; a regex here rejected those before reaching it.
+    url: str = Field(..., min_length=1, description="GitHub URL or owner/repo shorthand")
 
 
 class UploadedFile(BaseModel):
