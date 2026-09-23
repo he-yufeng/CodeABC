@@ -16,13 +16,13 @@ function isDesktopShell(): boolean {
   );
 }
 
-const BASE =
+export const BASE =
   import.meta.env.VITE_API_BASE ??
   (isDesktopShell() ? "http://127.0.0.1:8000/api" : "/api");
 
 /** fetch wrapper that turns a network-level failure in the desktop shell into a
  *  clear "the backend isn't running" message instead of a raw "Failed to fetch". */
-async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
+export async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
   try {
     return await window.fetch(input, init);
   } catch (e) {
@@ -38,16 +38,24 @@ async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
   }
 }
 
-function getHeaders(): HeadersInit {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  // BYOK: attach user's API key if configured
+/** BYOK headers: the user's API key plus any provider base URL / model picked
+ *  in the settings wizard. All optional — an absent header keeps the backend's
+ *  existing default (key-shape model routing, OPENAI_API_BASE env fallback). */
+function byokHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
   const apiKey = localStorage.getItem("codeabc_api_key");
-  if (apiKey) {
-    headers["x-api-key"] = apiKey;
-  }
+  if (apiKey) headers["x-api-key"] = apiKey;
+  const apiBase = localStorage.getItem("codeabc_api_base");
+  if (apiBase) headers["x-api-base"] = apiBase;
+  const model = localStorage.getItem("codeabc_model");
+  if (model) headers["x-model"] = model;
+  const protocol = localStorage.getItem("codeabc_protocol");
+  if (protocol) headers["x-api-protocol"] = protocol;
   return headers;
+}
+
+function getHeaders(): HeadersInit {
+  return { "Content-Type": "application/json", ...byokHeaders() };
 }
 
 export interface FileInfo {
@@ -584,9 +592,7 @@ export async function streamOverview(
   onResult: (overview: ProjectOverview) => void,
   onError: (err: string) => void
 ) {
-  const apiKey = localStorage.getItem("codeabc_api_key");
-  const headers: Record<string, string> = {};
-  if (apiKey) headers["x-api-key"] = apiKey;
+  const headers: Record<string, string> = byokHeaders();
 
   const res = await apiFetch(`${BASE}/project/${projectId}/overview`, { headers });
   if (!res.ok || !res.body) {
