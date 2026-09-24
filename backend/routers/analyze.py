@@ -90,6 +90,23 @@ async def _enforce_rate_limit(request: Request):
     await cache.increment_rate_limit(ip)
 
 
+def _llm_kwargs(request: Request) -> dict[str, str | None]:
+    """BYOK overrides read from request headers, passed straight to the LLM.
+
+    All four are optional and backward-compatible: with no headers set every
+    value is ``None``, so llm falls back to its env/default resolution and
+    existing callers are unaffected. ``x-api-base``/``x-model``/``x-api-protocol``
+    let the settings form aim a bring-your-own-key gateway (e.g. a Qwen
+    OpenAI-compatible endpoint) at a chosen base URL, model, and wire protocol.
+    """
+    return {
+        "api_key": request.headers.get("x-api-key"),
+        "api_base": request.headers.get("x-api-base"),
+        "model": request.headers.get("x-model"),
+        "protocol": request.headers.get("x-api-protocol"),
+    }
+
+
 @router.get("/project/{project_id}/overview")
 async def get_overview(project_id: str, request: Request):
     """Generate or return cached project overview. Streams SSE."""
@@ -115,12 +132,12 @@ async def get_overview(project_id: str, request: Request):
     await _enforce_rate_limit(request)
 
     prompt = build_overview_prompt(proj["files"])
-    api_key = request.headers.get("x-api-key")
+    llm_kwargs = _llm_kwargs(request)
 
     async def generate():
         full_response = ""
         errored = False
-        async for chunk in stream_llm(prompt, api_key=api_key):
+        async for chunk in stream_llm(prompt, **llm_kwargs):
             full_response += chunk
             # Don't stream a raw "[LLM Error: ...]" into the reader's view; once
             # we see the sentinel, hold it back and report it as an error below.
@@ -175,9 +192,8 @@ async def get_annotations(project_id: str, file_path: str, request: Request):
     await _enforce_rate_limit(request)
 
     prompt = build_annotation_prompt(content, lang)
-    api_key = request.headers.get("x-api-key")
 
-    result = await call_llm(prompt, api_key=api_key)
+    result = await call_llm(prompt, **_llm_kwargs(request))
 
     parsed = _extract_json(result)
     annotations = _coerce_annotation_list(parsed)
@@ -217,8 +233,7 @@ async def ask_question(project_id: str, req: QARequest, request: Request):
         file_path=req.file_path,
         language=req.language,
     )
-    api_key = request.headers.get("x-api-key")
-    answer = (await call_llm(prompt, api_key=api_key)).strip()
+    answer = (await call_llm(prompt, **_llm_kwargs(request))).strip()
     if is_error_text(answer):
         raise HTTPException(502, answer)
 
@@ -259,8 +274,7 @@ async def edit_code(project_id: str, req: EditRequest, request: Request):
         file_path=req.file_path,
         language=req.language,
     )
-    api_key = request.headers.get("x-api-key")
-    raw = await call_llm(prompt, api_key=api_key)
+    raw = await call_llm(prompt, **_llm_kwargs(request))
     if is_error_text(raw):
         raise HTTPException(502, raw)
     edited = extract_code_block(raw)

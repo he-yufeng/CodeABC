@@ -546,6 +546,16 @@ class EditRequest(BaseModel):
     language: str = ""
 
 
+class ProtocolCheckRequest(BaseModel):
+    """Connection-check probe body; protocol, base and model expected."""
+
+    protocol: str | None = None
+    api_base: str | None = None
+    api_key: str | None = None
+    # The single model the check validates with a 1-token request.
+    model: str | None = None
+
+
 class GlossaryTerm(BaseModel):
     term: str
     definition: str

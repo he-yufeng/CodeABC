@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from backend.routers import analyze, project
+from backend.routers import analyze, project, providers
 from backend.services.cache import init_db
 
 
@@ -53,6 +53,9 @@ app.add_middleware(
 # needs to match before project's greedy /file/{path:path} route
 app.include_router(analyze.router, prefix="/api")
 app.include_router(project.router, prefix="/api")
+# providers routes (/providers, /providers/check, /models) are discovery-only:
+# no LLM generation, no overlap with project's greedy /file/{path:path}.
+app.include_router(providers.router, prefix="/api")
 
 
 @app.get("/api/health")
