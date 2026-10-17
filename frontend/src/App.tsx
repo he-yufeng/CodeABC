@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
+import PrView from "./pages/PrView";
 import Overview from "./pages/Overview";
 import FileView from "./pages/FileView";
 import { I18nProvider } from "./lib/i18n";
@@ -10,6 +11,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/pr" element={<PrView />} />
           <Route path="/project/:projectId" element={<Overview />} />
           <Route path="/project/:projectId/file/*" element={<FileView />} />
         </Routes>

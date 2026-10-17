@@ -784,16 +784,23 @@ export interface PrReadingAnalysis {
   number: number;
   summary: PrReadingSummary;
   files: PrReadingFile[];
+  explanations?: Record<string, string>;
 }
 
-/** Paste a PR link, get a plain-language diff walkthrough (deterministic, no LLM). */
-export async function getPrReading(url: string): Promise<PrReadingAnalysis> {
-  const res = await apiFetch(`${BASE}/pr-reading?url=${encodeURIComponent(url)}`, {
-    headers: getHeaders(),
-  });
+/** Paste a PR link, get a plain-language diff walkthrough. With explain=true
+ *  the backend adds per-file plain-language notes (LLM-written when the user
+ *  has a key configured, deterministic diff-derived notes otherwise). */
+export async function getPrReading(url: string, explain = false): Promise<PrReadingAnalysis> {
+  const res = await apiFetch(
+    `${BASE}/pr-reading?url=${encodeURIComponent(url)}&explain=${explain}`,
+    {
+      headers: getHeaders(),
+    },
+  );
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "" }));
     throw new Error(err.detail || "Failed to read the pull request");
   }
   return res.json();
 }
+

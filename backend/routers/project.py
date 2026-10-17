@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 
 from backend.models import (
@@ -813,15 +813,20 @@ async def get_references(project_id: str, name: str):
 
 
 @router.get("/pr-reading")
-async def get_pr_reading(url: str):
+async def get_pr_reading(url: str, request: Request, explain: bool = False):
     """Turn a PR link into a plain-language diff walkthrough.
 
-    Deterministic (no LLM): fetches the PR's unified diff, breaks it into
-    per-file changes with add/del counts, classifies each file as code, test,
-    docs, or config, and proposes a review reading order (biggest production
-    diffs first). An LLM explanation layer can sit on this payload later.
+    The deterministic core (no LLM) fetches the PR's unified diff, breaks it
+    into per-file changes with add/del counts, classifies each file as code,
+    test, docs, or config, and proposes a review reading order (biggest
+    production diffs first). With explain=true the payload also carries
+    per-file plain-language explanations: LLM-written when the caller passes
+    an x-api-key, deterministic diff-derived notes otherwise.
     """
     try:
+        if explain:
+            api_key = request.headers.get("x-api-key")
+            return await pr_reading.analyze_pr_explained(url, explain=True, api_key=api_key)
         return pr_reading.analyze_pr(url)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc

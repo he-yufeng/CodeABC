@@ -7,6 +7,7 @@ order. An LLM explanation layer can sit on top of this payload later.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import subprocess
@@ -179,3 +180,131 @@ def render_markdown(analysis: dict) -> str:
 
 def to_json(analysis: dict) -> str:
     return json.dumps(analysis, ensure_ascii=False, indent=2)
+
+
+_EXPLAIN_MAX_FILES = 8
+_DIFF_EXCERPT_MAX_LINES = 120
+
+_SYMBOL_RE = re.compile(
+    r"^\+\s*(?:async\s+def|def|class|function|export\s+(?:async\s+)?function|export\s+class)\s+([A-Za-z_][\w]*)"
+)
+
+
+def _diff_sections(diff_text: str) -> dict[str, list[str]]:
+    """Map each file path to its raw diff lines (headers + hunks)."""
+    sections: dict[str, list[str]] = {}
+    current: str | None = None
+    for line in diff_text.splitlines():
+        if line.startswith("diff --git "):
+            match = re.match(r"diff --git a/(\S+) b/(\S+)", line)
+            current = match.group(2) if match else None
+            if current is not None:
+                sections[current] = [line]
+        elif current is not None:
+            sections[current].append(line)
+    return sections
+
+
+def _symbols_from_excerpt(excerpt_lines: list[str]) -> list[str]:
+    names: list[str] = []
+    for line in excerpt_lines:
+        m = _SYMBOL_RE.match(line)
+        if m and m.group(1) not in names:
+            names.append(m.group(1))
+    return names
+
+
+def _deterministic_note(change: FileChange, excerpt_lines: list[str]) -> str:
+    """Plain-language note without any LLM: what kind of file it is, its size, and the
+    functions/classes it adds or updates (from added definition lines in the diff)."""
+    symbols = _symbols_from_excerpt(excerpt_lines)
+    base = {
+        "code": "production code",
+        "test": "test",
+        "docs": "documentation",
+        "config": "configuration",
+    }.get(change.change_type, "other")
+    size = f"+{change.added} / -{change.deleted} lines"
+    if symbols:
+        return f"This {base} file ({size}) adds or updates: {', '.join(symbols[:6])}."
+    return f"This {base} file ({size}) is edited; open it to see the exact changes."
+
+
+def _excerpt(lines: list[str]) -> str:
+    if len(lines) <= _DIFF_EXCERPT_MAX_LINES:
+        return "\n".join(lines)
+    head = "\n".join(lines[:_DIFF_EXCERPT_MAX_LINES])
+    return head + f"\n... ({len(lines) - _DIFF_EXCERPT_MAX_LINES} more diff lines trimmed)"
+
+
+async def explain_files(
+    files: list[FileChange],
+    diff_text: str,
+    *,
+    api_key: str | None = None,
+    model: str | None = None,
+) -> dict[str, str]:
+    """Plain-language note per file. LLM-backed when a key is configured; otherwise a
+    deterministic note built from the diff itself, so the feature works key-free."""
+    from backend.services.llm import call_llm, is_error_text
+
+    sections = _diff_sections(diff_text)
+    out: dict[str, str] = {}
+
+    async def explain_one(change: FileChange) -> tuple[str, str]:
+        excerpt_lines = sections.get(change.path, [])
+        excerpt = _excerpt(excerpt_lines)
+        fallback = _deterministic_note(change, excerpt_lines)
+        if not api_key:
+            return change.path, fallback
+        prompt = (
+            "You are explaining one file's part of a pull request to someone who does not code.\n"
+            f"File: {change.path} ({change.change_type}, +{change.added} / -{change.deleted}).\n"
+            f"Diff excerpt:\n{excerpt}\n\n"
+            "In 2-3 plain sentences: what changed in this file and why it might matter. "
+            "No jargon; say the file name, not the path, when you refer to it."
+        )
+        text = (await call_llm(prompt, api_key=api_key, model=model)).strip()
+        if not text or is_error_text(text):
+            return change.path, fallback
+        return change.path, text
+
+    ordered = files[:_EXPLAIN_MAX_FILES]
+    results = await asyncio.gather(*(explain_one(f) for f in ordered))
+    out.update(results)
+    # Files beyond the cap still get the deterministic note so the UI never shows a gap.
+    for f in files[_EXPLAIN_MAX_FILES:]:
+        out[f.path] = _deterministic_note(f, sections.get(f.path, []))
+    return out
+
+
+async def analyze_pr_explained(
+    url: str, *, explain: bool, api_key: str | None = None, model: str | None = None
+) -> dict:
+    """analyze_pr plus optional per-file explanations (LLM when keyed, deterministic otherwise)."""
+    ref = parse_pr_url(url)
+    diff_text = await asyncio.to_thread(fetch_pr_diff, ref)
+    files = parse_diff_files(diff_text)
+    ordered = reading_order(files)
+    analysis = {
+        "url": url,
+        "owner": ref.owner,
+        "repo": ref.repo,
+        "number": ref.number,
+        "summary": summarize_diff(files),
+        "files": [
+            {
+                "path": f.path,
+                "added": f.added,
+                "deleted": f.deleted,
+                "change_type": f.change_type,
+                "hunks": f.hunks,
+            }
+            for f in ordered
+        ],
+    }
+    if explain:
+        analysis["explanations"] = await explain_files(
+            ordered, diff_text, api_key=api_key, model=model
+        )
+    return analysis

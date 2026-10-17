@@ -36,10 +36,16 @@ export default function Home() {
 
   const handleGitHub = async () => {
     if (!githubUrl.trim()) return;
+    const trimmed = githubUrl.trim();
+    // A pull-request link goes to PR reading mode instead of a repo scan.
+    if (/^https?:\/\/(?:www\.)?github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(trimmed)) {
+      navigate(`/pr?url=${encodeURIComponent(trimmed)}`);
+      return;
+    }
     reset();
     setLoading(true);
     try {
-      const proj = await cloneGitHub(githubUrl.trim());
+      const proj = await cloneGitHub(trimmed);
       setProject(proj);
       navigate(`/project/${proj.id}`);
     } catch (e: unknown) {
@@ -101,8 +107,8 @@ export default function Home() {
             onChange={(e) => setGithubUrl(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleGitHub()}
             placeholder={t(
-              "粘贴 GitHub 仓库链接，如 https://github.com/user/repo",
-              "Paste a GitHub repo URL, e.g. https://github.com/user/repo",
+              "粘贴 GitHub 仓库或 PR 链接，如 https://github.com/user/repo/pull/123",
+              "Paste a GitHub repo or PR URL, e.g. https://github.com/user/repo/pull/123",
             )}
             className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-base
                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
