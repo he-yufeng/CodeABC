@@ -125,6 +125,17 @@ export default function Home() {
           </button>
         </div>
 
+        {/* Offline folder comparison */}
+        <p className="mt-3 text-center text-xs text-gray-400">
+          {t("拿到别人改过的代码，想知道动了什么？", "Got a folder back from someone else?")}
+          <button
+            onClick={() => navigate("/compare")}
+            className="ml-1 text-blue-500 hover:underline"
+          >
+            {t("对比两个版本 →", "Compare two versions →")}
+          </button>
+        </p>
+
         {/* Error message */}
         {error && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">

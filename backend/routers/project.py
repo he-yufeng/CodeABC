@@ -23,6 +23,7 @@ from backend.models import (
     CliCommand,
     CoChangeCoupling,
     CodeWalkStep,
+    CompareRequest,
     ComplexFile,
     ConfigFile,
     ContributionGuide,
@@ -54,6 +55,7 @@ from backend.models import (
     LicenseSummary,
     OrphanModule,
     PackageDependency,
+    ProjectComparison,
     ProjectHealth,
     ProjectMeta,
     ProjectSummary,
@@ -86,6 +88,7 @@ from backend.services import (
     ci_checks,
     codemap_export,
     commands,
+    comparison,
     complexity,
     config_files,
     contributing,
@@ -453,6 +456,20 @@ def _content_analyses(
             notes=contrib["notes"],
         ),
     }
+
+
+@router.post("/project/compare", response_model=ProjectComparison)
+def compare_uploaded_projects(req: CompareRequest):
+    """Compare source snapshots without storing them or calling an LLM."""
+    try:
+        return comparison.compare_projects(
+            [file.model_dump() for file in req.before.files],
+            [file.model_dump() for file in req.after.files],
+            before_name=req.before.project_name,
+            after_name=req.after.project_name,
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 @router.post("/project/upload", response_model=ProjectMeta)

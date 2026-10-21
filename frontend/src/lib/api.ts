@@ -804,3 +804,76 @@ export async function getPrReading(url: string, explain = false): Promise<PrRead
   return res.json();
 }
 
+
+export interface ComparedFile {
+  path: string;
+  status: "added" | "deleted" | "modified";
+  before_bytes: number;
+  after_bytes: number;
+  before_hash: string | null;
+  after_hash: string | null;
+  diff: string;
+  diff_truncated: boolean;
+}
+
+export interface ComparisonSummary {
+  added: number;
+  deleted: number;
+  modified: number;
+  unchanged: number;
+  not_compared: number;
+}
+
+export interface FindingChange {
+  status: "introduced" | "no_longer_detected" | "persistent";
+  before: SecurityFinding | null;
+  after: SecurityFinding | null;
+}
+
+export interface SecurityComparison {
+  complete: boolean;
+  before_total: number;
+  after_total: number;
+  introduced: number | null;
+  no_longer_detected: number | null;
+  persistent: number | null;
+  changes: FindingChange[];
+  display_truncated: boolean;
+}
+
+export interface ProjectComparison {
+  schema_version: number;
+  before_name: string;
+  after_name: string;
+  before_files: number;
+  after_files: number;
+  summary: ComparisonSummary;
+  files: ComparedFile[];
+  excluded_paths: string[];
+  security: SecurityComparison;
+  notes: string[];
+}
+
+/** Compare two local snapshots (before/after) without uploading them anywhere
+ *  else: the backend matches files by path, diffs the changed ones, and diffs
+ *  the static risk-warning sets. No LLM is involved. */
+export async function compareProjects(
+  beforeFiles: { path: string; content: string }[],
+  beforeName: string,
+  afterFiles: { path: string; content: string }[],
+  afterName: string,
+): Promise<ProjectComparison> {
+  const res = await apiFetch(`${BASE}/project/compare`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({
+      before: { files: beforeFiles, project_name: beforeName },
+      after: { files: afterFiles, project_name: afterName },
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "" }));
+    throw new Error(err.detail || "Failed to compare the two folders");
+  }
+  return res.json();
+}
