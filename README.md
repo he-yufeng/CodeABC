@@ -98,6 +98,10 @@ Orphan modules tell you which files nobody imports; this goes one level finer an
 
 Not every file needs a comment, but the ones that other files lean on heavily and that still have almost no explanation are the ones that cost a newcomer the most. CodeABC scores each file on how under-documented it is relative to how central it is, and surfaces the handful that would help the most if someone wrote a few sentences at the top. It is a reading aid as much as a writing one: these are usually the files worth understanding first.
 
+### What Actually Changed Between These Two Folders?
+
+Hand a folder to someone and get a folder back — what did they actually change? Drop the before and after versions into the comparison page and CodeABC lists every added, deleted and modified file with a readable diff, and tells you whether the new version picked up any new risk warnings along the way. A file it cannot read on one side is reported as "not compared" rather than silently treated as deleted, and the risk delta matches warnings by what they are, not by line number, so a shifted line does not look like a fixed bug. Everything runs locally: no code is executed, no API key is needed, and nothing leaves your machine.
+
 ## Tech Stack
 
 | Layer | Choice | Why |
