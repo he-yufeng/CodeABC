@@ -14,20 +14,19 @@ const KIND_STYLE: Record<string, string> = {
 
 export default function PrView() {
   const [params] = useSearchParams();
+  const url = params.get("url") ?? "";
+  return <PrReading key={url} url={url} />;
+}
+
+function PrReading({ url }: { url: string }) {
   const navigate = useNavigate();
   const { t } = useI18n();
-  const url = params.get("url") ?? "";
-
   const [data, setData] = useState<PrReadingAnalysis | null>(null);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(url));
 
   useEffect(() => {
-    if (!url) {
-      setError(t("缺少 PR 链接。", "Missing PR URL."));
-      setLoading(false);
-      return;
-    }
+    if (!url) return;
     let cancelled = false;
     getPrReading(url, true)
       .then((r) => {
@@ -67,9 +66,9 @@ export default function PrView() {
             {t("正在读取这个 PR…", "Reading this pull request…")}
           </div>
         )}
-        {error && (
+        {(error || !url) && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-            {error}
+            {url ? error : t("缺少 PR 链接。", "Missing PR URL.")}
           </div>
         )}
 
