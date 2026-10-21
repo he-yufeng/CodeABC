@@ -647,3 +647,61 @@ class AnalyzeRequest(BaseModel):
 
     files: list[UploadedFile]
     project_name: str = "untitled"
+
+
+class ComparisonSnapshot(AnalyzeRequest):
+    files: list[UploadedFile] = Field(max_length=500)
+
+
+class CompareRequest(BaseModel):
+    before: ComparisonSnapshot
+    after: ComparisonSnapshot
+
+
+class ComparedFile(BaseModel):
+    path: str
+    status: str
+    before_bytes: int
+    after_bytes: int
+    before_hash: str | None = None
+    after_hash: str | None = None
+    diff: str = ""
+    diff_truncated: bool = False
+
+
+class ComparisonSummary(BaseModel):
+    added: int = 0
+    deleted: int = 0
+    modified: int = 0
+    unchanged: int = 0
+    not_compared: int = 0
+
+
+class FindingChange(BaseModel):
+    status: str
+    before: SecurityFinding | None = None
+    after: SecurityFinding | None = None
+
+
+class SecurityComparison(BaseModel):
+    complete: bool
+    before_total: int
+    after_total: int
+    introduced: int | None = None
+    no_longer_detected: int | None = None
+    persistent: int | None = None
+    changes: list[FindingChange] = []
+    display_truncated: bool = False
+
+
+class ProjectComparison(BaseModel):
+    schema_version: int = 1
+    before_name: str
+    after_name: str
+    before_files: int
+    after_files: int
+    summary: ComparisonSummary
+    files: list[ComparedFile]
+    excluded_paths: list[str]
+    security: SecurityComparison
+    notes: list[str]
