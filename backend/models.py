@@ -372,6 +372,14 @@ class Dependency(BaseModel):
     purpose: str | None = None
 
 
+class RunRequirement(BaseModel):
+    category: str  # "python" | "node" | "service" | "gpu" | "os" | "container"
+    name: str  # short label, e.g. 'Python >=3.10', 'PostgreSQL'
+    detail: str  # the raw evidence (which file, which constraint)
+    note: str  # plain-language explanation of what this means for the reader
+    required: bool = True  # False = "only needed for some features / optional path"
+
+
 class ActivityWindow(BaseModel):
     commits: int = 0
     authors: list[str] = []
@@ -493,6 +501,7 @@ class ProjectMeta(BaseModel):
     licenses: LicenseSummary | None = None
     complexity_files: list[ComplexFile] = []
     dependencies: list[Dependency] = []
+    run_requirements: list[RunRequirement] = []
     security: SecuritySummary | None = None
     api_map: ApiMap | None = None
     activity: ActivitySummary | None = None

@@ -66,6 +66,7 @@ from backend.models import (
     ReleaseAutomation,
     ReleaseSummary,
     RiskHotspot,
+    RunRequirement,
     ScheduledTask,
     SecurityFinding,
     SecuritySummary,
@@ -113,6 +114,7 @@ from backend.services import (
     release_map,
     report_export,
     risk,
+    runreqs,
     scanner,
     schedules,
     security,
@@ -269,6 +271,7 @@ def _content_analyses(
     license_map = licenses.find_licenses(file_contents)
     complex_files = complexity.scan_complexity(file_contents)
     deps = dependencies.scan_dependencies(file_contents)
+    run_reqs = runreqs.scan_run_requirements(file_contents)
     sec = security.scan_security(file_contents)
     api = apimap.scan_api_routes(file_contents)
     doc = docs.assess_doc_coverage(file_contents)
@@ -398,6 +401,7 @@ def _content_analyses(
             )
             for d in deps["dependencies"]
         ],
+        "run_requirements": [RunRequirement(**r) for r in run_reqs["requirements"]],
         "security": SecuritySummary(
             total=sec["total"],
             critical=sec["critical"],
