@@ -783,6 +783,54 @@ export default function Overview() {
           </section>
         )}
 
+        {/* Runtime requirements — what kind of machine and services it needs */}
+        {project && (project.run_requirements?.length ?? 0) > 0 && (
+          <section className="bg-white rounded-xl p-6 shadow-sm mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {t("跑起来需要什么环境", "What it needs to run")}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {t(
+                "在装任何依赖之前先看这个：要多新的 Python/Node、要不要另外开数据库之类的服务、要不要英伟达显卡、挑不挑操作系统。如果有 Docker 那条，通常是最省事的路。",
+                "Read this before installing anything: how new your Python/Node must be, whether a database or other background service has to be running, whether an NVIDIA GPU is expected, and whether your operating system works. When a Docker entry shows up, it is usually the easiest way.",
+              )}
+            </p>
+            <ul className="space-y-3">
+              {project.run_requirements!.map((r, i) => {
+                const catLabel =
+                  r.category === "python"
+                    ? "Python"
+                    : r.category === "node"
+                      ? "Node.js"
+                      : r.category === "service"
+                        ? t("外部服务", "Service")
+                        : r.category === "gpu"
+                          ? "GPU"
+                          : r.category === "os"
+                            ? t("操作系统", "OS")
+                            : "Docker";
+                return (
+                  <li key={`${r.category}-${r.name}-${i}`} className="text-sm">
+                    <span className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-gray-800">{r.name}</span>
+                      <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
+                        {catLabel}
+                      </span>
+                      {!r.required && (
+                        <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-600">
+                          {t("可选/部分功能", "optional")}
+                        </span>
+                      )}
+                    </span>
+                    <p className="text-gray-600 mt-0.5">{r.note}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{r.detail}</p>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
         {/* Third-party dependencies — what libraries it installs, each in plain words */}
         {project && (project.dependencies?.length ?? 0) > 0 && (
           <section className="bg-white rounded-xl p-6 shadow-sm mb-6">

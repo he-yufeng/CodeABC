@@ -102,6 +102,10 @@ Not every file needs a comment, but the ones that other files lean on heavily an
 
 Hand a folder to someone and get a folder back — what did they actually change? Drop the before and after versions into the comparison page and CodeABC lists every added, deleted and modified file with a readable diff, and tells you whether the new version picked up any new risk warnings along the way. A file it cannot read on one side is reported as "not compared" rather than silently treated as deleted, and the risk delta matches warnings by what they are, not by line number, so a shifted line does not look like a fixed bug. Everything runs locally: no code is executed, no API key is needed, and nothing leaves your machine.
 
+### Will It Run on My Machine?
+
+Before installing anything, you want to know what you are signing up for: does this project need a specific Python or Node version, a database server running in the background, an NVIDIA graphics card, or a particular operating system? CodeABC reads the version pins in the project's manifests, the service clients in its dependencies and imports, GPU-shaped dependencies and CUDA source files, and OS-specific components, then lays out the answer in plain words, each item linked to the file it came from. A service that only shows up in a manifest but is never used in the code is marked as "maybe only for some features" rather than presented as a hard requirement. And when the project ships a Dockerfile, CodeABC says so, because that is usually the easy way out. Deterministic, no API key needed.
+
 ## Tech Stack
 
 | Layer | Choice | Why |

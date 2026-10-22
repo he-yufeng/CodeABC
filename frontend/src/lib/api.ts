@@ -426,6 +426,14 @@ export interface Dependency {
   purpose?: string | null;
 }
 
+export interface RunRequirement {
+  category: string; // "python" | "node" | "service" | "gpu" | "os" | "container"
+  name: string;
+  detail: string;
+  note: string;
+  required: boolean;
+}
+
 export interface ApiRoute {
   method: string;
   path: string;
@@ -512,6 +520,7 @@ export interface ProjectMeta {
   contribution?: ContributionGuide;
   action_plan?: ActionPlan;
   dependencies?: Dependency[];
+  run_requirements?: RunRequirement[];
   api_map?: ApiMap;
   activity?: ActivitySummary;
   health_score?: HealthScore;
