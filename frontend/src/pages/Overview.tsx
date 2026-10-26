@@ -5,6 +5,7 @@ import { useProjectStore } from "../stores/project";
 import { useI18n, LanguageToggle } from "../lib/i18n";
 import { friendlyError } from "../lib/errors";
 import PrReadingCard from "../components/PrReadingCard";
+import ProjectChatCard from "../components/ProjectChatCard";
 
 // A plain-language [zh, en] label for a tunable setting's value kind, fed to t().
 function settingKindLabel(kind: string): [string, string] {
@@ -265,6 +266,10 @@ export default function Overview() {
               ))}
             </ol>
           </section>
+        )}
+
+        {projectId && (
+          <ProjectChatCard projectId={projectId} onFileClick={handleFileClick} />
         )}
 
         {/* Health score: a single letter grade + scored breakdown, the

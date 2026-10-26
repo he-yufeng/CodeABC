@@ -548,6 +548,31 @@ class QARequest(BaseModel):
     language: str = ""
 
 
+class ProjectChatTurn(BaseModel):
+    question: str
+    answer: str
+
+
+class ProjectChatRequest(BaseModel):
+    question: str
+    history: list[ProjectChatTurn] = []
+
+
+class ProjectChatSource(BaseModel):
+    path: str
+    reason: str
+    line_start: int
+    line_end: int
+    truncated: bool
+
+
+class ProjectChatResponse(BaseModel):
+    answer: str
+    sources: list[ProjectChatSource]
+    maps_used: list[str]
+    truncated: bool
+
+
 class EditRequest(BaseModel):
     instruction: str
     code: str

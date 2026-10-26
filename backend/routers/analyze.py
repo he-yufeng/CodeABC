@@ -8,13 +8,13 @@ import logging
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from backend.models import EditRequest, QARequest
+from backend.models import EditRequest, ProjectChatRequest, ProjectChatResponse, QARequest
 from backend.prompts.annotate import build_annotation_prompt
 from backend.prompts.edit import build_edit_prompt, extract_code_block
 from backend.prompts.overview import build_overview_prompt
 from backend.prompts.qa import build_qa_prompt
 from backend.routers.project import get_project_data
-from backend.services import cache
+from backend.services import cache, project_chat
 from backend.services.llm import call_llm, is_error_text, stream_llm
 
 logger = logging.getLogger(__name__)
@@ -226,6 +226,48 @@ async def ask_question(project_id: str, req: QARequest, request: Request):
         await cache.put(cache_key, {"answer": answer})
 
     return {"answer": answer}
+
+
+@router.post("/project/{project_id}/chat", response_model=ProjectChatResponse)
+async def chat_with_project(project_id: str, req: ProjectChatRequest, request: Request):
+    """Chat across bounded project maps and source excerpts with visible evidence."""
+    proj = await get_project_data(project_id)
+    if not proj:
+        raise HTTPException(404, "Project not found")
+
+    question = req.question.strip()
+    if not question:
+        raise HTTPException(400, "Question must not be empty")
+
+    history = [turn.model_dump() for turn in req.history[-6:]]
+    files_sig = "|".join(
+        f"{path}:{cache.content_hash(content)}"
+        for path, content in sorted(proj.get("file_contents", {}).items())
+    )
+    history_sig = json.dumps(history, ensure_ascii=False, sort_keys=True)
+    cache_key = (
+        "project-chat:v1:"
+        f"{cache.content_hash(question + chr(0) + files_sig + chr(0) + history_sig)}"
+    )
+    cached = await cache.get(cache_key)
+    if isinstance(cached, dict) and cached.get("answer"):
+        return cached
+
+    context = project_chat.build_project_chat_context(proj, question, history=history)
+    await _enforce_rate_limit(request)
+    answer = (await call_llm(context["prompt"], api_key=request.headers.get("x-api-key"))).strip()
+    if is_error_text(answer):
+        raise HTTPException(502, answer)
+
+    result = {
+        "answer": answer,
+        "sources": context["sources"],
+        "maps_used": context["maps_used"],
+        "truncated": context["truncated"],
+    }
+    if answer:
+        await cache.put(cache_key, result)
+    return result
 
 
 @router.post("/project/{project_id}/edit")

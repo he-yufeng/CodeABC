@@ -712,6 +712,47 @@ export async function askQuestion(
   return res.json();
 }
 
+export interface ProjectChatTurn {
+  question: string;
+  answer: string;
+}
+
+export interface ProjectChatSource {
+  path: string;
+  reason: string;
+  line_start: number;
+  line_end: number;
+  truncated: boolean;
+}
+
+export interface ProjectChatResponse {
+  answer: string;
+  sources: ProjectChatSource[];
+  maps_used: string[];
+  truncated: boolean;
+}
+
+/** Chat across the project's bounded maps and source excerpts. */
+export async function projectChat(
+  projectId: string,
+  params: { question: string; history?: ProjectChatTurn[] }
+): Promise<ProjectChatResponse> {
+  const res = await apiFetch(`${BASE}/project/${projectId}/chat`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ question: params.question, history: params.history ?? [] }),
+  });
+  if (!res.ok) {
+    if (res.status === 429) {
+      const err = await res.json().catch(() => ({ detail: tStatic("请求过于频繁", "Too many requests") }));
+      throw new Error(err.detail || tStatic("今日免费额度已用完，请配置 API Key", "Free tier exhausted for today, please configure an API key"));
+    }
+    const err = await res.json().catch(() => ({ detail: "" }));
+    throw new Error(err.detail || tStatic("没能获取回答，请重试。", "Couldn't get an answer, please try again."));
+  }
+  return res.json();
+}
+
 /** Apply a natural-language instruction to a code snippet (suggested edit). */
 export async function editCode(
   projectId: string,
