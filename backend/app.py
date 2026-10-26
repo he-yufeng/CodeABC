@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="CodeABC",
     description="AI-powered code reader for non-programmers",
-    version="0.1.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
