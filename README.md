@@ -44,7 +44,8 @@ Click any file to view it with AI-generated annotations. Hover over any line to 
 
 - Fine-grained: annotations cover every 1-3 lines, not just blocks
 - Context-aware: explains _why_ a number is 0.05 or a timeout is 3600
-- Cached: annotations are stored locally so repeat visits are instant
+- Language-aware prompts: JavaScript/TypeScript and Go include dedicated guidance for imports, type syntax, asynchronous code, and error handling
+- Cached: annotations are stored locally so repeat visits are instant, with separate entries for each language and file content
 
 ### Terminology Dictionary
 
@@ -214,6 +215,7 @@ CodeABC/
 │   └── prompts/
 │       ├── overview.py      # Project overview prompt
 │       ├── annotate.py      # Line-by-line annotation prompt
+│       ├── annotation_languages.py # JS/TS/Go annotation guidance
 │       ├── qa.py            # Snippet / file Q&A prompt
 │       └── edit.py          # Natural-language editing prompt
 ├── frontend/                # React + Vite + TailwindCSS
@@ -236,12 +238,6 @@ The `services/` analyzers are one module per deterministic map: `coverage`, `sym
 The reading experience is already complete end to end: a plain-language project manual, hover annotations, a terminology dictionary, natural-language editing, and snippet Q&A, all in a bilingual UI you launch with one command (or as a native Tauri desktop app). On top of that sit a dozen deterministic, no-API-key maps — reading map, core-module ranking, a project-wide definition index with find-all-references (look up any name to jump to where it's declared and list every place it's used), test coverage, git-history hotspots and ownership, tech-debt markers, env-var surface, entry points, CLI commands, the data-model shapes a project declares (dataclasses, pydantic models, TypedDicts and NamedTuples, with their fields and types), the tunable settings hard-coded as UPPER_SNAKE constants (retry counts, timeouts, default model, feature flags — the values you might change without reading the code), the scheduled and automated tasks a project runs on its own (cron jobs, APScheduler/Celery beat timers, GitHub Actions schedules and JS timers — what fires without you pressing anything, with common cron expressions glossed into plain language), the CI quality gates a change has to pass on push or pull request (the lint, formatting, type-check, test, coverage, security and build steps wired up in GitHub Actions, pre-commit, GitLab CI, CircleCI, Jenkins and friends, each labelled in plain language so a red check stops being scary), how the project ships releases (where the current version lives, which versioning scheme it follows, whether there's a changelog, and whether pushing a tag or cutting a release auto-publishes to PyPI / npm / GitHub Release), how to get a change accepted (which file to read first, the PR and issue templates, and whether commits need a Signed-off-by/DCO, Conventional Commits, a CLA or a CODEOWNERS sign-off — the process steps that bounce a first pull request before anyone reads the code), external integrations, silent-failure spots, under-documented files, and logic complexity. It all exports offline too: every map stitches into a single `codemap.md`, or a self-contained HTML report you can email to a non-technical stakeholder — no server, no API key, nothing fetched from the network. Analyses also persist to a small on-disk library (`GET /api/projects`), so you can list past projects and reopen one without remembering its id or re-scanning.
 
 PR reading mode is shipped too: paste a pull request link to get the diff and a plain-language review route. Whole-project chat now lets a conversation reach across those maps and source excerpts while showing exactly which files and lines grounded each answer.
-
-### Planned
-
-These are the directions I want to take next, roughly in priority order:
-
-- **Annotation coverage beyond Python** — hover annotations lead with Python today; bringing JavaScript/TypeScript and Go up to the same depth is mostly prompt and tokenizer work.
 
 Have an idea or a codebase that confuses CodeABC? Open an issue — the roadmap is shaped by what real non-coders get stuck on.
 

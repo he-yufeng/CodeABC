@@ -165,8 +165,8 @@ async def get_annotations(project_id: str, file_path: str, request: Request):
             lang = f["language"]
             break
 
-    # cache by file content (cached results are free)
-    cache_key = f"annotate:{cache.content_hash(content)}"
+    # Language-specific prompts need their own cache entries even for identical content.
+    cache_key = f"annotate:v2:{cache.content_hash(lang + chr(0) + content)}"
     cached = await cache.get(cache_key)
     if cached:
         return {"path": file_path, "language": lang, "annotations": cached}

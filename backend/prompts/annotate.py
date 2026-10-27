@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from backend.prompts.annotation_languages import get_annotation_language_guidance
+
 
 def build_annotation_prompt(code: str, language: str = "python") -> str:
     """Build the LLM prompt for code annotation.
@@ -18,6 +20,10 @@ def build_annotation_prompt(code: str, language: str = "python") -> str:
     else:
         truncated_note = ""
 
+    language_guidance = get_annotation_language_guidance(language)
+    if language_guidance:
+        language_guidance = f"\n针对 {language} 代码的额外解释要求：\n{language_guidance}\n"
+
     return f"""你是一个耐心的编程导师。下面是一个 {language} 源文件的内容。
 请为这段代码生成逐行/逐块的中文批注，帮助完全不懂编程的人理解每一部分在做什么。
 
@@ -28,7 +34,7 @@ def build_annotation_prompt(code: str, language: str = "python") -> str:
 4. 适当用日常生活的类比让解释更生动
 5. 空行、纯注释行可以跳过不批注
 6. 对于 import 语句，简单说明引入了什么工具、这个工具用来做什么
-
+{language_guidance}
 代码内容（{language}）：
 ```{language}
 {code}
