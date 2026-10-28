@@ -739,3 +739,22 @@ class ProjectComparison(BaseModel):
     excluded_paths: list[str]
     security: SecurityComparison
     notes: list[str]
+
+
+class ErrorLogRequest(BaseModel):
+    log: str = Field(min_length=1, max_length=200_000)
+
+
+class ErrorLocation(BaseModel):
+    path: str
+    line: int
+    column: int | None = None
+    kind: str = ""
+    purpose: str = ""
+    excerpt: str = ""
+
+
+class ErrorLocationResult(BaseModel):
+    locations: list[ErrorLocation]
+    unresolved: int = 0
+    truncated: bool = False

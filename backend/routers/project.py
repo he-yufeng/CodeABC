@@ -39,6 +39,8 @@ from backend.models import (
     EntryPoint,
     EnvVar,
     ErrorHandling,
+    ErrorLocationResult,
+    ErrorLogRequest,
     ExternalService,
     FileDependencies,
     FileGlossary,
@@ -102,6 +104,7 @@ from backend.services import (
     entrypoints,
     envscan,
     error_handling,
+    error_navigator,
     filenames,
     github_clone,
     glossary,
@@ -460,6 +463,16 @@ def _content_analyses(
             notes=contrib["notes"],
         ),
     }
+
+
+@router.post("/project/{project_id}/error-locations", response_model=ErrorLocationResult)
+async def locate_project_error(project_id: str, req: ErrorLogRequest):
+    """Map a pasted stack trace to this project's scanned source, without executing it."""
+    proj = await _resolve_project(project_id)
+    if not proj:
+        raise HTTPException(404, "Project not found")
+    result = error_navigator.locate_error(req.log, proj.get("file_contents", {}))
+    return ErrorLocationResult(**result)
 
 
 @router.post("/project/compare", response_model=ProjectComparison)

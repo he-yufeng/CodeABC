@@ -63,6 +63,10 @@ Select any snippet in a file (or just leave it unselected for the whole file) an
 
 Ask a question that spans the project, then continue the conversation with the earlier turns kept in view. CodeABC selects a small set of relevant maps and up to six source excerpts instead of dumping the whole tree into the prompt. Every answer can expand to show the exact files and line ranges it used, the maps it consulted, and whether evidence was truncated. Those links open the source directly, and answers are cached by question, conversation history, and project content. The UI makes the limit explicit: unread code is never presented as evidence.
 
+### Error Navigator
+
+Paste a Python, Node, Go, or similar stack trace and CodeABC finds the matching files and line numbers in the source already scanned into the project. Each result shows the surrounding lines and a plain-language note about the file, with a link back to the full source. Absolute paths, relative paths, file URLs, Windows paths, and column numbers are handled; ambiguous or out-of-range locations are reported as unresolved instead of guessed. The log is never executed, paths named by the log are never opened, and no API key or LLM call is needed.
+
 ### Bilingual UI (中文 / English)
 
 The whole interface switches between Chinese and English with one toggle in the header. Your choice is remembered, and the first visit follows your browser language. (LLM-generated content like the manual and annotations follows the prompt language; the UI chrome is fully translated.)

@@ -221,7 +221,15 @@ export default function Overview() {
         <h1 className="text-xl font-semibold text-gray-900">
           {project?.name || t("项目说明书", "Project manual")}
         </h1>
-        <LanguageToggle className="ml-auto" />
+        <div className="ml-auto flex items-center gap-3">
+          <button
+            onClick={() => navigate(`/project/${projectId}/errors`)}
+            className="rounded-lg border border-blue-200 px-3 py-1.5 text-sm text-blue-700 hover:bg-blue-50"
+          >
+            {t("报错定位", "Error navigator")}
+          </button>
+          <LanguageToggle />
+        </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-8">

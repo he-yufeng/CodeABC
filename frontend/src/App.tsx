@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import PrView from "./pages/PrView";
 import CompareView from "./pages/CompareView";
+import ErrorNavigator from "./pages/ErrorNavigator";
 import Overview from "./pages/Overview";
 import FileView from "./pages/FileView";
 import { I18nProvider } from "./lib/i18n";
@@ -15,6 +16,7 @@ function App() {
           <Route path="/pr" element={<PrView />} />
           <Route path="/compare" element={<CompareView />} />
           <Route path="/project/:projectId" element={<Overview />} />
+          <Route path="/project/:projectId/errors" element={<ErrorNavigator />} />
           <Route path="/project/:projectId/file/*" element={<FileView />} />
         </Routes>
       </BrowserRouter>

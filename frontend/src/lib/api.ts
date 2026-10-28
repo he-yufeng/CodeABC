@@ -927,3 +927,36 @@ export async function compareProjects(
   }
   return res.json();
 }
+
+export interface ErrorLocation {
+  path: string;
+  line: number;
+  column: number | null;
+  kind: string;
+  purpose: string;
+  excerpt: string;
+}
+
+export interface ErrorLocationResult {
+  locations: ErrorLocation[];
+  unresolved: number;
+  truncated: boolean;
+}
+
+/** Resolve a pasted stack trace only against source already scanned into this
+ *  project. The backend reads no paths named by the log and calls no LLM. */
+export async function locateProjectError(
+  projectId: string,
+  log: string,
+): Promise<ErrorLocationResult> {
+  const res = await apiFetch(`${BASE}/project/${projectId}/error-locations`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ log }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "" }));
+    throw new Error(err.detail || "Failed to locate the error");
+  }
+  return res.json();
+}
