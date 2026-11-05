@@ -48,7 +48,7 @@ def test_annotation_route_separates_language_profiles_and_caches_each(monkeypatc
     async def fake_get_project(project_id):
         return project if project_id == "demo" else None
 
-    async def fake_call_llm(prompt, *, api_key=None):
+    async def fake_call_llm(prompt, **kwargs):
         calls.append(prompt)
         return '[{"line_start": 1, "line_end": 1, "annotation": "给答案赋值"}]'
 

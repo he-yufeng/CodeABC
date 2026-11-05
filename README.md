@@ -194,7 +194,14 @@ npm run tauri:dev
 CodeABC supports two modes:
 
 - **Free mode** (default): Limited to 20 requests per day
-- **BYOK mode**: Click the gear icon in the top-right corner to enter your own API key for unlimited use. The key is stored only in your browser's localStorage.
+- **BYOK mode**: Click the gear icon in the top-right corner for unlimited use. The key is stored only in your browser's localStorage. **Simple key** is the default: paste an OpenRouter, OpenAI, Anthropic, or another compatible provider key and save. OpenRouter needs nothing else; CodeABC picks a fast, inexpensive model for you.
+
+  Choose **Custom gateway** when you need a specific endpoint and wire protocol:
+  1. **Endpoint**: paste a Base URL, pick the API format (`OpenAI-compatible` or `Anthropic-compatible`), then paste your key if the gateway needs one. The Base URL is normalised for you: a missing `/v1` is added, a trailing `/v1` on an Anthropic-style base is stripped.
+  2. **Model**: *Fetch model list* asks the gateway what it serves. Pick from the dropdown when it answers (non-chat models are greyed out with the reason); type the model id when it does not, which is common for Anthropic-compatible gateways.
+  3. **Verify**: *Test connection* pings only the model you selected with a 1-token request, so it works whether or not the gateway exposes a model list. Keys come back masked.
+
+  Advanced settings are saved only after a successful check and clicking **Done**. Cancel leaves the active configuration unchanged. Server-side configuration uses `OPENAI_API_BASE` for the endpoint (see `.env.example`).
 
 ## Project Structure
 

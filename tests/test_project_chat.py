@@ -139,8 +139,13 @@ def _install_route_fakes(monkeypatch, project: dict, answer: str = "可以启动
     async def fake_get_project(project_id):
         return project if project_id == "demo" else None
 
-    async def fake_call_llm(prompt, *, api_key=None):
+    configs = []
+
+    async def fake_call_llm(prompt, *, api_key=None, api_base=None, model=None, protocol=None):
         calls.append(prompt)
+        configs.append(
+            {"api_key": api_key, "api_base": api_base, "model": model, "protocol": protocol}
+        )
         return answer
 
     async def fake_get(key):
@@ -157,11 +162,11 @@ def _install_route_fakes(monkeypatch, project: dict, answer: str = "可以启动
     monkeypatch.setattr("backend.routers.analyze._enforce_rate_limit", no_rate_limit)
     monkeypatch.setattr(cache, "get", fake_get)
     monkeypatch.setattr(cache, "put", fake_put)
-    return calls, stored
+    return calls, stored, configs
 
 
 def test_chat_route_returns_sources_history_and_cached_response(monkeypatch):
-    calls, _ = _install_route_fakes(monkeypatch, _project())
+    calls, _, _ = _install_route_fakes(monkeypatch, _project())
     history = [{"question": "它是 FastAPI 吗？", "answer": "是的"}]
     payload = {"question": "那怎么启动？", "history": history}
 
@@ -176,6 +181,30 @@ def test_chat_route_returns_sources_history_and_cached_response(monkeypatch):
     assert "它是 FastAPI 吗？" in calls[0] and "是的" in calls[0]
     assert len(calls) == 1
     assert second.json() == result
+
+
+def test_chat_route_forwards_the_selected_gateway(monkeypatch):
+    _, _, configs = _install_route_fakes(monkeypatch, _project())
+    headers = {
+        "x-api-key": "sk-test",
+        "x-api-base": "https://gw.example.com/v1",
+        "x-model": "openai/qwen3.8-flash",
+        "x-api-protocol": "chat_completions",
+    }
+
+    response = TestClient(app).post(
+        "/api/project/demo/chat", json={"question": "怎么启动"}, headers=headers
+    )
+
+    assert response.status_code == 200
+    assert configs == [
+        {
+            "api_key": "sk-test",
+            "api_base": "https://gw.example.com/v1",
+            "model": "openai/qwen3.8-flash",
+            "protocol": "chat_completions",
+        }
+    ]
 
 
 def test_chat_route_rejects_empty_question(monkeypatch):
